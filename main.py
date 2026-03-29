@@ -2,7 +2,7 @@ import streamlit as st
 import importlib
 
 # 페이지 기본 설정
-st.set_page_config(page_title="Data Matrix Studio", page_icon="💡", layout="centered")
+st.set_page_config(page_title="F.U.T.U.R.E Studio", page_icon="💡", layout="centered")
 
 # 페이지 제목
 st.title(":rainbow[F.U.T.U.R.E Studio]")
@@ -33,9 +33,8 @@ st.markdown(
     }
     </style>
     <div style='text-align: right;'>
-        <a class="top-qna-link" href="https://padlet.com/ps0andd/f-u-t-u-r-e-d-e-e-p-1-k4pzadb5rpb299of" target="_blank">
-            <span class="qna-emoji">📢</span> 패들렛(Padlet) 갤러리 가기
-        </a>
+        <a class="top-qna-link" href="https://padlet.com/ps0andd/hub" target="_blank">
+            <span class="qna-emoji">📢</span> 패들렛(Padlet) 바로 가기
     </div>
     """,
     unsafe_allow_html=True
@@ -44,8 +43,8 @@ st.markdown(
 
 # 1~7차시 드롭다운 메뉴 구성
 days = [
-    "1DAY - 🛠️ 수학의 언어를 파이썬으로 (변수와 함수)",
-    "2DAY - 🛠️ 데이터 최적화 알고리즘 (if문)",
+    "1DAY - 📦 수학의 언어를 파이썬으로 (변수와 함수)",
+    "2DAY - 🔀 데이터 최적화 알고리즘 (if문)",
     "3DAY - 🔢 경우의 수 폭발과 AI 탐색",
     "4DAY - 🖼️ 세상의 데이터는 행렬이다 (이미지 처리)",
     "5DAY - 📉 수학적 오차와 AI 예측 (딥러닝 원리)",
@@ -69,7 +68,7 @@ if 'current_day' not in st.session_state:
 
 # 사이드바가 아닌 메인 화면 중앙에 드롭다운 배치
 selected_day = st.selectbox(
-    "📚 학습 차시 선택",
+    "👇 도전을 시작합시다! 수업을 선택하세요",
     options=days,
     key="current_day"  # key를 지정하면 자동으로 session_state에 저장 및 동기화됩니다.
 )
