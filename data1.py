@@ -5,7 +5,7 @@ import io
 import sys
 import datetime
 import os
-import builtins 
+import builtins
 from fpdf import FPDF
 
 # ==========================================
@@ -139,36 +139,62 @@ def create_portfolio_pdf(student_info, teacher_ans, code_data):
     return bytes(pdf.output(dest='S'))
 
 # ==========================================
-# 2. 파이썬 코드 실행 엔진 (다중 접속 동시성 오류 완벽 방어 버전)
+# 2. 파이썬 코드 실행 엔진 (동시성 및 보안 완벽 방어 버전)
 # ==========================================
 def code_runner(code_input):
     output_buffer = io.StringIO()
-    result, status = "", "success"
     
-    # 여러 명이 동시에 접속해도 stdout이 겹치지 않도록 print 함수를 안전하게 격리합니다.
+    # 1. builtins 전역 공간을 오염시키지 않는 독립적인 커스텀 print 함수
     def custom_print(*args, sep=' ', end='\n', file=None, flush=False):
         if file is None:
             output_buffer.write(sep.join(map(str, args)) + end)
         else:
             builtins.print(*args, sep=sep, end=end, file=file, flush=flush)
 
-    safe_builtins = builtins.__dict__.copy()
-    safe_builtins['print'] = custom_print
+    # 💡 [추가/수정됨] 안전한 임포트(import) 함수 정의
+    original_import = builtins.__import__
+    def safe_import(name, globals=None, locals=None, fromlist=(), level=0):
+        # 학생이 import 할 수 있도록 허용할 모듈 목록 (해킹 방지)
+        allowed_modules = ['sympy', 'math', 'random']
+        base_name = name.split('.')[0] # 서브 모듈(sympy.abc 등) 허용 처리
+        
+        if base_name in allowed_modules:
+            return original_import(name, globals, locals, fromlist, level)
+        raise ImportError(f"🚨 보안 경고: '{name}' 모듈은 이 실습에서 임포트할 수 없습니다.")
+
+    # 2. 보안: 학생이 사용할 수 있는 안전한 기본 함수들만 화이트리스트로 허용
+    safe_builtins = {
+        'print': custom_print,
+        '__import__': safe_import,  # 👈 핵심! import 구문 실행을 위해 필수 추가
+        'range': range, 'len': len, 'int': int, 'float': float, 'str': str,
+        'bool': bool, 'list': list, 'dict': dict, 'set': set, 'tuple': tuple,
+        'sum': sum, 'min': min, 'max': max, 'abs': abs, 'round': round,
+        'enumerate': enumerate, 'zip': zip, 'type': type, # 자주 쓰는 기본 함수 추가
+        'Exception': Exception, 'ValueError': ValueError, 'TypeError': TypeError,
+        '__build_class__': __build_class__, # 클래스나 함수(def) 정의를 위해 필수
+    }
     
     try:
         import sympy as sp
     except ImportError:
         sp = None
 
+    # exec 실행 환경 격리
     exec_globals = {
         '__builtins__': safe_builtins,
         'sp': sp,
         'sympy': sp
     }
     
+    # 3. 보안: 위험한 코드 문자열 1차 필터링
+    forbidden_keywords = ["import os", "import sys", "import subprocess", "open(", "eval(", "exec("]
+    if any(keyword in code_input for keyword in forbidden_keywords):
+        return "❌ 시스템 보안 경고: 허용되지 않은 키워드나 명령어 호출이 포함되어 있습니다.", "error"
+
     try:
         exec(code_input, exec_globals)
         result = output_buffer.getvalue() or "출력된 내용이 없습니다."
+        status = "success"
     except Exception as e:
         result = f"{e.__class__.__name__}: {e}"
         status = "error"
@@ -206,7 +232,7 @@ def code_block(problem_number, title, starter_code, prefix="", height=280):
 def run():
     #st.set_page_config(page_title="F.U.T.U.R.E. 1차시", page_icon="🚀", layout="centered")
     
-    st.header("1DAY - 🛠️ 수학의 언어를 파이썬으로")
+    st.header("1DAY - 📦 수학의 언어를 파이썬으로")
     st.markdown("**🎯 학습 목표:** 공통수학1의 '다항식의 연산', '나머지 정리', '인수정리'가 파이썬 알고리즘과 어떻게 연결되는지 탐구합니다.")
     st.markdown("<hr style='border: 2px solid #2196F3;'>", unsafe_allow_html=True) 
     tabs = st.tabs([
@@ -223,7 +249,7 @@ def run():
     with tabs[0]:
         st.success("**[문제 인식 및 숨겨진 데이터 찾기]** 우리가 당연하게 여기던 수학적 고정관념을 깨고, 컴퓨터가 데이터를 이해하는 새로운 규칙을 발견하는 과정입니다.\n\n* **✨ 오늘의 레벨업:** 익숙한 수학 기호(=)의 다양한 의미 찾아내기\n* **💬 핵심 탐구 질문:** *\"컴퓨터는 이 수식을 도대체 어떻게 이해하고 있을까?\"*")
         st.markdown("---")
-        st.markdown("#### 📌[문제 제기] 수학과 컴퓨터의 충돌, 컴퓨터는 다항식을 어떻게 이해할까?")
+        st.markdown("#### ❔[문제 제기] 수학과 컴퓨터의 충돌, 컴퓨터는 다항식을 어떻게 이해할까?")
         st.latex(r"x = x + 1")
         st.info("방정식으로 풀면 $0 = 1$이 되므로 수학에서는 절대 성립할 수 없는 식입니다. \n\n하지만 파이썬에서는 가장 핵심적인 문법입니다. 왜 그럴까요?")
         hypothesis = st.text_input("💡 나의 가설 세워보기 (컴퓨터에서 '=' 기호와 'x'는 어떤 의미일까?)", placeholder="나의 생각을 자유롭게 적어보세요.")
@@ -247,7 +273,7 @@ def run():
         st.success("**[현상을 수학의 언어로 바꾸기]** 현실의 문제를 수학적 기호와 알고리즘으로 모델링(번역)하는 과정입니다.\n\n* **✨ 오늘의 레벨업:** 🧮 현실을 수학의 언어로 번역하는 힘\n* **💬 핵심 탐구 질문:** *\"어떤 함수와 연산자를 활용하여 이 관계를 모델링할 수 있을까?\"*")
         st.markdown("---")
 
-        st.markdown("#### 📌 [코딩] 자료형과 출력")
+        st.markdown("#### ▶️ [코딩] 자료형과 출력")
         st.write("""
         수학에서 수와 식을 다루듯, 파이썬에서는 다양한 형태의 자료형을 다룹니다.
         * **문자열(String):** 텍스트 데이터. 따옴표('')로 감싸서 입력합니다. (예: `'Hello World'`, `'다항식'`)
@@ -258,11 +284,11 @@ def run():
         st.info("💡 **출력 명령어 `print()`:** 괄호 안의 데이터를 화면에 출력하는 함수입니다. 쉼표(`,`)로 구분하여 여러 데이터를 동시에 출력할 수 있습니다.")
         
         st.markdown("""###### 💻 [문제 1] 다양한 자료형 출력하기""")
-        code_block(1, "print() 함수 활용", "print('hello', 320)\n", prefix="d1_q", height=180)
+        code_block(1, "print() 함수 활용", "print('hello', 320)\nprint()", prefix="d1_q", height=180)
         
         st.divider() 
         
-        st.markdown("#### 📌 [수학적 질문] 다항식 연산, 컴퓨터의 언어로 어떻게 번역할 수 있을까?")
+        st.markdown("#### ❔ [수학적 질문] 다항식 연산, 컴퓨터의 언어로 어떻게 번역할 수 있을까?")
         st.write("다항식의 사칙연산은 파이썬의 기본 산술 연산자와 직관적으로 대응됩니다. 수학적 기호가 컴퓨팅 명령어로 어떻게 변환되는지 아래의 대응표를 통해 확인해 보십시오.")
         
         data = {
@@ -276,7 +302,7 @@ def run():
         st.dataframe(df, use_container_width=True)
         
         st.markdown("""###### 💻 [문제 2] 숫자 연산 출력하기""")
-        code_block(2, "산술 연산자 활용", "print('5+7=', 5+7)\nprint('5**2=', 5**2)\n", prefix="d1_q", height=180)       
+        code_block(2, "산술 연산자 활용", "print('5+7=', 5+7)\nprint('', )\n", prefix="d1_q", height=180)       
         
 
     # ------------------------------------------
@@ -286,7 +312,7 @@ def run():
         st.success("**[AI 도구로 시뮬레이션하기]** 파이썬과 AI를 활용하여 연산을 심화하고 데이터를 빠르고 정확하게 예측하는 과정입니다.\n\n* **✨ 오늘의 레벨업:** 💻 컴퓨터(AI)를 나의 도구로 부리는 힘\n* **💬 핵심 탐구 질문:** *\"도구를 이용하여 어떻게 더 효율적이고 정확하게 해답을 도출할 수 있을까?\"*")
         st.markdown("---")
 
-        st.markdown("#### 📌 [코딩] 함수(def)의 이해")
+        st.markdown("#### ▶️ [코딩] 함수(def)의 이해")
         st.write("""
         수학의 함수 $f(x)$가 입력값에 따라 정해진 출력을 반환하듯, 파이썬에서도 `def` 를 사용하여 특정한 연산을 수행하는 '함수'를 직접 설계할 수 있습니다.
         * **`def` (Define):** 새로운 함수를 정의하겠다는 선언입니다. (예: `def f(x):`)
@@ -310,9 +336,9 @@ print("f(5)의 결과는:", f(5)) """)
         
         st.divider()
         
-        st.markdown("#### 📌 [수학적 질문] 직접 나누지 않고 나머지를 구하는 원리, 컴퓨터의 함수로 어떻게 구현할까?")
+        st.markdown("#### ❔ [수학적 질문] 직접 나누지 않고 나머지를 구하는 원리, 컴퓨터의 함수로 어떻게 구현할까?")
         st.write("수학의 나머지 정리에 따르면, 다항식 $f(x)$를 일차식 $(x-a)$로 나눈 나머지는 함숫값 $f(a)$와 동일합니다. 즉, 복잡한 나눗셈을 직접 할 필요 없이 앞서 배운 파이썬의 함수(`def`)에 값만 대입하여 함숫값을 구하는 것이 곧 나머지를 구하는 가장 빠르고 정확한 알고리즘이 됩니다.")        
-        st.info("💡 나머지 정리: $f(x)$를 $(x-a)$로 나눈 나머지 = $f(a)$")
+        st.info("💡 나머지 정리: ($f(x)$를 $(x-a)$로 나눈 나머지)= $f(a)$")
         st.markdown("""###### 💻 [예제 2] 다항식 $f(x) = 2x^2 - 3x + 7$ 을 $(x-4)$ 로 나눈 나머지를 구하시오.""")
         st.code("""def f(x):
     return 2*(x**2) - 3*x + 7
@@ -332,12 +358,12 @@ print("나머지:", remainder)
         code_block(4, "함수를 활용한 나머지", starter_func, prefix="d1_q", height=240)
         
         st.divider()
-        st.markdown("#### 📌 [수학적 질문] $x$로 이루어진 복잡한 다항식의 연산, 컴퓨터가 직접 전개하고 인수분해할 수 있을까?")
-        st.write("💡 SymPy(심파이) 라이브러리란? 숫자 대신 문자를 사용하여 다항식, 방정식 등을 수학 시간에 손으로 푸는 것과 똑같이 계산해 주는 파이썬의 강력한 수학 도구입니다.")
+        st.markdown("#### ❔ [수학적 질문] $x$로 이루어진 복잡한 다항식의 연산, 컴퓨터가 직접 연산할 수 있을까?")
+        st.write("💡 SymPy(심파이) 라이브러리란? 숫자 대신 문자를 사용하여 다항식을 수학 시간에 손으로 푸는 것과 똑같이 계산해 주는 파이썬의 강력한 수학 도구입니다.")
         st.info("""
 * `import sympy as sp`: SymPy 도구를 불러와서 `sp`라는 짧은 별명으로 부르겠다는 뜻입니다.
-* `sp.Symbol('x')`: 컴퓨터에게 $x$가 단순한 글자나 데이터 상자가 아니라, '수학식의 미지수(기호)'임을 알려주는 가장 중요한 명령어입니다.
-* `sp.factor()`를 사용하면 식을 인수분해된 형태로 바꿔 줍니다.""")
+* `sp.Symbol('x')`: 컴퓨터에게 $x$가 단순한 글자나 데이터 상자가 아니라, '수학식의 미지수'임을 알려주는 가장 중요한 명령어입니다.
+(Symbol에서 S는 대문자로 입력)""")
         st.markdown("""###### 💻 [문제 5] 다항식 계산기(덧셈,뺄셈,곱셈) 만들기""")
         with st.expander("💡 정답 보기"):
             st.markdown("""```python\nimport sympy as sp\nx = sp.Symbol('x')
@@ -351,15 +377,16 @@ print("3. P * Q =", p*q)
 
         starter_sympy = """import sympy as sp
 x = sp.Symbol('x')
-p = x + 2
+# 👇식을 직접 입력해보세요!
+p = 
 q =  
-# 👈식을 직접 입력해보세요!
 
 print("🧮 다항식 사칙연산 계산기")
+# 👇 연산을 입력해보세요!
 print("1. P + Q =", p+q)
 print("2. P - Q =",) 
 print("3. P * Q =",) 
-# 👈 연산을 입력해보세요!
+
 """
         code_block(5, "기호 기반 다항식 연산", starter_sympy, prefix="d1_q", height=360)
 
@@ -370,7 +397,7 @@ print("3. P * Q =",)
         st.success("**[결과의 의미와 한계 고민하기]** 산출된 데이터와 결과의 타당성을 검토하고, 한계를 비판적으로 분석하여 적용하는 과정입니다.\n\n* **✨ 오늘의 레벨업:** 🤔 AI의 정답을 의심하고 검증하는 비판적 눈\n* **💬 핵심 탐구 질문:** *\"이 예측 결과는 항상 옳을까? 우리가 직접 적용하며 발견한 오류나 한계는 없을까?\"*")
         st.markdown("---")
         
-        st.markdown("#### 📌 [문제 6] 수준별 종합 도전")
+        st.markdown("#### 💻 [문제 6] 수준별 종합 도전")
         st.write("앞서 배운 개념(자료형, 연산자, 함수, SymPy)을 바탕으로 스스로 문제를 코딩해 보며, 컴퓨터의 연산 논리를 완벽히 내 것으로 만들어 봅시다.")
         
         level = st.radio("자신의 실력에 맞는 난이도를 선택하세요:", 
@@ -414,13 +441,14 @@ print(f"2. 교차 검증: f({a})의 결과는?", f(a))"""
         if st.session_state.get("d1_q6_level") != level:
             st.session_state["d1_q6_level"] = level
             
-            # 에디터의 이전 기록을 완전히 지워야 새 코드가 정상적으로 덮어씌워집니다!
+            # 에디터 키가 존재하면 새 코드로 덮어씌우기
             if "d1_q6_editor" in st.session_state:
-                del st.session_state["d1_q6_editor"] 
+                st.session_state["d1_q6_editor"] = st_code
                 
-            # 이전 실행 결과도 함께 초기화
+            # 실행 결과 초기화
             if "d1_q6_result" in st.session_state:
-                del st.session_state["d1_q6_result"]
+                st.session_state["d1_q6_result"] = ("", "")
+
         if "하" in level:
             level_key = "ha"
         elif "중" in level:
@@ -436,7 +464,7 @@ print(f"2. 교차 검증: f({a})의 결과는?", f(a))"""
         st.success("**[우리의 삶과 사회로 연결하기]** 해석한 결과를 바탕으로 세상을 바꿀 실천적 대안을 기획하고 공유하는 과정입니다.\n\n* **✨ 오늘의 레벨업:** 🤝 배운 것을 세상과 나누며 실천하는 힘\n* **💬 핵심 탐구 질문:** *\"이 결과를 바탕으로 우리는 사회를 위해 무엇을 실천해야 할까?\"*")
         st.markdown("---")
         
-        st.markdown("#### 📌 1. 학생 정보 입력")
+        st.markdown("#### 💾 1. 학생 정보 입력")
         col_info1, col_info2, col_info3 = st.columns(3)
         with col_info1:
             group_name = st.text_input("모둠 이름 (예: 1모둠)")
@@ -447,7 +475,7 @@ print(f"2. 교차 검증: f({a})의 결과는?", f(a))"""
 
         st.markdown("---")
 
-        st.markdown("#### 📌 2. 나의 생각 쓰기 및 코드 포트폴리오 저장")
+        st.markdown("#### 💾 2. 나의 생각 쓰기 및 코드 포트폴리오 저장(포트폴리오 페들렛 공유용)")
         st.info("🔥 **교사의 심화 질문(Deep Question):**\n\n컴퓨터(AI)가 알고리즘을 통해 복잡한 연산을 0.1초 만에 수행하는 시대입니다. 그렇다면 우리는 왜 다항식의 연산과 나머지 정리 같은 수학적 원리를 학습해야 할까요?")
         teacher_ans = st.text_area("위 질문에 대한 나만의 답을 논리적으로 작성해 보세요.", height=100)
 
@@ -495,14 +523,14 @@ print(f"2. 교차 검증: f({a})의 결과는?", f(a))"""
 
                     # 💡 선생님의 1차시 반별 포트폴리오 패들렛 주소 매핑
                     portfolio_urls = {
-                        "1": "", # 1반 주소
-                        "2": "", # 2반 주소
-                        "5": "", # 5반 주소
-                        "6": "", # 6반 주소
+                        "1": "https://padlet.com/ps0andd/p_1", # 1반 주소
+                        "2": "https://padlet.com/ps0andd/p_2", # 2반 주소
+                        "5": "https://padlet.com/ps0andd/p_5", # 5반 주소
+                        "6": "https://padlet.com/ps0andd/p_6", # 6반 주소
                     }
                     padlet_portfolio_url = portfolio_urls.get(class_num, "https://padlet.com/")
 
-                    st.info(f"📌 **[미션 1]** 방금 다운로드한 **PDF 파일**을 아래 '{class_num}반 포트폴리오 갤러리'에 업로드해 주세요!")
+                    st.info(f"💾 **[미션 1]** 방금 다운로드한 **PDF 파일**을 아래 '{class_num}반 포트폴리오 갤러리'에 업로드해 주세요!")
                     st.markdown(
                         f"""<a href="{padlet_portfolio_url}" target="_blank" 
                            style="display: inline-block; padding: 10px 20px; background: linear-gradient(90deg, #43a047 0%, #66bb6a 100%); color: white; text-decoration: none; border-radius: 8px; font-weight: bold; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-top: 5px;">
@@ -518,12 +546,12 @@ print(f"2. 교차 검증: f({a})의 결과는?", f(a))"""
 
         st.markdown("---")
         
-        st.markdown("#### 📌 3. 모둠 질문 만들기 (질문 패들렛 공유용)")
+        st.markdown("#### 💬 3. 모둠 질문 만들기 (질문 패들렛 공유용)")
         st.write("모둠원과 함께 오늘 활동을 돌아보며 3가지 질문을 완성하고, 결과를 패들렛에 공유해 봅시다.")
         
-        q1 = st.text_area("🔎 [발견의 질문] 오늘 코딩 실습을 하면서 '아하!' 하고 새롭게 알게 된 사실은 무엇인가요?", height=100)
-        q2 = st.text_area("💡 [원리의 질문] 다항식의 인수분해(인수정리)를 컴퓨터는 어떻게 풀어냈나요?", height=100)
-        q3 = st.text_area("🔥 [딥(Deep) 퀘스천] AI가 0.1초 만에 계산을 다 해주는 시대, 우리는 왜 굳이 수학 원리와 코딩을 배우는 걸까요?", height=100)
+        q1 = st.text_area("🔎 **[발견의 질문]** *(관찰과 사실)* 실습 과정에서 조건을 바꾸었을 때 일어나는 즉각적인 변화나, 직접 눈으로 확인한 객관적 사실(데이터)에 대해 묻는 질문입니다. 👉 :blue[ 예) 오늘 코딩 실습을 하면서 '아하!' 하고 새롭게 알게 된 사실은 무엇인가요?]", height=100)
+        q2 = st.text_area("💡 **[원리의 질문]** *(개념과 원리)* 눈에 보이는 결과 이면에 숨겨진 교과 지식(수학적 공식, 알고리즘 등)이나 근본적인 작동 원리를 논리적으로 파헤치는 질문입니다.👉 :blue[예)다항식의 인수분해(인수정리)를 컴퓨터는 어떻게 풀어냈나요?]", height=100)
+        q3 = st.text_area("🔥 **[딥(Deep) 퀘스천]** *(윤리와 철학)* 배운 지식이나 기술이 실제 사회에 적용될 때 발생할 수 있는 부작용이나 윤리적 딜레마를 다루며, 정답 없이 서로의 가치관을 깊이 있게 나눌 수 있는 토론형 질문입니다. 👉 :blue[예)AI가 0.1초 만에 계산을 다 해주는 시대, 우리는 왜 굳이 수학 원리와 코딩을 배우는 걸까요?]", height=100)
 
         if group_name and stu_id and q1 and q2 and q3:
             if len(stu_id) >= 3 and stu_id[2] in ["1", "2", "5", "6"]:
@@ -542,14 +570,14 @@ print(f"2. 교차 검증: f({a})의 결과는?", f(a))"""
 
                 # 💡 선생님의 1차시 반별 Q&A 패들렛 주소 매핑
                 qa_urls = {
-                    "1": "", # 1반 주소
-                    "2": "", # 2반 주소
-                    "5": "", # 5반 주소
-                    "6": "", # 6반 주소
+                    "1": "https://padlet.com/ps0andd/q_1", # 1반 주소
+                    "2": "https://padlet.com/ps0andd/q_2", # 2반 주소
+                    "5": "https://padlet.com/ps0andd/q_5", # 5반 주소
+                    "6": "https://padlet.com/ps0andd/q_6", # 6반 주소
                 }
                 padlet_qa_url = qa_urls.get(class_num, "https://padlet.com/")
 
-                st.info(f"📌 **[미션 2]** 복사한 성찰 일지를 아래 '{class_num}반 질문(Q&A) 패들렛'에 업로드하고, 친구 글에 댓글을 달아주세요!")
+                st.info(f"📝 **[미션 2]** 복사한 성찰 일지를 아래 '{class_num}반 질문(Q&A) 패들렛'에 업로드하고, 친구 글에 댓글을 달아주세요!")
                 st.markdown(
                     f"""<a href="{padlet_qa_url}" target="_blank" 
                        style="display: inline-block; padding: 10px 20px; background: linear-gradient(90deg, #1976d2 0%, #42a5f5 100%); color: white; text-decoration: none; border-radius: 8px; font-weight: bold; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-top: 5px;">

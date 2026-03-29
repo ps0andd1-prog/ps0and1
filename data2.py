@@ -232,7 +232,7 @@ def run():
     # 데스크탑 오류 방지를 위해 메인페이지 설정은 주석처리
     # st.set_page_config(page_title="F.U.T.U.R.E. 2차시", page_icon="🚀", layout="centered")
     
-    st.header("2DAY - 🛠️ 이차함수와 알고리즘의 만남")
+    st.header("2DAY - 🔀 이차함수와 알고리즘의 만남")
     st.markdown("**🎯 학습 목표:** 파이썬의 조건문(if/elif/else)을 이해하고, 이를 통해 '이차함수와 직선(x축)의 위치 관계'를 코드로 판별하며 시각화하는 능력을 기릅니다.")
     st.markdown("<hr style='border: 2px solid #2196F3;'>", unsafe_allow_html=True) 
     
@@ -251,7 +251,7 @@ def run():
         st.success("**[문제 인식 및 숨겨진 데이터 찾기]** 현실의 사물이 움직이는 궤적에서 수학적 구조를 발견하고, 컴퓨터의 입장에서 상황을 판단하는 방법을 탐색합니다.")
         st.markdown("---")
         
-        st.markdown("#### 📌 [문제 제기] 🚁 드론 비행 시뮬레이터, 충돌을 예측하라!")
+        st.markdown("#### ❔ [문제 제기] 🚁 드론 비행 시뮬레이터, 충돌을 예측하라!")
         st.write("당신은 자율주행 드론 비행 시스템의 개발자입니다. 드론의 고도 비행 궤적은 이차함수 $y = ax^2 + bx + c$ 의 포물선을 그리며 움직입니다. 여기서 **지면은 x축 ($y = 0$)**을 의미합니다.")
         st.info("""💡 **지면(x축)과 드론 궤적의 3가지 시나리오:**
 1. 드론이 지면에 두 번 부딪히며 추락한다. (서로 다른 두 점에서 만남)
@@ -280,7 +280,7 @@ def run():
         st.success("**[현상을 수학의 언어로 바꾸기]** 발견한 현실의 문제를 수학의 언어와 컴퓨터의 조건문(if)으로 구조화하여 설계하는 단계입니다.")
         st.markdown("---")
 
-        st.markdown("#### 📌 [코딩] 조건문 (if / elif / else)")
+        st.markdown("#### ▶️ [코딩] 조건문 (if / elif / else)")
         st.write("조건문은 주어진 조건의 참·거짓에 따라 서로 다른 명령을 실행하도록 컴퓨터의 논리적 흐름을 제어하는 구문입니다.")
         st.code("""
 if 첫번째_조건:
@@ -326,12 +326,10 @@ else:
             st.code("""num = -5\nif num > 0:\n    print('양수입니다.')\nelif num == 0:\n    print('0입니다.')\nelse:\n    print('음수입니다.')""", language="python")
 
         starter_q1 = """num = -5
-# 아래 if-elif-else 문을 완성하세요.
 if num > 0:
     print('양수입니다.')
-elif :
-    print('0입니다.')
-else:
+# 👇 if-elif-else 문을 완성하세요.
+elif
     
 """
         code_block("q1", "조건문 기초 (문제 1)", starter_q1, prefix="d2_", height=230)
@@ -344,7 +342,7 @@ else:
         st.success("**[AI 도구로 시뮬레이션하기]** 파이썬과 시각화 도구(Matplotlib)를 활용해 수학적 문제와 실생활 문제의 위치 관계를 예측하는 단계입니다.")
         st.markdown("---")
 
-        st.markdown("#### 📌 [개념 탐구] 시각적으로 이해하는 위치 관계")
+        st.markdown("#### 📈 [개념 탐구] 시각적으로 이해하는 위치 관계")
         st.write("왼쪽의 슬라이더를 움직여 이차함수의 계수를 조절해보고, 오른쪽 그래프와 설명을 통해 x축과의 위치 관계를 이해해 보세요.")
 
         col_viz1, col_viz2 = st.columns([1, 1.2])
@@ -390,7 +388,7 @@ else:
 
         st.divider()
 
-        st.markdown("#### 📌 [수학적 질문] 이차방정식의 근과 x축의 위치 관계는 어떤 의미일까?")
+        st.markdown("#### ❔ [수학적 질문] 이차방정식의 근과 x축의 위치 관계는 어떤 의미일까?")
         st.write("이차방정식 $ax^2 + bx + c = 0$ 의 실근은, 시각적으로 볼 때 **이차함수 $y = ax^2 + bx + c$ 의 그래프가 x축($y=0$)과 만나는 교점의 x좌표**를 의미합니다.")
         st.info("""💡 **수식과 그래프의 연결**
 * **$D > 0$ (근 2개)** $\\rightarrow$ 그래프가 x축을 관통하며 **두 점**에서 만납니다.
@@ -448,9 +446,9 @@ draw_graph(a, b, c)
             st.code("""a = 1\nb = -4\nc = 5\nD = b**2 - 4*a*c\n\nif D > 0:\n    print("🚨 추락 경고! 지면에 충돌합니다!")\nelif D == 0:\n    print("⚠️ 주의! 지면에 스칩니다!")\nelse:\n    print("✅ 안전! 지면에 닿지 않습니다.")\n\ndraw_graph(a, b, c)""", language="python")
 
         starter_q3 = """# 1. 궤적 계수 입력
-a = 1
-b = -4
-c = 5
+a = 
+b = 
+c = 
 
 # 2. 판별식 D 계산
 D = 
@@ -464,7 +462,7 @@ else:
     print("✅ 안전! 지면에 닿지 않습니다.")
 
 # 4. 그래프 출력
-
+draw_graph(a, b, c)
 """
         code_block("q3", "드론 충돌 시뮬레이터 (문제 2)", starter_q3, prefix="d2_", height=380)
 
@@ -475,7 +473,7 @@ else:
         st.success("**[결과의 의미와 한계 고민하기]** AI와 코드가 도출한 결과가 실제 현실에서도 타당한지, 알고리즘을 확장하여 실제 근을 구해보는 단계입니다.")
         st.markdown("---")
         
-        st.markdown("#### 📌 [문제 3] 수준별 종합 도전")
+        st.markdown("#### 💻 [문제 3] 수준별 종합 도전")
         st.write("배운 조건문(`if-elif-else`)을 활용하여 자신만의 시뮬레이터를 확장해 봅시다.")
         
         level = st.radio("자신의 실력에 맞는 난이도를 선택하세요:", 
@@ -517,7 +515,7 @@ print("비행 상태:", result)
 draw_graph(1, -2, 3)
 """
         else:
-            st.info("**[심화 종합]** 충돌한다면(D>0) 근의 공식을 이용해 실제 추락하는 **x축 좌표(근)**까지 계산해서 출력하고 시각화하는 완벽한 시스템을 구축하세요. \n*(힌트: 거듭제곱 연산자 `**0.5` 를 사용하면 루트(√)를 계산할 수 있습니다.)*")
+            st.info("**[심화 종합]** 충돌한다면(D>0) 근의 공식을 이용해 실제 추락하는 x축 좌표(근)까지 계산해서 출력하고 시각화하는 완벽한 시스템을 구축하세요. \n*(힌트: 거듭제곱 연산자 `**0.5` 를 사용하면 루트(√)를 계산할 수 있습니다.)*")
             st_code = """a = -1
 b = 6
 c = -5
@@ -560,7 +558,7 @@ draw_graph(a, b, c)
         st.success("**[우리의 삶과 사회로 연결하기]** 오늘 우리가 만든 코드와 수학적 발견이 실제 세상에서 어떻게 쓰일 수 있을지 고민하고, 우리의 아이디어를 친구들과 나누는 과정입니다.")
         st.markdown("---")
         
-        st.markdown("#### 📌 1. 학생 정보 입력")
+        st.markdown("#### 💾 1. 학생 정보 입력")
         col_info1, col_info2, col_info3 = st.columns(3)
         with col_info1:
             group_name = st.text_input("모둠 이름 (예: 1모둠)")
@@ -571,10 +569,11 @@ draw_graph(a, b, c)
 
         st.markdown("---")
 
-        st.markdown("#### 📌 2. 나의 생각 쓰기 및 코드 포트폴리오 저장")
+        st.markdown("#### 💾 2. 나의 생각 쓰기 및 코드 포트폴리오 저장(포트폴리오 페들렛 공유용)")
         st.info("🔥 **교사의 심화 질문(Deep Question):**\n\n컴퓨터(AI)가 그래프를 그려주고 교점도 다 찾아주는 시대입니다. 그렇다면 우리는 왜 굳이 이차함수와 x축의 위치 관계(판별식)를 수학적으로 이해하고, 알고리즘(if-elif)으로 설계하는 방법을 배워야 할까요?")
-        teacher_ans = st.text_area("위 질문에 대한 나만의 답을 논리적으로 작성해 보세요.", height=100)
-
+        # 고유한 key를 추가하여 data1과 완전히 분리합니다.
+        teacher_ans = st.text_area("위 질문에 대한 나만의 답을 논리적으로 작성해 보세요.", height=100, key="d2_teacher_ans")
+        
         if group_name and stu_id and stu_name and teacher_ans:
             if len(stu_id) >= 3:
                 class_num = stu_id[2]
@@ -616,14 +615,14 @@ draw_graph(a, b, c)
                     )
 
                     portfolio_urls = {
-                        "1": "https://padlet.com/",
-                        "2": "https://padlet.com/",
-                        "5": "https://padlet.com/",
-                        "6": "https://padlet.com/",
+                        "1": "https://padlet.com/ps0andd/p_1", # 1반 주소
+                        "2": "https://padlet.com/ps0andd/p_2", # 2반 주소
+                        "5": "https://padlet.com/ps0andd/p_5", # 5반 주소
+                        "6": "https://padlet.com/ps0andd/p_6", # 6반 주소
                     }
                     padlet_portfolio_url = portfolio_urls.get(class_num, "https://padlet.com/")
 
-                    st.info(f"📌 **[미션 1]** 방금 다운로드한 **PDF 파일**을 아래 '{class_num}반 포트폴리오 갤러리'에 업로드해 주세요!")
+                    st.info(f"💾 **[미션 1]** 방금 다운로드한 **PDF 파일**을 아래 '{class_num}반 포트폴리오 갤러리'에 업로드해 주세요!")
                     st.markdown(
                         f"""<a href="{padlet_portfolio_url}" target="_blank" 
                             style="display: inline-block; padding: 10px 20px; background: linear-gradient(90deg, #43a047 0%, #66bb6a 100%); color: white; text-decoration: none; border-radius: 8px; font-weight: bold; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-top: 5px;">
@@ -639,12 +638,12 @@ draw_graph(a, b, c)
 
         st.markdown("---")
         
-        st.markdown("#### 📌 3. 모둠 성찰 질문 만들기 (질문 패들렛 공유용)")
+        st.markdown("#### 💬 3. 모둠 성찰 질문 만들기 (질문 패들렛 공유용)")
         st.write("모둠원과 함께 오늘 활동을 돌아보며 3가지 질문을 완성하고, 결과를 패들렛에 공유해 봅시다.")
         
-        q1 = st.text_area("🔎 [발견의 질문] 코딩으로 그래프를 그려보고 위치 관계를 판별하면서 새롭게 알게 된 사실은 무엇인가요?", height=100)
-        q2 = st.text_area("💡 [원리의 질문] 컴퓨터는 조건문(if-elif-else)을 이용해 이차함수와 x축의 교점 개수를 어떻게 논리적으로 알아냈나요?", height=100)
-        q3 = st.text_area("🔥 [딥(Deep) 퀘스천] 우리의 일상생활이나 미래 기술에서 이러한 '조건 판단(위치 관계 예측)' 알고리즘이 쓰일 수 있는 사례는 또 무엇이 있을까요?", height=100)
+        q1 = st.text_area("🔎 **[발견의 질문]** *(관찰과 사실)* 실습 과정에서 조건을 바꾸었을 때 일어나는 즉각적인 변화나, 직접 눈으로 확인한 객관적 사실(데이터)에 대해 묻는 질문입니다. 👉 :blue[ 예) 점수를 1점만 바꾸어 입력했는데, 왜 컴퓨터 화면에 출력되는 결과가 완전히 달라졌을까?]", height=100)
+        q2 = st.text_area("💡 **[원리의 질문]** *(개념과 원리)* 눈에 보이는 결과 이면에 숨겨진 교과 지식(수학적 공식, 알고리즘 등)이나 근본적인 작동 원리를 논리적으로 파헤치는 질문입니다.👉 :blue[예) 유튜브에서 내가 좋아할 만한 영상을 자동으로 추천해 주는 알고리즘은, 오늘 우리가 배운 조건문을 어떻게 응용해서 만들어진 것일까?]", height=100)
+        q3 = st.text_area("🔥 **[딥(Deep) 퀘스천]** *(윤리와 철학)* 배운 지식이나 기술이 실제 사회에 적용될 때 발생할 수 있는 부작용이나 윤리적 딜레마를 다루며, 정답 없이 서로의 가치관을 깊이 있게 나눌 수 있는 토론형 질문입니다. 👉 :blue[예)만약 인공지능이 복잡한 조건문만으로 회사 면접의 합격자를 결정한다면, 우리는 그 알고리즘의 기준이 인간보다 공정하다고 믿을 수 있을까?]", height=100)
 
         if group_name and stu_id and q1 and q2 and q3:
             if len(stu_id) >= 3 and stu_id[2] in ["1", "2", "5", "6"]:
@@ -662,14 +661,14 @@ draw_graph(a, b, c)
                 st.code(report_text, language="markdown")
 
                 qa_urls = {
-                    "1": "https://padlet.com/",
-                    "2": "https://padlet.com/",
-                    "5": "https://padlet.com/",
-                    "6": "https://padlet.com/",
+                    "1": "https://padlet.com/ps0andd/q_1", # 1반 주소
+                    "2": "https://padlet.com/ps0andd/q_2", # 2반 주소
+                    "5": "https://padlet.com/ps0andd/q_5", # 5반 주소
+                    "6": "https://padlet.com/ps0andd/q_6", # 6반 주소
                 }
                 padlet_qa_url = qa_urls.get(class_num, "https://padlet.com/")
 
-                st.info(f"📌 **[미션 2]** 복사한 성찰 일지를 아래 '{class_num}반 질문(Q&A) 패들렛'에 업로드하고, 친구 글에 댓글을 달아주세요!")
+                st.info(f"💾 **[미션 2]** 복사한 성찰 일지를 아래 '{class_num}반 질문(Q&A) 패들렛'에 업로드하고, 친구 글에 댓글을 달아주세요!")
                 st.markdown(
                     f"""<a href="{padlet_qa_url}" target="_blank" 
                         style="display: inline-block; padding: 10px 20px; background: linear-gradient(90deg, #1976d2 0%, #42a5f5 100%); color: white; text-decoration: none; border-radius: 8px; font-weight: bold; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-top: 5px;">
