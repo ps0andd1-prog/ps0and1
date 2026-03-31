@@ -84,7 +84,7 @@ class ThemedPDF(FPDF):
             self.cell(col_w * 0.65, cell_h, "", border=1)
         self.ln(cell_h + 2)
 
-def create_portfolio_pdf(student_info, teacher_ans, code_data):
+def create_portfolio_pdf(student_info, code_data):
     pdf = ThemedPDF()
     pdf.add_font('Nanum', '', font_path, uni=True)
     pdf.set_font('Nanum', '', 12)
@@ -101,18 +101,7 @@ def create_portfolio_pdf(student_info, teacher_ans, code_data):
     pdf.ln(5)  
     pdf.kv_card("👤 학생 정보", kvs)
     
-    pdf.h2("🤔 교사의 딥(Deep) 퀘스천")
-    pdf.set_font(pdf._font_family, '', 11)
-    pdf.set_text_color(211, 47, 47) 
-    pdf.multi_cell(0, 6, "Q. 컴퓨터(AI)가 나머지 정리를 0.1초 만에 다 계산해 주는데, 우리는 왜 굳이 수학적 원리를 배워야 할까요?")
-    pdf.ln(3)
-    
-    pdf.set_text_color(21, 101, 192) 
-    pdf.cell(0, 8, "▶ 나의 답변", ln=1)
-    pdf.set_text_color(50, 50, 50) 
-    pdf.p(teacher_ans if teacher_ans else "작성된 내용이 없습니다.")
-    
-    pdf.add_page()
+    # 교사의 딥 퀘스천 부분 삭제됨
     
     pdf.h2("💻 나의 파이썬 코딩 실습 결과")
     for title, code_text, result_text in code_data:
@@ -137,7 +126,6 @@ def create_portfolio_pdf(student_info, teacher_ans, code_data):
         pdf.ln(6)
     
     return bytes(pdf.output(dest='S'))
-
 # ==========================================
 # 2. 파이썬 코드 실행 엔진 (동시성 및 보안 완벽 방어 버전)
 # ==========================================
@@ -460,11 +448,17 @@ print(f"2. 교차 검증: f({a})의 결과는?", f(a))"""
     # ------------------------------------------
     # 탭 5: 세상과 연결 및 실천 [응용적 수학화 2]
     # ------------------------------------------
+    # ------------------------------------------
+    # 탭 5: 세상과 연결 및 실천 [응용적 수학화 2]
+    # ------------------------------------------
     with tabs[4]:
         st.success("**[우리의 삶과 사회로 연결하기]** 해석한 결과를 바탕으로 세상을 바꿀 실천적 대안을 기획하고 공유하는 과정입니다.\n\n* **✨ 오늘의 레벨업:** 🤝 배운 것을 세상과 나누며 실천하는 힘\n* **💬 핵심 탐구 질문:** *\"이 결과를 바탕으로 우리는 사회를 위해 무엇을 실천해야 할까?\"*")
         st.markdown("---")
         
-        st.markdown("#### 💾 1. 학생 정보 입력")
+        # ------------------------------------------
+        # 1. 학생 정보 입력 및 포트폴리오 PDF 생성
+        # ------------------------------------------
+        st.markdown("#### 💾 1. 학생 정보 입력 및 포트폴리오 저장")
         col_info1, col_info2, col_info3 = st.columns(3)
         with col_info1:
             group_name = st.text_input("모둠 이름 (예: 1모둠)")
@@ -473,22 +467,15 @@ print(f"2. 교차 검증: f({a})의 결과는?", f(a))"""
         with col_info3:
             stu_name = st.text_input("이름 (예: 홍길동)")
 
-        st.markdown("---")
-
-        st.markdown("#### 💾 2. 나의 생각 쓰기 및 코드 포트폴리오 저장(포트폴리오 페들렛 공유용)")
-        st.info("🔥 **교사의 심화 질문(Deep Question):**\n\n컴퓨터(AI)가 알고리즘을 통해 복잡한 연산을 0.1초 만에 수행하는 시대입니다. 그렇다면 우리는 왜 다항식의 연산과 나머지 정리 같은 수학적 원리를 학습해야 할까요?")
-        teacher_ans = st.text_area("위 질문에 대한 나만의 답을 논리적으로 작성해 보세요.", height=100)
-
-        if group_name and stu_id and stu_name and teacher_ans:
-            # 학번의 3번째 글자 추출하여 반 판별 로직
+        if group_name and stu_id and stu_name:
             if len(stu_id) >= 3:
                 class_num = stu_id[2]
                 valid_classes = ["1", "2", "5", "6"]
                 
                 if class_num in valid_classes:
-                    st.success("✅ 학습 포트폴리오가 완성되었습니다! 아래 버튼을 눌러 그동안 작성한 코드와 함께 PDF로 저장하세요.")
+                    st.success("✅ 학습 포트폴리오가 완성되었습니다! 코드를 PDF로 저장하고 아래 패들렛에 업로드해주세요.")
                     
-                    # 💡 PDF 저장을 위해 코드 블록의 prefix 넘버링과 정확히 매칭시킴 (문제 1~6)
+                    # PDF 데이터 수집 로직
                     if "하" in level:
                         level_key = "ha"
                     elif "중" in level:
@@ -512,82 +499,94 @@ print(f"2. 교차 검증: f({a})의 결과는?", f(a))"""
                         code_data.append((title, code_text, result_text))
                     
                     student_info = {"group": group_name, "id": stu_id, "name": stu_name}
-                    pdf_bytes = create_portfolio_pdf(student_info, teacher_ans, code_data)
+                    pdf_bytes = create_portfolio_pdf(student_info, code_data)
                     
-                    st.download_button(
-                        label="📥 나의 파이썬 코드 포트폴리오 저장하기 (PDF)",
-                        data=pdf_bytes,
-                        file_name=f"{stu_id}_{stu_name}_1차시_코드포트폴리오.pdf",
-                        mime="application/pdf"
-                    )
-
-                    # 💡 선생님의 1차시 반별 포트폴리오 패들렛 주소 매핑
+                    # 패들렛 주소 매핑
                     portfolio_urls = {
-                        "1": "https://padlet.com/ps0andd/p_1", # 1반 주소
-                        "2": "https://padlet.com/ps0andd/p_2", # 2반 주소
-                        "5": "https://padlet.com/ps0andd/p_5", # 5반 주소
-                        "6": "https://padlet.com/ps0andd/p_6", # 6반 주소
+                        "1": "https://padlet.com/ps0andd/p_1",
+                        "2": "https://padlet.com/ps0andd/p_2",
+                        "5": "https://padlet.com/ps0andd/p_5",
+                        "6": "https://padlet.com/ps0andd/p_6",
                     }
                     padlet_portfolio_url = portfolio_urls.get(class_num, "https://padlet.com/")
 
-                    st.info(f"💾 **[미션 1]** 방금 다운로드한 **PDF 파일**을 아래 '{class_num}반 포트폴리오 갤러리'에 업로드해 주세요!")
-                    st.markdown(
-                        f"""<a href="{padlet_portfolio_url}" target="_blank" 
-                           style="display: inline-block; padding: 10px 20px; background: linear-gradient(90deg, #43a047 0%, #66bb6a 100%); color: white; text-decoration: none; border-radius: 8px; font-weight: bold; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-top: 5px;">
-                           📂 {class_num}반 포트폴리오 패들렛으로 이동하기
-                        </a>""", unsafe_allow_html=True
-                    )
+                    # 버튼 2개를 나란히 배치
+                    col_btn1, col_btn2 = st.columns(2)
+                    with col_btn1:
+                        st.download_button(
+                            label="📥 내 코딩 실습 결과 PDF 다운로드",
+                            data=pdf_bytes,
+                            file_name=f"{stu_id}_{stu_name}_1차시_코드포트폴리오.pdf",
+                            mime="application/pdf",
+                            use_container_width=True
+                        )
+                    with col_btn2:
+                        st.markdown(
+                            f"""<a href="{padlet_portfolio_url}" target="_blank" 
+                               style="display: block; padding: 10px; background: linear-gradient(90deg, #43a047 0%, #66bb6a 100%); color: white; text-decoration: none; border-radius: 8px; font-weight: bold; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                               📂 {class_num}반 포트폴리오 패들렛 열기
+                            </a>""", unsafe_allow_html=True
+                        )
                 else:
                     st.error("❌ **오류:** 담당 학급(1, 2, 5, 6반)의 학번이 아닙니다. 학번을 다시 확인해 주세요.")
             else:
                 st.warning("⚠️ 올바른 5자리 학번(예: 10101)을 입력해 주세요.")
         else:
-            st.warning("⚠️ 학생 정보(모둠, 학번, 이름)와 교사의 딥 퀘스천 답변을 모두 작성해야 진행할 수 있습니다.")
+            st.warning("⚠️ 학생 정보(모둠, 학번, 이름)를 입력해야 코드를 저장할 수 있습니다.")
+
+        st.markdown("---")
+
+        # ------------------------------------------
+        # 2. 교사의 심화 질문 답변
+        # ------------------------------------------
+        st.markdown("#### 💡 2. 교사의 딥(Deep) 퀘스천에 대한 우리의 답변 작성하기")
+        st.info("🔥 **교사의 심화 질문(Deep Question):**\n\n컴퓨터(AI)가 알고리즘을 통해 복잡한 연산을 0.1초 만에 수행하는 시대입니다. 그렇다면 우리는 왜 다항식의 연산과 나머지 정리 같은 수학적 원리를 학습해야 할까요?")
+        teacher_ans = st.text_area("위 질문에 대한 우리의 답을 논리적으로 작성해 보세요.", height=100)
 
         st.markdown("---")
         
+        # ------------------------------------------
+        # 3. 모둠 질문 만들기 및 패들렛 공유
+        # ------------------------------------------
         st.markdown("#### 💬 3. 모둠 질문 만들기 (질문 패들렛 공유용)")
-        st.write("모둠원과 함께 오늘 활동을 돌아보며 3가지 질문을 완성하고, 결과를 패들렛에 공유해 봅시다.")
+        st.write("모둠원과 함께 오늘 활동을 돌아보며 심화 질문을 하나 만들고, 앞서 작성한 답변과 함께 패들렛에 공유해 봅시다.")
         
-        q1 = st.text_area("🔎 **[발견의 질문]** *(관찰과 사실)* 실습 과정에서 조건을 바꾸었을 때 일어나는 즉각적인 변화나, 직접 눈으로 확인한 객관적 사실(데이터)에 대해 묻는 질문입니다. 👉 :blue[ 예) 오늘 코딩 실습을 하면서 '아하!' 하고 새롭게 알게 된 사실은 무엇인가요?]", height=100)
-        q2 = st.text_area("💡 **[원리의 질문]** *(개념과 원리)* 눈에 보이는 결과 이면에 숨겨진 교과 지식(수학적 공식, 알고리즘 등)이나 근본적인 작동 원리를 논리적으로 파헤치는 질문입니다.👉 :blue[예)다항식의 인수분해(인수정리)를 컴퓨터는 어떻게 풀어냈나요?]", height=100)
-        q3 = st.text_area("🔥 **[딥(Deep) 퀘스천]** *(윤리와 철학)* 배운 지식이나 기술이 실제 사회에 적용될 때 발생할 수 있는 부작용이나 윤리적 딜레마를 다루며, 정답 없이 서로의 가치관을 깊이 있게 나눌 수 있는 토론형 질문입니다. 👉 :blue[예)AI가 0.1초 만에 계산을 다 해주는 시대, 우리는 왜 굳이 수학 원리와 코딩을 배우는 걸까요?]", height=100)
+        q_deep = st.text_area("🔥 **[우리의 딥(Deep) 퀘스천]** *(윤리와 철학)* 배운 지식이나 기술이 실제 사회에 적용될 때 발생할 수 있는 부작용이나 윤리적 딜레마를 다루며, 정답 없이 서로의 가치관을 깊이 있게 나눌 수 있는 토론형 질문입니다. 👉 :blue[예)AI가 0.1초 만에 계산을 다 해주는 시대, 수학을 못해도 AI만 잘 다루면 괜찮을까요?]", height=100)
 
-        if group_name and stu_id and q1 and q2 and q3:
+        if group_name and stu_id and teacher_ans and q_deep:
             if len(stu_id) >= 3 and stu_id[2] in ["1", "2", "5", "6"]:
                 class_num = stu_id[2]
-                st.success("✅ 모둠 질문 작성이 완료되었습니다! 텍스트를 복사하여 패들렛에 업로드하세요.")
-                report_text = f"""[F.U.T.U.R.E. 프로젝트 1DAY 성찰 일지] (👉 게시물 제목)
+                st.success("✅ 답변 작성이 완료되었습니다! 아래 양식을 복사하여 패들렛에 업로드하세요.")
+                
+                report_text = f"""[F.U.T.U.R.E. 프로젝트 1DAY 성찰 일지]
 모둠명: {group_name}
-1. 🔎 [발견의 질문]
-{q1}
-2. 💡 [원리의 질문]
-{q2}
-3. 🔥 [딥(Deep) 퀘스천] 
-{q3}
+
+🔥 [우리가 만든 딥(Deep) 퀘스천] 
+{q_deep}
+
+💡 [교사의 딥(Deep) 퀘스천에 대한 우리의 생각]
+{teacher_ans}
 """
                 st.code(report_text, language="markdown")
 
-                # 💡 선생님의 1차시 반별 Q&A 패들렛 주소 매핑
+                # 선생님의 1차시 반별 Q&A 패들렛 주소 매핑
                 qa_urls = {
-                    "1": "https://padlet.com/ps0andd/q_1", # 1반 주소
-                    "2": "https://padlet.com/ps0andd/q_2", # 2반 주소
-                    "5": "https://padlet.com/ps0andd/q_5", # 5반 주소
-                    "6": "https://padlet.com/ps0andd/q_6", # 6반 주소
+                    "1": "https://padlet.com/ps0andd/q_1",
+                    "2": "https://padlet.com/ps0andd/q_2",
+                    "5": "https://padlet.com/ps0andd/q_5",
+                    "6": "https://padlet.com/ps0andd/q_6",
                 }
                 padlet_qa_url = qa_urls.get(class_num, "https://padlet.com/")
 
-                st.info(f"📝 **[미션 2]** 복사한 성찰 일지를 아래 '{class_num}반 질문(Q&A) 패들렛'에 업로드하고, 친구 글에 댓글을 달아주세요!")
+                st.info(f"📝 **[미션 2]** 복사한 성찰 일지를 아래 '{class_num}반 질문(Q&A) 패들렛'에 모둠 게시판에 업로드하고, 친구 글에 댓글을 달아주세요!")
                 st.markdown(
                     f"""<a href="{padlet_qa_url}" target="_blank" 
                        style="display: inline-block; padding: 10px 20px; background: linear-gradient(90deg, #1976d2 0%, #42a5f5 100%); color: white; text-decoration: none; border-radius: 8px; font-weight: bold; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-top: 5px;">
                        🚀 {class_num}반 질문(Q&A) 패들렛으로 이동하기
                     </a>""", unsafe_allow_html=True
                 )
-            else:
-                pass # 위쪽(포트폴리오 다운로드 구간)에서 이미 에러 메시지를 띄우므로 여기선 생략
         else:
-            st.warning("⚠️ 학생 정보(모둠, 학번 등)와 3가지 모둠 질문을 모두 작성해야 합니다.") 
+            st.warning("⚠️ 교사의 심화 질문에 대한 답변과 모둠 질문을 모두 작성해야 패들렛 공유 양식이 나타납니다.")
 
     st.markdown("<hr style='border: 2px solid #2196F3;'>", unsafe_allow_html=True) 
 
