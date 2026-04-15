@@ -126,6 +126,146 @@ def create_portfolio_pdf(student_info, code_data):
         pdf.ln(6)
     
     return bytes(pdf.output(dest='S'))
+
+
+def apply_local_style():
+    st.markdown(
+        """
+        <style>
+        .block-container {
+            padding-top: 1.8rem;
+            padding-bottom: 2rem;
+        }
+        div[data-baseweb="tab-list"] {
+            gap: 0.35rem;
+        }
+        div[data-baseweb="tab"] {
+            background: #f4f8fc;
+            border-radius: 0.8rem;
+            padding: 0.45rem 0.9rem;
+            border: 1px solid #dbe7f3;
+        }
+        div[data-baseweb="tab"][aria-selected="true"] {
+            background: #e8f3ff;
+            border-color: #90caf9;
+        }
+        [data-testid="stDataFrame"] {
+            border: 1px solid #e5eef7;
+            border-radius: 0.75rem;
+        }
+        [data-testid="stTextInput"] input,
+        [data-testid="stTextArea"] textarea {
+            border-radius: 0.8rem;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def pretty_title(text, color1, color2):
+    return f"""
+    <div style='
+        background: linear-gradient(90deg, {color1} 0%, {color2} 100%);
+        border-radius: 18px;
+        box-shadow: 0 2px 8px 0 rgba(33,150,243,0.06);
+        padding: 4px 18px 0px 18px;
+        margin-bottom: 10px;'>
+        <h4 style='margin-top:0;'><b>{text}</b></h4>
+    </div>
+    """
+
+
+def page_banner(title, description):
+    st.markdown(
+        f"""
+        <div style="
+            background: linear-gradient(135deg, #e3f2fd 0%, #d1c4e9 100%);
+            border-radius: 22px;
+            padding: 22px 24px;
+            box-shadow: 0 8px 20px rgba(33, 150, 243, 0.10);
+            border: 1px solid #dbe7f3;
+            margin-bottom: 14px;
+        ">
+            <div style="font-size:0.9rem; font-weight:700; color:#5e35b1; margin-bottom:8px;">F.U.T.U.R.E. 프로젝트 1DAY</div>
+            <div style="font-size:1.9rem; font-weight:800; color:#1f2937; margin-bottom:8px;">{title}</div>
+            <div style="font-size:1rem; line-height:1.7; color:#37474f;">{description}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def stage_intro(title, description, question, color1="#e8f5e9", color2="#c8e6c9"):
+    st.markdown(
+        f"""
+        <div style="
+            background: linear-gradient(135deg, {color1} 0%, {color2} 100%);
+            border-radius: 18px;
+            padding: 18px 20px;
+            border: 1px solid rgba(0,0,0,0.06);
+            box-shadow: 0 4px 12px rgba(33, 150, 243, 0.06);
+            margin-bottom: 12px;
+        ">
+            <div style="font-size:1.05rem; font-weight:800; color:#1f2937; margin-bottom:8px;">{title}</div>
+            <div style="font-size:0.97rem; line-height:1.7; color:#37474f; margin-bottom:12px;">{description}</div>
+            <div style="
+                background: rgba(255,255,255,0.72);
+                border-radius: 12px;
+                padding: 10px 12px;
+                border: 1px solid rgba(255,255,255,0.85);
+                color:#37474f;
+                line-height:1.6;
+            ">
+                <b>핵심 탐구 질문</b><br>{question}
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def _render_value_card(item):
+    title = item.get("title", "")
+    value = item.get("value", "")
+    detail = item.get("detail", "")
+    bg = item.get("bg", "#ffffff")
+    border = item.get("border", "#dbe7f3")
+    st.markdown(
+        f"""
+        <div style="
+            height:100%;
+            padding:14px 16px;
+            border-radius:16px;
+            border:1px solid {border};
+            background:{bg};
+            box-shadow: 0 4px 10px rgba(0,0,0,0.04);
+            margin-bottom:10px;
+        ">
+            <div style="font-size:0.88rem; color:#607d8b; font-weight:700; margin-bottom:6px;">{title}</div>
+            <div style="font-size:1.18rem; color:#1f2937; font-weight:800; margin-bottom:6px;">{value}</div>
+            <div style="font-size:0.92rem; color:#455a64; line-height:1.6;">{detail}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_value_cards(items, columns=1):
+    if columns <= 1:
+        for item in items:
+            _render_value_card(item)
+        return
+
+    for start in range(0, len(items), columns):
+        row_items = items[start:start + columns]
+        row_cols = st.columns(columns)
+        for col, item in zip(row_cols, row_items):
+            with col:
+                _render_value_card(item)
+        for col in row_cols[len(row_items):]:
+            with col:
+                st.empty()
 # ==========================================
 # 2. 파이썬 코드 실행 엔진 (동시성 및 보안 완벽 방어 버전)
 # ==========================================
@@ -201,12 +341,12 @@ def code_block(problem_number, title, starter_code, prefix="", height=280):
     key_prefix = f"{prefix}{problem_number}"
     c1, c2 = st.columns(2)
     with c1:
-        st.markdown(f"##### 📥 {title} (코드 입력)")
+        st.markdown(pretty_title(f"📥 {title} (코드 입력)", "#e3f2fd", "#bbdefb"), unsafe_allow_html=True)
         code_input = st_ace(value=starter_code, language='python', theme='github', height=height, key=f"{key_prefix}_editor")
-        if st.button("▶️ 실행", key=f"{key_prefix}_run"):
+        if st.button("▶️ 실행", key=f"{key_prefix}_run", use_container_width=True):
             st.session_state[f"{key_prefix}_result"] = code_runner(code_input)
     with c2:
-        st.markdown("##### 🖥️ 실행 결과")
+        st.markdown(pretty_title("🖥️ 실행 결과", "#f1f8e9", "#dcedc8"), unsafe_allow_html=True)
         if f"{key_prefix}_result" in st.session_state:
             res, stat = st.session_state[f"{key_prefix}_result"]
             display_output(res, stat)
@@ -219,9 +359,12 @@ def code_block(problem_number, title, starter_code, prefix="", height=280):
 # ==========================================
 def run():
     #st.set_page_config(page_title="F.U.T.U.R.E. 1차시", page_icon="🚀", layout="centered")
-    
-    st.header("1DAY - 📦 수학의 언어를 파이썬으로")
-    st.markdown("**🎯 학습 목표:** 공통수학1의 '다항식의 연산', '나머지 정리', '인수정리'가 파이썬 알고리즘과 어떻게 연결되는지 탐구합니다.")
+    apply_local_style()
+    page_banner(
+        "수학의 언어를 파이썬으로",
+        "공통수학1의 다항식 연산, 나머지 정리, 인수정리가 파이썬 알고리즘과 어떻게 연결되는지 탐구하며 "
+        "수학 기호가 컴퓨터 언어로 번역되는 과정을 직접 실습합니다.",
+    )
     st.markdown("<hr style='border: 2px solid #2196F3;'>", unsafe_allow_html=True) 
     tabs = st.tabs([
         "1️⃣ [F.U] 문제 발견", 
@@ -235,39 +378,99 @@ def run():
     # 탭 1: 발견 [문맥화]
     # ------------------------------------------
     with tabs[0]:
-        st.success("**[문제 인식 및 숨겨진 데이터 찾기]** 우리가 당연하게 여기던 수학적 고정관념을 깨고, 컴퓨터가 데이터를 이해하는 새로운 규칙을 발견하는 과정입니다.\n\n* **✨ 오늘의 레벨업:** 익숙한 수학 기호(=)의 다양한 의미 찾아내기\n* **💬 핵심 탐구 질문:** *\"컴퓨터는 이 수식을 도대체 어떻게 이해하고 있을까?\"*")
-        st.markdown("---")
-        st.markdown("#### ❔[문제 제기] 수학과 컴퓨터의 충돌, 컴퓨터는 다항식을 어떻게 이해할까?")
-        st.latex(r"x = x + 1")
-        st.info("방정식으로 풀면 $0 = 1$이 되므로 수학에서는 절대 성립할 수 없는 식입니다. \n\n하지만 파이썬에서는 가장 핵심적인 문법입니다. 왜 그럴까요?")
+        stage_intro(
+            "문제 인식과 새로운 규칙 발견",
+            "우리가 익숙하게 쓰던 수학 기호가 컴퓨터 안에서는 다르게 해석된다는 점을 발견하며, "
+            "수학과 프로그래밍의 언어 차이를 이해하는 단계입니다.",
+            "수학에서는 말이 되지 않는 식이 왜 파이썬에서는 가장 중요한 문법이 될까?",
+            "#e3f2fd",
+            "#bbdefb",
+        )
+        st.markdown(pretty_title("❔ 문제 제기", "#e3f2fd", "#bbdefb"), unsafe_allow_html=True)
+        left, right = st.columns([0.8, 1.2])
+        with left:
+            st.latex(r"x = x + 1")
+        with right:
+            st.info("방정식으로 풀면 $0 = 1$이 되므로 수학에서는 절대 성립할 수 없는 식입니다.\n\n하지만 파이썬에서는 가장 핵심적인 문법입니다. 왜 그럴까요?")
         hypothesis = st.text_input("💡 나의 가설 세워보기 (컴퓨터에서 '=' 기호와 'x'는 어떤 의미일까?)", placeholder="나의 생각을 자유롭게 적어보세요.")
         if st.button("🔍 가설 확인"):
             if hypothesis.strip() == "":
                 st.warning("틀려도 괜찮아요! 먼저 자신의 생각을 적어주세요.")
             else:
                 st.success(f"**✅좋은 접근입니다!** '{hypothesis}'라고 생각했군요.")
-                st.divider()
-                st.markdown("""
-                #### 🔓 데이터 구조의 이해
-                * **수학에서의 $x$:** 찾아야 할 미지의 고정된 값(**미지수**)
-                * **파이썬에서의 `x`:** 데이터를 담아두는 **상자(메모리 공간)**
-                * **파이썬에서의 `= `:** 같다는 뜻이 아니라 **'오른쪽의 값을 왼쪽 상자에 넣어라(대입)'**라는 뜻!
-                """)
+                st.markdown(pretty_title("🔓 데이터 구조의 이해", "#f1f8e9", "#dcedc8"), unsafe_allow_html=True)
+                render_value_cards(
+                    [
+                        {
+                            "title": "수학에서의 x",
+                            "value": "미지수",
+                            "detail": "찾아야 할 고정된 값을 뜻합니다.",
+                            "bg": "#f4f9ff",
+                            "border": "#90caf9",
+                        },
+                        {
+                            "title": "파이썬에서의 x",
+                            "value": "데이터 상자",
+                            "detail": "값을 담아 두는 메모리 공간 이름입니다.",
+                            "bg": "#f1f8e9",
+                            "border": "#aed581",
+                        },
+                        {
+                            "title": "파이썬의 =",
+                            "value": "대입",
+                            "detail": "오른쪽 값을 왼쪽 변수에 넣으라는 뜻입니다.",
+                            "bg": "#fff8e1",
+                            "border": "#ffcc80",
+                        },
+                    ],
+                    columns=3,
+                )
 
     # ------------------------------------------
     # 탭 2: 번역 [수평적 수학화]
     # ------------------------------------------
     with tabs[1]:
-        st.success("**[현상을 수학의 언어로 바꾸기]** 현실의 문제를 수학적 기호와 알고리즘으로 모델링(번역)하는 과정입니다.\n\n* **✨ 오늘의 레벨업:** 🧮 현실을 수학의 언어로 번역하는 힘\n* **💬 핵심 탐구 질문:** *\"어떤 함수와 연산자를 활용하여 이 관계를 모델링할 수 있을까?\"*")
-        st.markdown("---")
+        stage_intro(
+            "수학의 언어를 파이썬으로 번역하기",
+            "현실의 문제를 수학 기호와 알고리즘으로 바꾸어 표현하며, 파이썬의 자료형과 연산자가 수학 개념과 어떻게 연결되는지 이해하는 단계입니다.",
+            "어떤 함수와 연산자를 활용하면 수학의 관계를 컴퓨터 언어로 자연스럽게 바꿀 수 있을까?",
+            "#fff8e1",
+            "#ffecb3",
+        )
 
-        st.markdown("#### ▶️ [코딩] 자료형과 출력")
+        st.markdown(pretty_title("▶️ 자료형과 출력", "#e3f2fd", "#bbdefb"), unsafe_allow_html=True)
         st.write("""
         수학에서 수와 식을 다루듯, 파이썬에서는 다양한 형태의 자료형을 다룹니다.
         * **문자열(String):** 텍스트 데이터. 따옴표('')로 감싸서 입력합니다. (예: `'Hello World'`, `'다항식'`)
         * **숫자열(Number):** 정수 및 실수 데이터. 사칙연산이 가능합니다. (예: `52`, `3.14`)
         * **불(Boolean):** 참/거짓을 나타내는 논리 데이터. (예: `True`, `False`)
         """)
+        render_value_cards(
+            [
+                {
+                    "title": "문자열",
+                    "value": "'다항식'",
+                    "detail": "글자나 문장을 따옴표로 감싸 표현합니다.",
+                    "bg": "#f4f9ff",
+                    "border": "#90caf9",
+                },
+                {
+                    "title": "숫자열",
+                    "value": "52, 3.14",
+                    "detail": "정수와 실수처럼 계산 가능한 수를 표현합니다.",
+                    "bg": "#f1f8e9",
+                    "border": "#aed581",
+                },
+                {
+                    "title": "불",
+                    "value": "True / False",
+                    "detail": "참과 거짓을 판단하는 논리 자료형입니다.",
+                    "bg": "#fff8e1",
+                    "border": "#ffcc80",
+                },
+            ],
+            columns=3,
+        )
         
         st.info("💡 **출력 명령어 `print()`:** 괄호 안의 데이터를 화면에 출력하는 함수입니다. 쉼표(`,`)로 구분하여 여러 데이터를 동시에 출력할 수 있습니다.")
         
@@ -276,7 +479,7 @@ def run():
         
         st.divider() 
         
-        st.markdown("#### ❔ [수학적 질문] 다항식 연산, 컴퓨터의 언어로 어떻게 번역할 수 있을까?")
+        st.markdown(pretty_title("❔ 다항식 연산을 컴퓨터 언어로 번역하기", "#f1f8e9", "#dcedc8"), unsafe_allow_html=True)
         st.write("다항식의 사칙연산은 파이썬의 기본 산술 연산자와 직관적으로 대응됩니다. 수학적 기호가 컴퓨팅 명령어로 어떻게 변환되는지 아래의 대응표를 통해 확인해 보십시오.")
         
         data = {
@@ -288,6 +491,32 @@ def run():
         }
         df = pd.DataFrame(data)
         st.dataframe(df, use_container_width=True)
+        render_value_cards(
+            [
+                {
+                    "title": "사칙연산",
+                    "value": "+, -, *, /",
+                    "detail": "수학 기호가 파이썬 연산자로 자연스럽게 연결됩니다.",
+                    "bg": "#f4f9ff",
+                    "border": "#90caf9",
+                },
+                {
+                    "title": "몫과 나머지",
+                    "value": "//, %",
+                    "detail": "정수 나눗셈의 몫과 나머지를 따로 구할 수 있습니다.",
+                    "bg": "#f1f8e9",
+                    "border": "#aed581",
+                },
+                {
+                    "title": "거듭제곱",
+                    "value": "**",
+                    "detail": "다항식의 차수 표현을 코드로 다룰 때 자주 씁니다.",
+                    "bg": "#fff8e1",
+                    "border": "#ffcc80",
+                },
+            ],
+            columns=3,
+        )
         
         st.markdown("""###### 💻 [문제 2] 숫자 연산 출력하기""")
         code_block(2, "산술 연산자 활용", "print('5+7=', 5+7)\nprint('', )\n", prefix="d1_q", height=180)       
@@ -297,10 +526,15 @@ def run():
     # 탭 3: AI 도구로 시뮬레이션하기 [수직적 수학화]
     # ------------------------------------------
     with tabs[2]:
-        st.success("**[AI 도구로 시뮬레이션하기]** 파이썬과 AI를 활용하여 연산을 심화하고 데이터를 빠르고 정확하게 예측하는 과정입니다.\n\n* **✨ 오늘의 레벨업:** 💻 컴퓨터(AI)를 나의 도구로 부리는 힘\n* **💬 핵심 탐구 질문:** *\"도구를 이용하여 어떻게 더 효율적이고 정확하게 해답을 도출할 수 있을까?\"*")
-        st.markdown("---")
+        stage_intro(
+            "AI 도구처럼 파이썬 함수 활용하기",
+            "파이썬의 함수와 기호 연산 도구를 이용해 다항식 계산을 더 효율적으로 처리하고, 수학 원리를 알고리즘으로 구현하는 단계입니다.",
+            "도구를 활용하면 복잡한 다항식 계산과 나머지 문제를 어떻게 더 빠르고 정확하게 해결할 수 있을까?",
+            "#e8f5e9",
+            "#c8e6c9",
+        )
 
-        st.markdown("#### ▶️ [코딩] 함수(def)의 이해")
+        st.markdown(pretty_title("▶️ 함수(def)의 이해", "#e3f2fd", "#bbdefb"), unsafe_allow_html=True)
         st.write("""
         수학의 함수 $f(x)$가 입력값에 따라 정해진 출력을 반환하듯, 파이썬에서도 `def` 를 사용하여 특정한 연산을 수행하는 '함수'를 직접 설계할 수 있습니다.
         * **`def` (Define):** 새로운 함수를 정의하겠다는 선언입니다. (예: `def f(x):`)
@@ -324,7 +558,7 @@ print("f(5)의 결과는:", f(5)) """)
         
         st.divider()
         
-        st.markdown("#### ❔ [수학적 질문] 직접 나누지 않고 나머지를 구하는 원리, 컴퓨터의 함수로 어떻게 구현할까?")
+        st.markdown(pretty_title("❔ 나머지 정리를 함수로 구현하기", "#f1f8e9", "#dcedc8"), unsafe_allow_html=True)
         st.write("수학의 나머지 정리에 따르면, 다항식 $f(x)$를 일차식 $(x-a)$로 나눈 나머지는 함숫값 $f(a)$와 동일합니다. 즉, 복잡한 나눗셈을 직접 할 필요 없이 앞서 배운 파이썬의 함수(`def`)에 값만 대입하여 함숫값을 구하는 것이 곧 나머지를 구하는 가장 빠르고 정확한 알고리즘이 됩니다.")        
         st.info("💡 나머지 정리: ($f(x)$를 $(x-a)$로 나눈 나머지)= $f(a)$")
         st.markdown("""###### 💻 [예제 2] 다항식 $f(x) = 2x^2 - 3x + 7$ 을 $(x-4)$ 로 나눈 나머지를 구하시오.""")
@@ -346,7 +580,7 @@ print("나머지:", remainder)
         code_block(4, "함수를 활용한 나머지", starter_func, prefix="d1_q", height=240)
         
         st.divider()
-        st.markdown("#### ❔ [수학적 질문] $x$로 이루어진 복잡한 다항식의 연산, 컴퓨터가 직접 연산할 수 있을까?")
+        st.markdown(pretty_title("❔ SymPy로 기호 연산하기", "#ede7f6", "#d1c4e9"), unsafe_allow_html=True)
         st.write("💡 SymPy(심파이) 라이브러리란? 숫자 대신 문자를 사용하여 다항식을 수학 시간에 손으로 푸는 것과 똑같이 계산해 주는 파이썬의 강력한 수학 도구입니다.")
         st.info("""
 * `import sympy as sp`: SymPy 도구를 불러와서 `sp`라는 짧은 별명으로 부르겠다는 뜻입니다.
@@ -382,10 +616,15 @@ print("3. P * Q =",)
     # 탭 4: 결과의 의미와 한계 고민하기 [응용적 수학화 1]
     # ------------------------------------------
     with tabs[3]:
-        st.success("**[결과의 의미와 한계 고민하기]** 산출된 데이터와 결과의 타당성을 검토하고, 한계를 비판적으로 분석하여 적용하는 과정입니다.\n\n* **✨ 오늘의 레벨업:** 🤔 AI의 정답을 의심하고 검증하는 비판적 눈\n* **💬 핵심 탐구 질문:** *\"이 예측 결과는 항상 옳을까? 우리가 직접 적용하며 발견한 오류나 한계는 없을까?\"*")
-        st.markdown("---")
+        stage_intro(
+            "결과의 의미와 한계 돌아보기",
+            "앞서 익힌 자료형, 연산자, 함수, SymPy 개념을 바탕으로 스스로 문제를 해결하며, 계산 결과의 타당성과 한계를 점검하는 단계입니다.",
+            "내가 만든 코드와 계산 결과는 왜 맞다고 볼 수 있을까? 또 어디에서 실수하거나 한계를 가질 수 있을까?",
+            "#f3e5f5",
+            "#e1bee7",
+        )
         
-        st.markdown("#### 💻 [문제 6] 수준별 종합 도전")
+        st.markdown(pretty_title("💻 수준별 종합 도전", "#f3e5f5", "#e1bee7"), unsafe_allow_html=True)
         st.write("앞서 배운 개념(자료형, 연산자, 함수, SymPy)을 바탕으로 스스로 문제를 코딩해 보며, 컴퓨터의 연산 논리를 완벽히 내 것으로 만들어 봅시다.")
         
         level = st.radio("자신의 실력에 맞는 난이도를 선택하세요:", 
@@ -452,13 +691,18 @@ print(f"2. 교차 검증: f({a})의 결과는?", f(a))"""
     # 탭 5: 세상과 연결 및 실천 [응용적 수학화 2]
     # ------------------------------------------
     with tabs[4]:
-        st.success("**[우리의 삶과 사회로 연결하기]** 해석한 결과를 바탕으로 세상을 바꿀 실천적 대안을 기획하고 공유하는 과정입니다.\n\n* **✨ 오늘의 레벨업:** 🤝 배운 것을 세상과 나누며 실천하는 힘\n* **💬 핵심 탐구 질문:** *\"이 결과를 바탕으로 우리는 사회를 위해 무엇을 실천해야 할까?\"*")
-        st.markdown("---")
+        stage_intro(
+            "배움을 세상과 연결해 보기",
+            "코딩 실습 결과를 포트폴리오로 정리하고, 오늘 배운 수학과 알고리즘의 의미를 사회와 연결해 생각하며 공유하는 단계입니다.",
+            "다항식과 알고리즘을 배운 경험을 바탕으로 우리는 어떤 질문을 만들고 어떤 생각을 나눌 수 있을까?",
+            "#fff3e0",
+            "#ffe0b2",
+        )
         
         # ------------------------------------------
         # 1. 학생 정보 입력 및 포트폴리오 PDF 생성
         # ------------------------------------------
-        st.markdown("#### 💾 1. 학생 정보 입력 및 포트폴리오 저장")
+        st.markdown(pretty_title("💾 1. 학생 정보 입력 및 포트폴리오 저장", "#f1f8e9", "#dcedc8"), unsafe_allow_html=True)
         col_info1, col_info2, col_info3 = st.columns(3)
         with col_info1:
             group_name = st.text_input("모둠 이름 (예: 1모둠)")
@@ -466,6 +710,32 @@ print(f"2. 교차 검증: f({a})의 결과는?", f(a))"""
             stu_id = st.text_input("학번 (예: 10101)", max_chars=5)
         with col_info3:
             stu_name = st.text_input("이름 (예: 홍길동)")
+        render_value_cards(
+            [
+                {
+                    "title": "모둠 이름",
+                    "value": group_name if group_name else "입력 대기",
+                    "detail": "포트폴리오와 패들렛 공유에 함께 표시됩니다.",
+                    "bg": "#f4f9ff",
+                    "border": "#90caf9",
+                },
+                {
+                    "title": "학번",
+                    "value": stu_id if stu_id else "입력 대기",
+                    "detail": "반 패들렛 연결과 PDF 파일명에 반영됩니다.",
+                    "bg": "#f1f8e9",
+                    "border": "#aed581",
+                },
+                {
+                    "title": "이름",
+                    "value": stu_name if stu_name else "입력 대기",
+                    "detail": "나의 실습 결과를 정리한 포트폴리오에 표시됩니다.",
+                    "bg": "#fff8e1",
+                    "border": "#ffcc80",
+                },
+            ],
+            columns=3,
+        )
 
         if group_name and stu_id and stu_name:
             if len(stu_id) >= 3:
@@ -539,7 +809,7 @@ print(f"2. 교차 검증: f({a})의 결과는?", f(a))"""
         # ------------------------------------------
         # 2. 교사의 심화 질문 답변
         # ------------------------------------------
-        st.markdown("#### 💡 2. 교사의 딥(Deep) 퀘스천에 대한 우리의 답변 작성하기")
+        st.markdown(pretty_title("💡 2. 교사의 딥(Deep) 퀘스천 답변", "#e3f2fd", "#bbdefb"), unsafe_allow_html=True)
         st.info("🔥 **교사의 심화 질문(Deep Question):**\n\n컴퓨터(AI)가 알고리즘을 통해 복잡한 연산을 0.1초 만에 수행하는 시대입니다. 그렇다면 우리는 왜 다항식의 연산과 나머지 정리 같은 수학적 원리를 학습해야 할까요?")
         teacher_ans = st.text_area("위 질문에 대한 우리의 답을 논리적으로 작성해 보세요.", height=100)
 
@@ -548,7 +818,7 @@ print(f"2. 교차 검증: f({a})의 결과는?", f(a))"""
         # ------------------------------------------
         # 3. 모둠 질문 만들기 및 패들렛 공유
         # ------------------------------------------
-        st.markdown("#### 💬 3. 모둠 질문 만들기 (질문 패들렛 공유용)")
+        st.markdown(pretty_title("💬 3. 모둠 질문 만들기", "#ede7f6", "#d1c4e9"), unsafe_allow_html=True)
         st.write("모둠원과 함께 오늘 활동을 돌아보며 심화 질문을 하나 만들고, 앞서 작성한 답변과 함께 패들렛에 공유해 봅시다.")
         
         q_deep = st.text_area("🔥 **[우리의 딥(Deep) 퀘스천]** *(윤리와 철학)* 배운 지식이나 기술이 실제 사회에 적용될 때 발생할 수 있는 부작용이나 윤리적 딜레마를 다루며, 정답 없이 서로의 가치관을 깊이 있게 나눌 수 있는 토론형 질문입니다. 👉 :blue[예)AI가 0.1초 만에 계산을 다 해주는 시대, 수학을 못해도 AI만 잘 다루면 괜찮을까요?]", height=100)

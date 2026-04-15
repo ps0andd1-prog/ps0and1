@@ -141,6 +141,146 @@ def create_portfolio_pdf(student_info, code_data):
     
     return bytes(pdf.output(dest='S'))
 
+
+def apply_local_style():
+    st.markdown(
+        """
+        <style>
+        .block-container {
+            padding-top: 1.8rem;
+            padding-bottom: 2rem;
+        }
+        div[data-baseweb="tab-list"] {
+            gap: 0.35rem;
+        }
+        div[data-baseweb="tab"] {
+            background: #f4f8fc;
+            border-radius: 0.8rem;
+            padding: 0.45rem 0.9rem;
+            border: 1px solid #dbe7f3;
+        }
+        div[data-baseweb="tab"][aria-selected="true"] {
+            background: #e8f3ff;
+            border-color: #90caf9;
+        }
+        [data-testid="stDataFrame"] {
+            border: 1px solid #e5eef7;
+            border-radius: 0.75rem;
+        }
+        [data-testid="stTextInput"] input,
+        [data-testid="stTextArea"] textarea {
+            border-radius: 0.8rem;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def pretty_title(text, color1, color2):
+    return f"""
+    <div style='
+        background: linear-gradient(90deg, {color1} 0%, {color2} 100%);
+        border-radius: 18px;
+        box-shadow: 0 2px 8px 0 rgba(33,150,243,0.06);
+        padding: 4px 18px 0px 18px;
+        margin-bottom: 10px;'>
+        <h4 style='margin-top:0;'><b>{text}</b></h4>
+    </div>
+    """
+
+
+def page_banner(title, description):
+    st.markdown(
+        f"""
+        <div style="
+            background: linear-gradient(135deg, #e3f2fd 0%, #d1c4e9 100%);
+            border-radius: 22px;
+            padding: 22px 24px;
+            box-shadow: 0 8px 20px rgba(33, 150, 243, 0.10);
+            border: 1px solid #dbe7f3;
+            margin-bottom: 14px;
+        ">
+            <div style="font-size:0.9rem; font-weight:700; color:#5e35b1; margin-bottom:8px;">F.U.T.U.R.E. 프로젝트 2DAY</div>
+            <div style="font-size:1.9rem; font-weight:800; color:#1f2937; margin-bottom:8px;">{title}</div>
+            <div style="font-size:1rem; line-height:1.7; color:#37474f;">{description}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def stage_intro(title, description, question, color1="#e8f5e9", color2="#c8e6c9"):
+    st.markdown(
+        f"""
+        <div style="
+            background: linear-gradient(135deg, {color1} 0%, {color2} 100%);
+            border-radius: 18px;
+            padding: 18px 20px;
+            border: 1px solid rgba(0,0,0,0.06);
+            box-shadow: 0 4px 12px rgba(33, 150, 243, 0.06);
+            margin-bottom: 12px;
+        ">
+            <div style="font-size:1.05rem; font-weight:800; color:#1f2937; margin-bottom:8px;">{title}</div>
+            <div style="font-size:0.97rem; line-height:1.7; color:#37474f; margin-bottom:12px;">{description}</div>
+            <div style="
+                background: rgba(255,255,255,0.72);
+                border-radius: 12px;
+                padding: 10px 12px;
+                border: 1px solid rgba(255,255,255,0.85);
+                color:#37474f;
+                line-height:1.6;
+            ">
+                <b>핵심 탐구 질문</b><br>{question}
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def _render_value_card(item):
+    title = item.get("title", "")
+    value = item.get("value", "")
+    detail = item.get("detail", "")
+    bg = item.get("bg", "#ffffff")
+    border = item.get("border", "#dbe7f3")
+    st.markdown(
+        f"""
+        <div style="
+            height:100%;
+            padding:14px 16px;
+            border-radius:16px;
+            border:1px solid {border};
+            background:{bg};
+            box-shadow: 0 4px 10px rgba(0,0,0,0.04);
+            margin-bottom:10px;
+        ">
+            <div style="font-size:0.88rem; color:#607d8b; font-weight:700; margin-bottom:6px;">{title}</div>
+            <div style="font-size:1.18rem; color:#1f2937; font-weight:800; margin-bottom:6px;">{value}</div>
+            <div style="font-size:0.92rem; color:#455a64; line-height:1.6;">{detail}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_value_cards(items, columns=1):
+    if columns <= 1:
+        for item in items:
+            _render_value_card(item)
+        return
+
+    for start in range(0, len(items), columns):
+        row_items = items[start:start + columns]
+        row_cols = st.columns(columns)
+        for col, item in zip(row_cols, row_items):
+            with col:
+                _render_value_card(item)
+        for col in row_cols[len(row_items):]:
+            with col:
+                st.empty()
+
 # ==========================================
 # 2. 파이썬 코드 실행 엔진 (다중 접속 동시성 + 시각화 지원 완벽 방어)
 # ==========================================
@@ -199,12 +339,12 @@ def code_block(problem_number, title, starter_code, prefix="", height=280):
     key_prefix = f"{prefix}{problem_number}"
     c1, c2 = st.columns(2)
     with c1:
-        st.markdown(f"##### 📥 {title} (코드 입력)")
+        st.markdown(pretty_title(f"📥 {title} (코드 입력)", "#e3f2fd", "#bbdefb"), unsafe_allow_html=True)
         code_input = st_ace(value=starter_code, language='python', theme='github', height=height, key=f"{key_prefix}_editor")
-        if st.button("▶️ 실행", key=f"{key_prefix}_run"):
+        if st.button("▶️ 실행", key=f"{key_prefix}_run", use_container_width=True):
             st.session_state[f"{key_prefix}_result"] = code_runner(code_input)
     with c2:
-        st.markdown("##### 🖥️ 실행 결과")
+        st.markdown(pretty_title("🖥️ 실행 결과", "#f1f8e9", "#dcedc8"), unsafe_allow_html=True)
         if f"{key_prefix}_result" in st.session_state:
             res, stat, fig = st.session_state[f"{key_prefix}_result"]
             display_output(res, stat, fig)
@@ -217,9 +357,12 @@ def code_block(problem_number, title, starter_code, prefix="", height=280):
 def run():
     # 데스크탑 오류 방지를 위해 메인페이지 설정은 주석처리
     # st.set_page_config(page_title="F.U.T.U.R.E. 2차시", page_icon="🚀", layout="centered")
-    
-    st.header("2DAY - 🔀 이차함수와 알고리즘의 만남")
-    st.markdown("**🎯 학습 목표:** 파이썬의 조건문(if/elif/else)을 이해하고, 이를 통해 '이차함수와 직선(x축)의 위치 관계'를 코드로 판별하며 시각화하는 능력을 기릅니다.")
+    apply_local_style()
+    page_banner(
+        "이차함수와 알고리즘의 만남",
+        "파이썬의 조건문(if/elif/else)을 이해하고, 이를 통해 이차함수와 x축의 위치 관계를 코드로 판별하고 "
+        "시각화하는 능력을 기르는 수업입니다.",
+    )
     st.markdown("<hr style='border: 2px solid #2196F3;'>", unsafe_allow_html=True) 
     
     tabs = st.tabs([
@@ -234,15 +377,46 @@ def run():
     # 탭 1: 현실 탐색 [문맥화]
     # ------------------------------------------
     with tabs[0]:
-        st.success("**[문제 인식 및 숨겨진 데이터 찾기]** 현실의 사물이 움직이는 궤적에서 수학적 구조를 발견하고, 컴퓨터의 입장에서 상황을 판단하는 방법을 탐색합니다.")
-        st.markdown("---")
+        stage_intro(
+            "현실 상황을 수학과 알고리즘으로 보기",
+            "드론의 비행 궤적처럼 현실의 움직임 속에서 숨겨진 수학 구조를 발견하고, 컴퓨터가 어떤 규칙으로 상황을 판단하는지 이해하는 단계입니다.",
+            "컴퓨터는 드론의 궤적이 지면과 만나는지 어떻게 판단할까?",
+            "#e3f2fd",
+            "#bbdefb",
+        )
         
-        st.markdown("#### ❔ [문제 제기] 🚁 드론 비행 시뮬레이터, 충돌을 예측하라!")
+        st.markdown(pretty_title("❔ 문제 제기: 드론 비행 시뮬레이터", "#e3f2fd", "#bbdefb"), unsafe_allow_html=True)
         st.write("당신은 자율주행 드론 비행 시스템의 개발자입니다. 드론의 고도 비행 궤적은 이차함수 $y = ax^2 + bx + c$ 의 포물선을 그리며 움직입니다. 여기서 **지면은 x축 ($y = 0$)**을 의미합니다.")
         st.info("""💡 **지면(x축)과 드론 궤적의 3가지 시나리오:**
 1. 드론이 지면에 두 번 부딪히며 추락한다. (서로 다른 두 점에서 만남)
 2. 드론이 지면에 아슬아슬하게 스치고 다시 날아오른다. (접함)
 3. 드론이 지면에 전혀 닿지 않고 안전하게 비행한다. (만나지 않음)""")
+        render_value_cards(
+            [
+                {
+                    "title": "추락",
+                    "value": "교점 2개",
+                    "detail": "드론 궤적이 지면과 두 번 만나 위험한 상황입니다.",
+                    "bg": "#ffebee",
+                    "border": "#ef9a9a",
+                },
+                {
+                    "title": "스침",
+                    "value": "교점 1개",
+                    "detail": "지면에 한 번 닿는 아슬아슬한 상황입니다.",
+                    "bg": "#fff8e1",
+                    "border": "#ffcc80",
+                },
+                {
+                    "title": "안전",
+                    "value": "교점 0개",
+                    "detail": "지면과 만나지 않아 안전하게 비행합니다.",
+                    "bg": "#e8f5e9",
+                    "border": "#a5d6a7",
+                },
+            ],
+            columns=3,
+        )
         
         st.write("우리는 그래프를 눈으로 보고 판단하지만, 눈이 없는 **컴퓨터(AI)**는 드론이 추락할지 안전할지를 어떻게 수식으로 계산해서 판단할 수 있을까요?")
         
@@ -263,10 +437,14 @@ def run():
     # 탭 2: 수학적 구조화 [수평적 수학화]
     # ------------------------------------------
     with tabs[1]:
-        st.success("**[현상을 수학의 언어로 바꾸기]** 발견한 현실의 문제를 수학의 언어와 컴퓨터의 조건문(if)으로 구조화하여 설계하는 단계입니다.")
-        st.markdown("---")
-
-        st.markdown("#### ▶️ [코딩] 조건문 (if / elif / else)")
+        stage_intro(
+            "판별식과 조건문으로 판단 규칙 만들기",
+            "드론의 비행 문제를 판별식과 조건문으로 번역하여, 컴퓨터가 이해할 수 있는 명확한 판단 규칙으로 바꾸는 단계입니다.",
+            "판별식 D와 조건문을 연결하면 어떤 판단 규칙을 만들 수 있을까?",
+            "#fff8e1",
+            "#ffecb3",
+        )
+        st.markdown(pretty_title("▶️ 조건문 (if / elif / else)", "#e3f2fd", "#bbdefb"), unsafe_allow_html=True)
         st.write("조건문은 주어진 조건의 참·거짓에 따라 서로 다른 명령을 실행하도록 컴퓨터의 논리적 흐름을 제어하는 구문입니다.")
         st.code("""
 if 첫번째_조건:
@@ -304,7 +482,7 @@ else:
         
         st.divider()
 
-        st.markdown("""###### 💻 [문제 1] 양수, 0, 음수 판별기 만들기""")
+        st.markdown(pretty_title("💻 문제 1. 양수, 0, 음수 판별기", "#f1f8e9", "#dcedc8"), unsafe_allow_html=True)
         st.write("위 예제 1을 참고하여 어떤 수 `num`이 양수인지, 0인지, 음수인지 3가지 경우로 나누어 판단하는 코드를 완성해 봅시다.")
         with st.expander("💡 힌트 보기"):
             st.markdown("`num > 0` 이면 양수, `num == 0` 이면 0, 그 외에는 `else:` 로 처리합니다.")
@@ -325,10 +503,14 @@ elif
     # 탭 3: 컴퓨팅 도구 활용 [수직적 수학화]
     # ------------------------------------------
     with tabs[2]:
-        st.success("**[AI 도구로 시뮬레이션하기]** 파이썬과 시각화 도구(Matplotlib)를 활용해 수학적 문제와 실생활 문제의 위치 관계를 예측하는 단계입니다.")
-        st.markdown("---")
-
-        st.markdown("#### 📈 [개념 탐구] 시각적으로 이해하는 위치 관계")
+        stage_intro(
+            "그래프와 코드로 직접 실험하기",
+            "그래프와 코드 도구를 활용해 계수를 바꾸고 결과를 시각화하면서, 컴퓨터의 판단 과정을 직접 실험하는 단계입니다.",
+            "도구를 이용하면 어떤 계수에서 어떤 비행 결과가 나오는지 어떻게 빠르게 찾을 수 있을까?",
+            "#e8f5e9",
+            "#c8e6c9",
+        )
+        st.markdown(pretty_title("📈 시각적으로 이해하는 위치 관계", "#e8f5e9", "#c8e6c9"), unsafe_allow_html=True)
         st.write("왼쪽의 슬라이더를 움직여 이차함수의 계수를 조절해보고, 오른쪽 그래프와 설명을 통해 x축과의 위치 관계를 이해해 보세요.")
 
         col_viz1, col_viz2 = st.columns([1, 1.2])
@@ -374,7 +556,7 @@ elif
 
         st.divider()
 
-        st.markdown("#### ❔ [수학적 질문] 이차방정식의 근과 x축의 위치 관계는 어떤 의미일까?")
+        st.markdown(pretty_title("❔ 근과 x축의 위치 관계", "#ede7f6", "#d1c4e9"), unsafe_allow_html=True)
         st.write("이차방정식 $ax^2 + bx + c = 0$ 의 실근은, 시각적으로 볼 때 **이차함수 $y = ax^2 + bx + c$ 의 그래프가 x축($y=0$)과 만나는 교점의 x좌표**를 의미합니다.")
         st.info("""💡 **수식과 그래프의 연결**
 * **$D > 0$ (근 2개)** $\\rightarrow$ 그래프가 x축을 관통하며 **두 점**에서 만납니다.
@@ -423,7 +605,7 @@ draw_graph(a, b, c)
 
         st.divider()
 
-        st.markdown("""###### 💻 [문제 2] 실생활 문제: 드론 비행 시뮬레이터 구축""")
+        st.markdown(pretty_title("💻 문제 2. 드론 비행 시뮬레이터 구축", "#fce4ec", "#f8bbd0"), unsafe_allow_html=True)
         st.write("당신의 드론은 협곡으로 하강했다가 다시 올라오는 $y = x^2 - 4x + 5$ 의 궤적을 그립니다. 이 드론은 지면(x축)에 충돌할까요?")
         
         with st.expander("💡 힌트 보기"):
@@ -456,10 +638,15 @@ draw_graph(a, b, c)
     # 탭 4: 적용 및 비판적 성찰 [응용적 수학화 1]
     # ------------------------------------------
     with tabs[3]:
-        st.success("**[결과의 의미와 한계 고민하기]** AI와 코드가 도출한 결과가 실제 현실에서도 타당한지, 알고리즘을 확장하여 실제 근을 구해보는 단계입니다.")
-        st.markdown("---")
+        stage_intro(
+            "계산 결과를 비판적으로 해석하기",
+            "계산 결과가 실제 상황에서도 타당한지 검토하고, 알고리즘을 확장해 더 정확한 해석으로 나아가는 단계입니다.",
+            "같은 수식 결과라도 현실에서는 무엇을 더 살펴봐야 할까?",
+            "#f3e5f5",
+            "#e1bee7",
+        )
         
-        st.markdown("#### 💻 [문제 3] 수준별 종합 도전")
+        st.markdown(pretty_title("💻 문제 3. 수준별 종합 도전", "#f3e5f5", "#e1bee7"), unsafe_allow_html=True)
         st.write("배운 조건문(`if-elif-else`)을 활용하여 자신만의 시뮬레이터를 확장해 봅시다.")
         
         level = st.radio("자신의 실력에 맞는 난이도를 선택하세요:", 
@@ -544,13 +731,18 @@ draw_graph(a, b, c)
     # 탭 5: 세상과 연결 및 실천 [응용적 수학화 2]
     # ------------------------------------------
     with tabs[4]:
-        st.success("**[우리의 삶과 사회로 연결하기]** 오늘 우리가 만든 코드와 수학적 발견이 실제 세상에서 어떻게 쓰일 수 있을지 고민하고, 우리의 아이디어를 친구들과 나누는 과정입니다.")
-        st.markdown("---")
+        stage_intro(
+            "배움을 사회와 연결해 보기",
+            "오늘 만든 판단 규칙과 시뮬레이션 결과를 실제 사회 문제와 연결해 보고, 우리의 생각을 함께 나누는 단계입니다.",
+            "수학과 알고리즘으로 만든 기준을 우리는 언제 믿고 언제 의심해야 할까?",
+            "#fff3e0",
+            "#ffe0b2",
+        )
         
         # ------------------------------------------
         # 1. 학생 정보 입력 및 포트폴리오 PDF 생성
         # ------------------------------------------
-        st.markdown("#### 💾 1. 학생 정보 입력 및 포트폴리오 저장")
+        st.markdown(pretty_title("💾 1. 학생 정보 입력 및 포트폴리오 저장", "#f1f8e9", "#dcedc8"), unsafe_allow_html=True)
         col_info1, col_info2, col_info3 = st.columns(3)
         with col_info1:
             group_name = st.text_input("모둠 이름 (예: 1모둠)")
@@ -558,6 +750,32 @@ draw_graph(a, b, c)
             stu_id = st.text_input("학번 (예: 10101)", max_chars=5)
         with col_info3:
             stu_name = st.text_input("이름 (예: 홍길동)")
+        render_value_cards(
+            [
+                {
+                    "title": "모둠 이름",
+                    "value": group_name if group_name else "입력 대기",
+                    "detail": "포트폴리오와 패들렛 공유에 함께 표시됩니다.",
+                    "bg": "#f4f9ff",
+                    "border": "#90caf9",
+                },
+                {
+                    "title": "학번",
+                    "value": stu_id if stu_id else "입력 대기",
+                    "detail": "반 패들렛 연결과 PDF 파일명에 반영됩니다.",
+                    "bg": "#f1f8e9",
+                    "border": "#aed581",
+                },
+                {
+                    "title": "이름",
+                    "value": stu_name if stu_name else "입력 대기",
+                    "detail": "나의 실습 결과를 정리한 포트폴리오에 표시됩니다.",
+                    "bg": "#fff8e1",
+                    "border": "#ffcc80",
+                },
+            ],
+            columns=3,
+        )
 
         if group_name and stu_id and stu_name:
             if len(stu_id) >= 3:
@@ -631,7 +849,7 @@ draw_graph(a, b, c)
         # ------------------------------------------
         # 2. 교사의 심화 질문 답변
         # ------------------------------------------
-        st.markdown("#### 💡 2. 교사의 심화 질문에 대한 모둠 답변 작성하기")
+        st.markdown(pretty_title("💡 2. 교사의 심화 질문 답변", "#e3f2fd", "#bbdefb"), unsafe_allow_html=True)
         st.info("🔥 **교사의 심화 질문(Deep Question):**\n\n컴퓨터(AI)가 그래프를 그려주고 교점도 다 찾아주는 시대입니다. 그렇다면 우리는 왜 굳이 이차함수와 x축의 위치 관계(판별식)를 수학적으로 이해하고, 알고리즘(if-elif)으로 설계하는 방법을 배워야 할까요?")
         teacher_ans = st.text_area("위 질문에 대한 우리의 답을 논리적으로 작성해 보세요.", height=100, key="d2_teacher_ans")
 
@@ -640,7 +858,7 @@ draw_graph(a, b, c)
         # ------------------------------------------
         # 3. 모둠 질문 만들기 및 패들렛 공유
         # ------------------------------------------
-        st.markdown("#### 💬 3. 모둠 심화 질문 만들기 (질문 패들렛 공유용)")
+        st.markdown(pretty_title("💬 3. 모둠 심화 질문 만들기", "#ede7f6", "#d1c4e9"), unsafe_allow_html=True)
         st.write("모둠원과 함께 오늘 활동을 돌아보며 심화 질문을 하나 만들고, 앞서 작성한 답변과 함께 패들렛에 공유해 봅시다.")
         
         q_deep = st.text_area("🔥 **[우리의 딥(Deep) 퀘스천]** *(윤리와 철학)* 배운 지식이나 기술이 실제 사회에 적용될 때 발생할 수 있는 부작용이나 윤리적 딜레마를 다루며, 정답 없이 서로의 가치관을 깊이 있게 나눌 수 있는 토론형 질문입니다. 👉 :blue[예)만약 인공지능이 복잡한 조건문만으로 회사 면접의 합격자를 결정한다면, 우리는 그 알고리즘의 기준이 인간보다 공정하다고 믿을 수 있을까?]", height=100)
