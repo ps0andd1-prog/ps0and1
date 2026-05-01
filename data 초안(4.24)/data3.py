@@ -74,6 +74,17 @@ BINARY_PATTERNS = {
         [[(row + col) % 2 for col in range(6)] for row in range(6)],
         dtype=int,
     ),
+    "원": np.array(
+        [
+            [0, 1, 1, 1, 1, 0],
+            [1, 1, 0, 0, 1, 1],
+            [1, 0, 0, 0, 0, 1],
+            [1, 0, 0, 0, 0, 1],
+            [1, 1, 0, 0, 1, 1],
+            [0, 1, 1, 1, 1, 0],
+        ],
+        dtype=int,
+    ),
 }
 
 FACE_PHOTO_PATH = os.path.join(os.path.dirname(__file__), "image", "face_grid_source.png")
@@ -81,7 +92,6 @@ RESAMPLE_BILINEAR = getattr(Image, "Resampling", Image).BILINEAR
 
 PORT_URLS = {"1": "https://padlet.com/ps0andd/p_1", "2": "https://padlet.com/ps0andd/p_2", "5": "https://padlet.com/ps0andd/p_5", "6": "https://padlet.com/ps0andd/p_6"}
 QA_URLS = {"1": "https://padlet.com/ps0andd/q_1", "2": "https://padlet.com/ps0andd/q_2", "5": "https://padlet.com/ps0andd/q_5", "6": "https://padlet.com/ps0andd/q_6"}
-GALLERY_URLS = {"1": "https://padlet.com/ps0andd/g_1", "2": "https://padlet.com/ps0andd/g_2", "5": "https://padlet.com/ps0andd/g_5", "6": "https://padlet.com/ps0andd/g_6"}
 
 
 def rgb_from_pattern(pattern):
@@ -122,8 +132,6 @@ def ensure_state():
     st.session_state.setdefault("i3_character", DEFAULT_CHARACTER)
     current_character()
     st.session_state.setdefault("i3_binary_shape", "계단")
-    if st.session_state.get("i3_binary_shape") not in BINARY_PATTERNS:
-        st.session_state["i3_binary_shape"] = "계단"
     st.session_state.setdefault("i3_binary_editor_version", 0)
     st.session_state.setdefault("i3_binary_show_values", False)
     if (
@@ -133,12 +141,9 @@ def ensure_state():
         set_binary_grid(BINARY_PATTERNS[st.session_state.get("i3_binary_shape", "계단")].copy())
         st.session_state["i3_binary_shape_applied"] = st.session_state.get("i3_binary_shape", "계단")
     st.session_state.setdefault("i3_gray_show_matrix", False)
-    st.session_state.setdefault("i3_social_topic", "환경과 기후")
     st.session_state.setdefault("i3_social_question_prompt", "")
     st.session_state.setdefault("i3_social_image_thought", "")
-    st.session_state.setdefault("i3_social_image_symbol_1", "")
-    st.session_state.setdefault("i3_social_image_symbol_2", "")
-    st.session_state.setdefault("i3_generated_prompt", "")
+    st.session_state.setdefault("i3_social_image_symbol", "")
     for idx in range(1, 5):
         st.session_state.setdefault(f"i3_saved_{idx}", "")
         st.session_state.setdefault(f"i3_saved_time_{idx}", "")
@@ -176,6 +181,63 @@ def draw_image(image, title, cmap=None, show_values=False, value_range=None, fig
                 ax.text(col, row, str(val), ha="center", va="center", fontsize=value_fontsize, color="white" if brightness > 145 else "black")
     fig.tight_layout()
     return fig
+
+
+
+
+def render_deep_learning_reading_material():
+    example_name = current_character()
+    example_image = base_image(example_name)
+    gray_image = to_gray(example_image)
+    edge_kernel = FILTERS["경계 찾기"][0]
+    edge_response = np.abs(convolve_same(gray_image, edge_kernel))
+    edge_display = np.zeros_like(edge_response) if float(edge_response.max()) == 0 else edge_response / float(edge_response.max()) * 255
+    grouped_display = average_pool(edge_display, block_size=2)
+
+    st.markdown(pretty_title("심화 자료: 딥러닝은 이미지를 어떻게 이해할까?", "#e3f2fd", "#bbdefb"), unsafe_allow_html=True)
+    st.info(
+        "이 부분은 3차시 핵심 활동을 마친 뒤, 더 알고 싶은 학생들이 가볍게 보는 심화 자료입니다. 딥러닝은 이미지를 바로 정답으로 바꾸는 것이 아니라, "
+        "선과 경계 찾기 → 특징 묶기 → 전체 판단하기의 순서로 단계적으로 읽어 갑니다."
+    )
+    st.info("딥러닝은 이미지를 한 번에 이해하지 않고, `선과 경계 찾기 → 부분 모양 묶기 → 전체 대상 판단하기` 순서로 해석합니다.")
+
+    slider_col1, slider_col2 = st.columns(2)
+    with slider_col1:
+        st.slider("1층 뉴런 수", min_value=2, max_value=5, key="i3_dl_hidden1")
+    with slider_col2:
+        st.slider("2층 뉴런 수", min_value=2, max_value=5, key="i3_dl_hidden2")
+
+    structure_fig, total_connections = draw_deep_learning_structure(
+        int(st.session_state["i3_dl_hidden1"]),
+        int(st.session_state["i3_dl_hidden2"]),
+    )
+    st.pyplot(structure_fig, use_container_width=True)
+
+    layer_df = pd.DataFrame(
+        [
+            {"단계": "입력", "하는 일": "RGB 숫자와 픽셀 위치를 받음", "학생용 설명": "이미지를 숫자판으로 받아들인다."},
+            {"단계": "1층", "하는 일": f"뉴런 {int(st.session_state['i3_dl_hidden1'])}개가 선, 경계, 밝은 부분을 찾음", "학생용 설명": "어디가 튀는지 먼저 살핀다."},
+            {"단계": "2층", "하는 일": f"뉴런 {int(st.session_state['i3_dl_hidden2'])}개가 특징을 묶어 부분 모양을 만듦", "학생용 설명": "작은 특징들을 묶어 부분 모양을 만든다."},
+            {"단계": "출력", "하는 일": "전체 이미지의 의미나 종류를 판단함", "학생용 설명": "여러 조각을 합쳐 전체 대상을 알아본다."},
+        ]
+    )
+    st.dataframe(layer_df, use_container_width=True, hide_index=True, height=176)
+
+    flow_cols = st.columns(3)
+    with flow_cols[0]:
+        st.image(upscaled_display_image(example_image, pixel_size=26), caption=f"입력 이미지: {example_name}", use_container_width=True)
+    with flow_cols[1]:
+        st.image(upscaled_display_image(edge_display, cmap="magma", pixel_size=26), caption="1층: 선과 경계 찾기", use_container_width=True)
+    with flow_cols[2]:
+        st.image(upscaled_display_image(grouped_display, cmap="magma", pixel_size=52), caption="2층: 특징 묶기", use_container_width=True)
+
+    st.caption(
+        f"현재 총 연결선 수는 `3×{int(st.session_state['i3_dl_hidden1'])} + "
+        f"{int(st.session_state['i3_dl_hidden1'])}×{int(st.session_state['i3_dl_hidden2'])} + "
+        f"{int(st.session_state['i3_dl_hidden2'])}×1 = {int(total_connections)}`개입니다."
+    )
+
+
 def apply_local_style():
     st.markdown(
         """
@@ -355,6 +417,64 @@ def combine_gray_matrices(name_a, name_b, k_value):
     return matrix_a.astype(int), matrix_b.astype(int), np.clip(result, 0, 255).round().astype(int)
 
 
+def art_cell_label(index):
+    labels = {
+        0: "⬜",
+        1: "⬛",
+        2: "🟥",
+        3: "🟧",
+        4: "🟨",
+        5: "🟩",
+        6: "🟦",
+        7: "🟪",
+    }
+    return labels.get(int(index), "⬜")
+
+
+def paint_art_cell(row, col):
+    grid = np.array(st.session_state["i3_art_grid"], dtype=int)
+    grid[row, col] = int(st.session_state.get("i3_art_selected_color", 1))
+    st.session_state["i3_art_grid"] = grid
+    st.session_state["i3_show_rgb_matrices"] = False
+
+
+def clear_art_grid():
+    st.session_state["i3_art_grid"] = np.zeros((ART_GRID_SIZE, ART_GRID_SIZE), dtype=int)
+    st.session_state["i3_show_rgb_matrices"] = False
+
+
+def art_channel_frames():
+    image = art_image()
+    row_index = range(1, image.shape[0] + 1)
+    col_index = range(1, image.shape[1] + 1)
+    return (
+        pd.DataFrame(image[:, :, 0].astype(int), index=row_index, columns=col_index),
+        pd.DataFrame(image[:, :, 1].astype(int), index=row_index, columns=col_index),
+        pd.DataFrame(image[:, :, 2].astype(int), index=row_index, columns=col_index),
+    )
+
+
+def single_channel_image(image, channel_idx):
+    channel_image = np.zeros_like(image)
+    channel_image[:, :, channel_idx] = image[:, :, channel_idx]
+    return channel_image
+
+
+def render_clickable_binary_grid():
+    grid = st.session_state["i3_binary_grid"]
+    for row in range(grid.shape[0]):
+        cols = st.columns(grid.shape[1], gap="small")
+        for col in range(grid.shape[1]):
+            label = "⬛" if int(grid[row, col]) == 1 else "⬜"
+            cols[col].button(
+                label,
+                key=f"i3_binary_btn_{row}_{col}",
+                on_click=toggle_binary_cell,
+                args=(row, col),
+                use_container_width=True,
+            )
+
+
 def save_activity_result(index, summary, details=None):
     st.session_state[f"i3_saved_{index}"] = summary
     st.session_state[f"i3_saved_time_{index}"] = datetime.datetime.now().strftime("%H:%M:%S")
@@ -416,32 +536,6 @@ def add_array_image_to_pdf(pdf, title, image, cmap=None):
             os.remove(tmp_path)
 
 
-def pdf_body_text(title, body):
-    text = str(body)
-    if title == "문제 3. 가중 합성과 이미지 변화":
-        marker = " 최종 결과 행렬 C는 "
-        if marker in text:
-            text = text.split(marker, 1)[0].rstrip()
-    return text
-
-
-def pdf_detail_payload(title, details):
-    payload = {
-        "writings": list(details.get("writings", [])),
-        "matrices": list(details.get("matrices", [])),
-        "images": list(details.get("images", [])),
-    }
-
-    payload["images"] = [
-        item for item in payload["images"] if item[0] != "25×25 격자 실제 얼굴 이미지"
-    ]
-
-    if title == "문제 3. 가중 합성과 이미지 변화":
-        payload["matrices"] = []
-
-    return payload
-
-
 class ReportPDF(FPDF):
     def header(self):
         self.set_fill_color(25, 118, 210)
@@ -483,8 +577,8 @@ def create_pdf(student, rows):
     pdf.ln(2)
     for row in rows:
         title = row.get("title", "")
-        body = pdf_body_text(title, row.get("body", ""))
-        details = pdf_detail_payload(title, row.get("details", {}))
+        body = row.get("body", "")
+        details = row.get("details", {})
         pdf.set_fill_color(227, 242, 253)
         pdf.cell(0, 8, title, ln=1, fill=True)
         pdf.set_x(pdf.l_margin)
@@ -500,12 +594,12 @@ def create_pdf(student, rows):
         for image_title, image_value, cmap in details.get("images", []):
             add_array_image_to_pdf(pdf, image_title, image_value, cmap)
         pdf.ln(1)
-    if any(str(text).strip() for _, text in social_image_prompt_entries()) or str(st.session_state.get("i3_generated_prompt", "")).strip():
+    if any(str(text).strip() for _, text in social_image_prompt_entries()):
         pdf.set_fill_color(237, 231, 246)
         pdf.cell(0, 8, "문제 4. 우리의 픽셀 아트 프롬프트", ln=1, fill=True)
         for title, text in social_image_prompt_entries():
             add_text_box_to_pdf(pdf, title, text)
-        add_text_box_to_pdf(pdf, "GPT 이미지 생성 프롬프트", st.session_state.get("i3_generated_prompt", ""))
+        add_text_box_to_pdf(pdf, "GPT 이미지 생성 프롬프트", build_social_image_prompt())
     return normalize_pdf_output(pdf.output(dest="S"))
 
 
@@ -527,49 +621,47 @@ def practice_rows():
 
 def social_image_prompt_entries():
     return [
-        ("선택한 주제", st.session_state.get("i3_social_topic", "")),
-        ("생각해 볼 질문", st.session_state.get("i3_social_question_prompt", "")),
-        ("이미지로 전하고 싶은 한마디", st.session_state.get("i3_social_image_thought", "")),
-        ("상징 1", st.session_state.get("i3_social_image_symbol_1", "")),
-        ("상징 2", st.session_state.get("i3_social_image_symbol_2", "")),
+        ("사회적 질문", st.session_state.get("i3_social_question_prompt", "")),
+        ("이미지를 통해 표현하려는 생각", st.session_state.get("i3_social_image_thought", "")),
+        ("이미지에 넣고 싶은 핵심 장면/상징", st.session_state.get("i3_social_image_symbol", "")),
     ]
 
 
 def build_social_image_prompt():
-    topic = student_text_or_default(
-        st.session_state.get("i3_social_topic", ""),
-        "사회적 주제를 먼저 선택해 주세요.",
-    )
     question = student_text_or_default(
         st.session_state.get("i3_social_question_prompt", ""),
-        "생각해 볼 질문을 먼저 적어 주세요.",
+        "사회적 질문을 먼저 적어 주세요.",
     )
-    message = student_text_or_default(
+    thought = student_text_or_default(
         st.session_state.get("i3_social_image_thought", ""),
-        "이미지로 전하고 싶은 한마디를 적어 주세요.",
+        "이미지를 통해 표현하려는 생각을 적어 주세요.",
     )
-    symbol_1 = student_text_or_default(
-        st.session_state.get("i3_social_image_symbol_1", ""),
-        "첫 번째 상징을 적어 주세요.",
-    )
-    symbol_2 = student_text_or_default(
-        st.session_state.get("i3_social_image_symbol_2", ""),
-        "두 번째 상징을 적어 주세요.",
+    symbol = student_text_or_default(
+        st.session_state.get("i3_social_image_symbol", ""),
+        "넣고 싶은 장면이나 상징을 적어 주세요.",
     )
     return (
-    "15×15 회색조 픽셀아트를 만들어줘.\n"
-    f"주제는 '{topic}'이고, 생각해 볼 질문은 \"{question}\"이다.\n"
-    f"이미지로 전하고 싶은 한마디는 \"{message}\"이다.\n"
-    f"반드시 '{symbol_1}'와 '{symbol_2}'를 포함해 줘.\n"
-    "작은 크기이므로 배경과 글씨는 넣지 말고, 상징이 바로 보이게 단순하게 구성해 줘.\n"
-    "색상은 0, 30, 60, 90, 120, 140, 160, 180, 200, 210, 220, 230, 255만 사용해 줘.\n"
-    f"출력은 1) 픽셀아트 이미지 2) 15×15 행렬 3) 생각해 볼 질문: {question} 4) 전하고 싶은 한마디: {message} 순서로 해 줘.\n"
-)
+        "다음 조건에 맞는 우리의 픽셀 아트를 만들어 줘.\n\n"
+        "1. 이 이미지는 환경과 관련된 사회적 메시지를 담아 줘.\n"
+        f"2. 이 이미지는 다음 사회적 질문에서 시작해 줘: \"{question}\"\n"
+        f"3. 이미지를 통해 표현하려는 생각은 다음과 같아: \"{thought}\"\n"
+        f"4. 이미지에 넣고 싶은 핵심 장면이나 상징은 다음과 같아: \"{symbol}\"\n"
+        "5. 결과물은 이해하기 쉬운 단순하고 선명한 15×15 회색조 픽셀 이미지로 만들어 줘.\n"
+        "6. 15×15 크기에는 많은 내용을 담기 어려우므로, 하나의 핵심 메시지만 보이도록 매우 단순하게 구성해 줘.\n"
+        "7. 장면은 1개만 중심에 두고, 상징도 1~2개개 정도만 사용해 줘.\n"
+        "8. 회색조 이미지이므로 색은 흰색부터 검은색까지의 밝기 차이로만 표현해 줘.\n"
+        "9. 작은 글씨나 복잡한 배경, 세부 묘사는 넣지 말고, 멀리서 봐도 바로 이해되는 단순한 도형과 상징 중심으로 표현해 줘.\n"
+        "10. 완성된 이미지를 보여 준 뒤, 그 이미지를 R행렬, G행렬, B행렬의 세 개 15×15 행렬로 분해해서 하나의 TXT 파일로 저장해서 다운로드할 수 있는 형태의 텍스트로도 정리해 줘.\n"
+        "11. 회색조 이미지이므로 각 위치의 R, G, B 값은 서로 같게 맞춰 줘.\n"
+        "12. 각 행렬 값은 0부터 255 사이의 정수로 표현해 줘.\n"
+        "13. 완성된 이미지는 PNG처럼 바로 저장하거나 다운로드할 수 있는 형태로도 제시해 줘.\n"
+        "14. 마지막에는 이 이미지가 사회적 질문과 어떻게 연결되는지 2~3문장으로 설명해 줘."
+    )
 
 
 def social_prompt_status_text():
-    prompt = str(st.session_state.get("i3_generated_prompt", "")).strip()
-    return "프롬프트 생성 완료" if prompt else "아직 작성하지 않았습니다."
+    has_prompt = any(str(text).strip() for _, text in social_image_prompt_entries())
+    return "입력 완료" if has_prompt else "아직 작성하지 않았습니다."
 
 
 def run():
@@ -863,22 +955,89 @@ def run():
     with tabs[3]:
         stage_intro(
             "R.E: 우리의 삶과 사회로 연결하기",
-            "앞 단계에서 배운 행렬 표현을 바탕으로, 사회적 메시지를 담은 15×15 픽셀아트 프롬프트를 직접 만드는 단계입니다.",
-            "사회적 메시지를 담은 이미지를 행렬 기반 픽셀아트로 어떻게 표현할 수 있을까?",
+            "오늘 활동을 정리해 포트폴리오로 저장하고, 환경과 관련된 사회적 메시지를 담은 우리의 픽셀 아트 프롬프트를 완성하는 과정입니다.",
+            "환경과 관련된 질문을 15×15 회색조 픽셀 이미지로 바꾸려면 어떤 장면과 메시지를 담아야 할까?",
             "#fff3e0",
             "#ffe0b2",
         )
-        st.markdown(pretty_title("1️⃣ 학생 정보 입력 및 포트폴리오 저장", "#e3f2fd", "#bbdefb"), unsafe_allow_html=True)
-        st.info("모둠 이름과 학생 정보를 먼저 입력하면, 앞 단계에서 저장한 활동 결과를 바로 PDF 포트폴리오로 받을 수 있습니다.")
-        group_name = st.text_input("모둠 이름", key="i3_group")
+        st.markdown(pretty_title("2️⃣ 모둠활동: 우리의 픽셀 아트 만들기", "#ede7f6", "#d1c4e9"), unsafe_allow_html=True)
+        st.info(
+            "이제 모둠별로 1개의 픽셀 아트를 기획해 봅시다. 환경과 관련된 사회적 질문에서 시작해, 이미지를 통해 전하고 싶은 생각을 정리하면 "
+            "GPT에 바로 넣을 수 있는 프롬프트가 자동으로 완성됩니다. 15×15 회색조는 아주 작은 크기이므로, 많은 내용을 넣기보다 하나의 핵심 메시지가 바로 보이도록 단순하게 표현하는 것이 중요합니다."
+        )
+        render_value_cards(
+            [
+                {
+                    "title": "출발점",
+                    "value": "사회적 질문",
+                    "detail": "이미지는 반드시 하나의 환경 질문에서 시작합니다. 예: 길가에 쓰레기가 많아지면 우리 동네는 어떤 불편을 겪게 될까?",
+                    "bg": "#f4f9ff",
+                    "border": "#90caf9",
+                },
+                {
+                    "title": "고정 조건",
+                    "value": "15×15 회색조 + 한 메시지",
+                    "detail": "완성 이미지는 15×15 회색조로 만들고, 복잡한 장면 대신 하나의 메시지가 바로 보이게 단순하게 표현합니다.",
+                    "bg": "#fff8e1",
+                    "border": "#ffcc80",
+                },
+            ],
+            columns=2,
+        )
+        prompt_cols = st.columns([1, 1])
+        with prompt_cols[0]:
+            st.text_area(
+                "사회적 질문",
+                key="i3_social_question_prompt",
+                height=110,
+                placeholder="예: 길가에 쓰레기가 많아지면 우리 동네는 어떤 불편을 겪게 될까?",
+            )
+            st.text_area(
+                "이미지를 통해 표현하려는 생각",
+                key="i3_social_image_thought",
+                height=110,
+                placeholder="예: 깨끗한 환경을 지키려면 모두가 작은 실천을 해야 한다는 한 가지 메시지를 보여 주고 싶다.",
+            )
+        with prompt_cols[1]:
+            st.text_area(
+                "이미지에 넣고 싶은 핵심 장면/상징",
+                key="i3_social_image_symbol",
+                height=110,
+                placeholder="예: 쓰레기통 1개, 떨어진 플라스틱 컵 1개",
+            )
+            st.caption("15×15 픽셀에는 많은 내용을 담기 어렵기 때문에, 장면과 상징은 1~2개만 정하는 것이 좋습니다.")
 
+        st.markdown(pretty_title("완성된 GPT 이미지 생성 프롬프트", "#ede7f6", "#d1c4e9"), unsafe_allow_html=True)
+        st.code(build_social_image_prompt(), language="markdown")
+        st.caption("이 프롬프트를 GPT에 입력하면 환경 메시지가 담긴 15×15 회색조 이미지, 이미지 파일 다운로드 형태, R·G·B 행렬 분해 결과, 그리고 각 행렬을 TXT로 저장하거나 다운로드할 수 있는 텍스트 형식까지 함께 요청할 수 있습니다. 작성 내용은 포트폴리오 PDF에도 반영됩니다.")
+
+        st.session_state["i3_saved_4"] = (
+            "환경과 관련된 사회적 질문에서 시작해 15×15 회색조 우리의 픽셀 아트를 만들기 위한 GPT 프롬프트를 구성했다."
+        )
+        st.session_state["i3_saved_detail_4"] = {
+            "writings": social_image_prompt_entries() + [("GPT 이미지 생성 프롬프트", build_social_image_prompt())]
+        }
+
+        st.markdown("---")
+        st.markdown(pretty_title("학생 정보 입력 및 포트폴리오 저장", "#e3f2fd", "#bbdefb"), unsafe_allow_html=True)
+        render_value_cards(
+            [
+                {"title": "문제 1", "value": saved_status_text(1), "detail": "문제 발견 저장 상태", "bg": "#f4f9ff", "border": "#90caf9"},
+                {"title": "문제 2", "value": saved_status_text(2), "detail": "수학의 언어 저장 상태", "bg": "#f1f8e9", "border": "#aed581"},
+                {"title": "문제 3", "value": saved_status_text(3), "detail": "AI 활용 저장 상태", "bg": "#fff8e1", "border": "#ffcc80"},
+                {"title": "문제 4", "value": social_prompt_status_text(), "detail": "R.E 연결 프롬프트 작성 상태", "bg": "#fce4ec", "border": "#f48fb1"},
+            ],
+            columns=2,
+        )
+        st.caption("문제 1~4에서 학생이 작성한 글과 저장한 결과가 PDF에 반영됩니다.")
+        group_name = st.text_input("모둠 이름", key="i3_group")
+        st.markdown(pretty_title("학생 정보", "#f4f9ff", "#dbeafe"), unsafe_allow_html=True)
         info_cols = st.columns(2)
         with info_cols[0]:
             stu_id_1 = st.text_input("학번", max_chars=5, key="i3_id_1")
         with info_cols[1]:
             stu_name_1 = st.text_input("이름", key="i3_name_1")
 
-        class_key = class_key_from_ids(stu_id_1)
         if group_name and stu_id_1 and stu_name_1:
             pdf = create_pdf(
                 {
@@ -899,91 +1058,12 @@ def run():
                     use_container_width=True,
                 )
             with p2:
+                class_key = class_key_from_ids(stu_id_1)
                 port_url = PORT_URLS.get(class_key)
                 if port_url:
                     st.markdown(f"""<a href="{port_url}" target="_blank" style="display:block;padding:10px;background:linear-gradient(90deg,#43a047 0%,#66bb6a 100%);color:white;text-decoration:none;border-radius:8px;font-weight:bold;text-align:center;">{class_key}반 포트폴리오 패들렛 바로가기</a>""", unsafe_allow_html=True)
-                else:
-                    st.info("학번의 세 번째 숫자가 1, 2, 5, 6 중 하나이면 반별 패들렛 버튼이 나타납니다.")
         else:
             st.warning("모둠 이름과 학번, 이름을 입력하면 포트폴리오를 바로 받을 수 있습니다.")
-
-        st.markdown("---")
-        st.markdown(pretty_title("2️⃣ 모둠활동: 사회적 메시지 픽셀아트 프롬프트 만들기", "#ede7f6", "#d1c4e9"), unsafe_allow_html=True)
-        st.info(
-            "이제 모둠별로 1개의 픽셀아트 프롬프트를 기획해 봅시다. 먼저 주제를 고르고, 그 주제 안에서 깊은 질문과 사회적 메시지를 정한 뒤, "
-            "이미지에 꼭 들어갈 상징 2개를 정리하면 프롬프트 만들기 버튼으로 바로 사용할 문장을 만들 수 있습니다. "
-            "15×15 픽셀아트는 매우 작은 이미지이므로, 많은 내용을 넣기보다 하나의 핵심 메시지가 선명하게 보이도록 단순하게 표현하는 것이 중요합니다."
-        )
-
-        st.markdown(pretty_title("1단계:주제 선택", "#f4f9ff", "#dbeafe"), unsafe_allow_html=True)
-        topic_choice = st.radio(
-            "우리 모둠이 표현할 사회적 주제",
-            ["환경과 기후", "안전과 기술", "다양성과 존중"],
-            key="i3_social_topic",
-            horizontal=True,
-        )
-        topic_guides = {
-            "환경과 기후": "예: 쓰레기 문제, 기후 위기, 물과 숲을 지키는 행동",
-            "안전과 기술": "예: AI 오분류, 개인정보 보호, 기술 사용에서의 사람 확인",
-            "다양성과 존중": "예: 차별 반대, 서로의 다름 존중, 함께 살아가기",
-        }
-        st.caption(f"주제 안내: {topic_guides[topic_choice]}")
-
-        st.markdown(pretty_title("2단계: 질문과 메시지 정리", "#fff8e1", "#ffecb3"), unsafe_allow_html=True)
-        question_cols = st.columns(2)
-        with question_cols[0]:
-            st.text_area(
-                "깊은 질문(D.E.E.P Question)",
-                key="i3_social_question_prompt",
-                height=110,
-                placeholder="예: 길가에 쓰레기가 많아지면 우리 동네 사람들은 어떤 불편을 겪게 될까?",
-            )
-        with question_cols[1]:
-            st.text_area(
-                "사회적 메시지",
-                key="i3_social_image_thought",
-                height=110,
-                placeholder="예: 쓰레기를 아무 데나 버리지 말고, 우리 동네를 함께 깨끗하게 지키자.",
-            )
-        symbol_cols = st.columns(2)
-        with symbol_cols[0]:
-            st.text_input(
-                "상징 1",
-                key="i3_social_image_symbol_1",
-                placeholder="예: 길가버려진 컵",
-            )
-        with symbol_cols[1]:
-            st.text_input(
-                "상징 2",
-                key="i3_social_image_symbol_2",
-                placeholder="예: 쓰레기통",
-            )
-        st.caption("상징은 2개 정도만 넣는 것이 좋습니다. 15×15 픽셀아트에서는 복잡한 배경보다 핵심 장면이 먼저 보여야 합니다.")
-
-        st.markdown(pretty_title("3단계:프롬프트 만들기", "#e8f5e9", "#c8e6c9"), unsafe_allow_html=True)
-        if st.button("프롬프트 만들기", key="i3_make_social_prompt", use_container_width=True):
-            st.session_state["i3_generated_prompt"] = build_social_image_prompt()
-        generated_prompt = st.session_state.get("i3_generated_prompt", "")
-        if generated_prompt:
-            st.code(generated_prompt, language="markdown")
-            st.caption("입력 내용을 바꾸었다면 버튼을 다시 눌러 새 프롬프트를 만들어 주세요.")
-            gallery_url = GALLERY_URLS.get(class_key)
-            if gallery_url:
-                st.markdown(
-                    f"""<a href="{gallery_url}" target="_blank" style="display:block;padding:11px;background:linear-gradient(90deg,#7e57c2 0%,#42a5f5 100%);color:white;text-decoration:none;border-radius:8px;font-weight:bold;text-align:center;margin-top:8px;">{class_key}반 갤러리 패들렛 바로가기</a>""",
-                    unsafe_allow_html=True,
-                )
-            else:
-                st.info("학생 정보의 학번을 입력하면 우리 반 갤러리 패들렛 바로가기 버튼이 나타납니다.")
-        else:
-            st.info("주제, 질문, 메시지, 상징 2개를 정리한 뒤 프롬프트 만들기 버튼을 눌러 보세요.")
-
-        st.session_state["i3_saved_4"] = (
-            f"주제는 '{topic_choice}'였고, 사회적 메시지를 담은 15×15 픽셀아트 프롬프트를 구상했다."
-        )
-        st.session_state["i3_saved_detail_4"] = {
-            "writings": social_image_prompt_entries() + [("GPT 이미지 생성 프롬프트", generated_prompt)]
-        }
     st.markdown("<hr style='border:2px solid #2196F3;'>", unsafe_allow_html=True)
 
 

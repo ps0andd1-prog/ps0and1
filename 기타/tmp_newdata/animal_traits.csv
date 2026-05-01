@@ -1,0 +1,7 @@
+Animal_Type	Min Life Expectancy	Max Life Expectancy	Max Height Male (m)	Max Height Female (m)	Max Weight Male (kg)	Max Weight Female (kg)	Min Height Male (m)	Min Height Female (m)	Min Weight Male (kg)	Min Weight Female (kg)	Good with Children	Good with Other Dogs	Shedding	Grooming	Drooling	Coat Length	Good with Strangers	Playfulness	Protectiveness	Trainability	Energy	Barking
+Siberian Husky	12	15	0.65	0.60	28	23	0.50	0.45	20	16	5	5	3	4	2	3	4	5	4	3	4	4
+Rottweiler	8	12	0.70	0.65	50	40	0.60	0.55	38	30	4	4	2	3	4	2	3	4	5	4	3	2
+Shih Tzu	10	16	0.30	0.25	10	8	0.25	0.20	6	4	5	5	4	3	3	2	5	3	2	5	2	3
+Chihuahua	12	20	0.23	0.20	3	2	0.18	0.15	2	1.5	5	5	1	1	2	1	4	5	1	4	5	4
+Border Collie	12	15	0.60	0.55	22	20	0.50	0.45	18	15	5	4	3	3	2	2	5	5	5	5	5	2
+Beagle	10	15	0.50	0.45	15	14	0.40	0.35	10	9	5	5	3	2	1	2	4	3	2	4	4	4
