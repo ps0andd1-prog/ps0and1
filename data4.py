@@ -50,8 +50,8 @@ COMPARE_DATASETS = {
     },
     "수면 시간과 집중도": {
         "x": np.array([4, 5, 6, 7, 8, 9, 10], dtype=float),
-        "y": np.array([45, 58, 72, 84, 90, 82, 65], dtype=float),
-        "story": "잠을 너무 적게 자도, 너무 많이 자도 집중도가 낮아지고 적당한 수면 시간에서 집중도가 높아지는 상황입니다.",
+        "y": np.array([45, 58, 72, 84, 90, 88, 85], dtype=float),
+        "story": "잠이 부족하면 집중도가 낮고, 8~9시간에서는 높게 유지되며, 10시간에서는 약간 낮아지는 상황입니다.",
         "x_label": "수면 시간",
         "x_unit": "시간",
         "y_label": "집중도",
@@ -72,6 +72,7 @@ GALLERY_URLS = {
     "5": "https://padlet.com/ps0andd/g_5",
     "6": "https://padlet.com/ps0andd/g_6",
 }
+CANVA_AI_URL = "https://www.canva.com/ai"
 
 class ThemedPDF(FPDF):
     def __init__(self, *args, **kwargs):
@@ -1476,13 +1477,23 @@ def run():
             st.code(st.session_state["d3_canva_prompt"], language="markdown")
             gallery_url = GALLERY_URLS.get(class_num)
             if gallery_url:
-                st.markdown(
-                    f"""<a href="{gallery_url}" target="_blank"
-                       style="display: block; padding: 11px; background: linear-gradient(90deg, #7e57c2 0%, #42a5f5 100%); color: white; text-decoration: none; border-radius: 8px; font-weight: bold; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-top: 8px;">
-                       {class_num}반 갤러리 패들렛 바로가기
-                    </a>""",
-                    unsafe_allow_html=True,
-                )
+                link_cols = st.columns(2)
+                with link_cols[0]:
+                    st.markdown(
+                        f"""<a href="{CANVA_AI_URL}" target="_blank"
+                           style="display: block; padding: 11px; background: linear-gradient(90deg, #00c4cc 0%, #7d2ae8 100%); color: white; text-decoration: none; border-radius: 8px; font-weight: bold; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-top: 8px;">
+                           Canva AI 바로가기
+                        </a>""",
+                        unsafe_allow_html=True,
+                    )
+                with link_cols[1]:
+                    st.markdown(
+                        f"""<a href="{gallery_url}" target="_blank"
+                           style="display: block; padding: 11px; background: linear-gradient(90deg, #7e57c2 0%, #42a5f5 100%); color: white; text-decoration: none; border-radius: 8px; font-weight: bold; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-top: 8px;">
+                           {class_num}반 갤러리 패들렛 바로가기
+                        </a>""",
+                        unsafe_allow_html=True,
+                    )
             else:
                 st.info("학생 정보의 학번을 입력하면 우리 반 갤러리 패들렛 바로가기 버튼이 나타납니다.")
         else:

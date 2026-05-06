@@ -49,6 +49,15 @@ except Exception:
     pass
 
 
+CLASS_OPTIONS = ["1", "2", "5", "6"]
+PORT_URLS = {
+    "1": "https://padlet.com/ps0andd/p_1",
+    "2": "https://padlet.com/ps0andd/p_2",
+    "5": "https://padlet.com/ps0andd/p_5",
+    "6": "https://padlet.com/ps0andd/p_6",
+}
+
+
 DATASETS = {
     "경제: 광고와 판매량": {
         "table": pd.DataFrame(
@@ -322,6 +331,29 @@ def stage_intro(title, description, question, color1="#e8f5e9", color2="#c8e6c9"
         """,
         unsafe_allow_html=True,
     )
+
+
+def render_link_button(url, label, gradient):
+    st.markdown(
+        f"""<a href="{url}" target="_blank"
+           style="display:block;padding:11px;background:{gradient};color:white;text-decoration:none;border-radius:8px;font-weight:bold;text-align:center;box-shadow:0 4px 6px rgba(0,0,0,0.1);margin-top:8px;">
+           {label}
+        </a>""",
+        unsafe_allow_html=True,
+    )
+
+
+def render_portfolio_link(class_key):
+    class_key = str(class_key)
+    port_url = PORT_URLS.get(class_key)
+    if port_url:
+        render_link_button(
+            port_url,
+            f"{class_key}반 포트폴리오 패들렛 이동하기",
+            "linear-gradient(90deg, #43a047 0%, #66bb6a 100%)",
+        )
+    else:
+        st.info("반을 선택하면 포트폴리오 패들렛 버튼이 나타납니다.")
 
 
 def _render_value_card(item):
@@ -1059,6 +1091,9 @@ def run():
 
     dataset_names = list(DATASETS.keys())
     st.session_state.setdefault("d5_group", "")
+    st.session_state.setdefault("d5_class", CLASS_OPTIONS[0])
+    if st.session_state.get("d5_class") not in CLASS_OPTIONS:
+        st.session_state["d5_class"] = CLASS_OPTIONS[0]
     st.session_state.setdefault("d5_use_scale", True)
     st.session_state.setdefault("d5_dataset", dataset_names[0])
     st.session_state["d5_dataset"] = normalize_dataset_name(st.session_state.get("d5_dataset", dataset_names[0]))
@@ -1101,9 +1136,11 @@ def run():
             "#bbdefb",
         )
         st.markdown(pretty_title("모둠과 데이터 분석 방향 정하기", "#e3f2fd", "#bbdefb"), unsafe_allow_html=True)
-        input_col, field_col, dataset_col = st.columns([0.8, 0.8, 1.2])
+        input_col, class_col, field_col, dataset_col = st.columns([0.8, 0.45, 0.8, 1.2])
         with input_col:
             st.text_input("모둠명", key="d5_group", placeholder="예: 1모둠")
+        with class_col:
+            st.selectbox("반", CLASS_OPTIONS, key="d5_class")
         with field_col:
             st.selectbox("활동 분야 선택", FIELD_ORDER, key="d5_field")
         field_dataset_names = FIELD_DATASETS[st.session_state["d5_field"]]
@@ -1718,6 +1755,7 @@ def run():
                 mime="application/pdf",
                 use_container_width=True,
             )
+            render_portfolio_link(st.session_state.get("d5_class", CLASS_OPTIONS[0]))
         else:
             st.info("데이터 선택 탭에서 모둠명을 입력하면 보고서 PDF를 저장할 수 있습니다.")
 

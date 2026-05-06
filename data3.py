@@ -82,6 +82,7 @@ RESAMPLE_BILINEAR = getattr(Image, "Resampling", Image).BILINEAR
 PORT_URLS = {"1": "https://padlet.com/ps0andd/p_1", "2": "https://padlet.com/ps0andd/p_2", "5": "https://padlet.com/ps0andd/p_5", "6": "https://padlet.com/ps0andd/p_6"}
 QA_URLS = {"1": "https://padlet.com/ps0andd/q_1", "2": "https://padlet.com/ps0andd/q_2", "5": "https://padlet.com/ps0andd/q_5", "6": "https://padlet.com/ps0andd/q_6"}
 GALLERY_URLS = {"1": "https://padlet.com/ps0andd/g_1", "2": "https://padlet.com/ps0andd/g_2", "5": "https://padlet.com/ps0andd/g_5", "6": "https://padlet.com/ps0andd/g_6"}
+GPT_URL = "https://chatgpt.com"
 
 
 def rgb_from_pattern(pattern):
@@ -969,10 +970,17 @@ def run():
             st.caption("입력 내용을 바꾸었다면 버튼을 다시 눌러 새 프롬프트를 만들어 주세요.")
             gallery_url = GALLERY_URLS.get(class_key)
             if gallery_url:
-                st.markdown(
-                    f"""<a href="{gallery_url}" target="_blank" style="display:block;padding:11px;background:linear-gradient(90deg,#7e57c2 0%,#42a5f5 100%);color:white;text-decoration:none;border-radius:8px;font-weight:bold;text-align:center;margin-top:8px;">{class_key}반 갤러리 패들렛 바로가기</a>""",
-                    unsafe_allow_html=True,
-                )
+                link_cols = st.columns(2)
+                with link_cols[0]:
+                    st.markdown(
+                        f"""<a href="{GPT_URL}" target="_blank" style="display:block;padding:11px;background:linear-gradient(90deg,#7e57c2 0%,#42a5f5 100%);color:white;text-decoration:none;border-radius:8px;font-weight:bold;text-align:center;margin-top:8px;">GPT 바로가기</a>""",
+                        unsafe_allow_html=True,
+                    )
+                with link_cols[1]:
+                    st.markdown(
+                        f"""<a href="{gallery_url}" target="_blank" style="display:block;padding:11px;background:linear-gradient(90deg,#7e57c2 0%,#42a5f5 100%);color:white;text-decoration:none;border-radius:8px;font-weight:bold;text-align:center;margin-top:8px;">{class_key}반 갤러리 패들렛 바로가기</a>""",
+                        unsafe_allow_html=True,
+                    )
             else:
                 st.info("학생 정보의 학번을 입력하면 우리 반 갤러리 패들렛 바로가기 버튼이 나타납니다.")
         else:

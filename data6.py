@@ -17,6 +17,16 @@ from future_extra_datasets import (
 font_path = os.path.join(os.path.dirname(__file__), "font", "NanumGothic.ttf")
 
 
+CLASS_OPTIONS = ["1", "2", "5", "6"]
+GALLERY_URLS = {
+    "1": "https://padlet.com/ps0andd/g_1",
+    "2": "https://padlet.com/ps0andd/g_2",
+    "5": "https://padlet.com/ps0andd/g_5",
+    "6": "https://padlet.com/ps0andd/g_6",
+}
+CANVA_AI_URL = "https://www.canva.com/ai"
+
+
 DATASETS = {
     "경제: 광고와 판매량": {
         "table": pd.DataFrame(
@@ -313,6 +323,37 @@ def stage_intro(title, description, question, color1="#fff3e0", color2="#ffe0b2"
     )
 
 
+def render_link_button(url, label, gradient):
+    st.markdown(
+        f"""<a href="{url}" target="_blank"
+           style="display:block;padding:11px;background:{gradient};color:white;text-decoration:none;border-radius:8px;font-weight:bold;text-align:center;box-shadow:0 4px 6px rgba(0,0,0,0.1);margin-top:8px;">
+           {label}
+        </a>""",
+        unsafe_allow_html=True,
+    )
+
+
+def render_canva_gallery_links(class_key):
+    class_key = str(class_key)
+    gallery_url = GALLERY_URLS.get(class_key)
+    link_cols = st.columns(2)
+    with link_cols[0]:
+        render_link_button(
+            CANVA_AI_URL,
+            "Canva AI 바로가기",
+            "linear-gradient(90deg, #00c4cc 0%, #7d2ae8 100%)",
+        )
+    with link_cols[1]:
+        if gallery_url:
+            render_link_button(
+                gallery_url,
+                f"{class_key}반 갤러리 패들렛 이동하기",
+                "linear-gradient(90deg, #7e57c2 0%, #42a5f5 100%)",
+            )
+        else:
+            st.info("반을 선택하면 갤러리 패들렛 버튼이 나타납니다.")
+
+
 def _render_value_card(item):
     title = item.get("title", "")
     value = item.get("value", "")
@@ -423,9 +464,15 @@ def ensure_state():
     if d5_dataset not in DATASETS:
         d5_dataset = FIELD_DATASETS[FIELD_ORDER[0]][0]
     d5_group = st.session_state.get("d5_group", "")
+    d5_class = st.session_state.get("d5_class", CLASS_OPTIONS[0])
+    if d5_class not in CLASS_OPTIONS:
+        d5_class = CLASS_OPTIONS[0]
     d5_degree = int(st.session_state.get("d5_ml_degree", 1))
     d5_field = st.session_state.get("d5_field", field_for_dataset(d5_dataset))
     st.session_state.setdefault("d6_group", d5_group)
+    st.session_state.setdefault("d6_class", d5_class)
+    if st.session_state.get("d6_class") not in CLASS_OPTIONS:
+        st.session_state["d6_class"] = d5_class
     st.session_state.setdefault("d6_field", d5_field if d5_field in FIELD_ORDER else field_for_dataset(d5_dataset))
     st.session_state.setdefault("d6_dataset", d5_dataset if d5_dataset in DATASETS else dataset_names[0])
     st.session_state["d6_dataset"] = normalize_dataset_name(st.session_state.get("d6_dataset", d5_dataset))
@@ -1292,7 +1339,11 @@ def run():
 
         select_col, title_col = st.columns([1, 1])
         with select_col:
-            st.text_input("모둠명", key="d6_group", placeholder="예: 1모둠")
+            group_col, class_col = st.columns([1.0, 0.45])
+            with group_col:
+                st.text_input("모둠명", key="d6_group", placeholder="예: 1모둠")
+            with class_col:
+                st.selectbox("반", CLASS_OPTIONS, key="d6_class")
             st.selectbox("주요 대상", TARGET_USERS, key="d6_target_user")
             st.text_input(
                 "이 사용자를 선택한 이유",
@@ -1529,30 +1580,21 @@ def run():
             prompt_text = build_prompt_text(dataset)
             presentation_summary = build_presentation_summary_text()
             st.code(prompt_text, language="markdown")
+            render_canva_gallery_links(st.session_state.get("d6_class", CLASS_OPTIONS[0]))
             st.markdown(pretty_title("모둠 발표용 3문장 요약", "#fff8e1", "#ffecb3"), unsafe_allow_html=True)
             st.code(presentation_summary, language="markdown")
 
-            download_col1, download_col2 = st.columns(2)
-            with download_col1:
+            if st.session_state.get("d6_group", "").strip():
+                pdf_bytes = create_prompt_pdf(st.session_state["d6_group"], dataset, prompt_text)
                 st.download_button(
-                    "Canva 프롬프트 TXT 저장",
-                    data=prompt_text.encode("utf-8"),
-                    file_name=f"{clean_text(st.session_state.get('d6_group', ''), '모둠')}_앱제작프롬프트.txt",
-                    mime="text/plain",
+                    "Canva 기획 PDF 저장",
+                    data=pdf_bytes,
+                    file_name=f"{st.session_state['d6_group']}_6차시_앱기획프롬프트.pdf",
+                    mime="application/pdf",
                     use_container_width=True,
                 )
-            with download_col2:
-                if st.session_state.get("d6_group", "").strip():
-                    pdf_bytes = create_prompt_pdf(st.session_state["d6_group"], dataset, prompt_text)
-                    st.download_button(
-                        "Canva 기획 PDF 저장",
-                        data=pdf_bytes,
-                        file_name=f"{st.session_state['d6_group']}_6차시_앱기획프롬프트.pdf",
-                        mime="application/pdf",
-                        use_container_width=True,
-                    )
-                else:
-                    st.info("모둠명을 입력하면 앱 기획 PDF를 저장할 수 있습니다.")
+            else:
+                st.info("모둠명을 입력하면 앱 기획 PDF를 저장할 수 있습니다.")
 
     st.markdown("<hr style='border: 2px solid #2196F3;'>", unsafe_allow_html=True)
 
