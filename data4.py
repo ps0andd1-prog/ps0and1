@@ -27,16 +27,16 @@ LOSS_Y = np.array([55, 62, 70, 76], dtype=float)
 LOSS_INTERCEPT = 49.0
 
 COMPARE_DATASETS = {
-    "택시 이동 거리와 요금": {
-        "x": np.array([1, 2, 3, 4, 5, 6, 7], dtype=float),
-        "y": np.array([5200, 6900, 9100, 10800, 13200, 14800, 17100], dtype=float),
-        "story": "택시 이동 거리가 길어질수록 요금이 대체로 증가하지만, 기본요금과 구간별 요금 때문에 약간의 오차가 생기는 상황입니다.",
-        "x_label": "이동 거리",
-        "x_unit": "km",
-        "y_label": "택시 요금",
-        "y_unit": "원",
+    "기온과 아이스크림 판매량": {
+        "x": np.array([20, 22, 24, 26, 28, 30, 32], dtype=float),
+        "y": np.array([78, 94, 109, 131, 143, 166, 179], dtype=float),
+        "story": "하루 평균 기온이 높아질수록 아이스크림 판매량은 대체로 증가하지만, 날씨, 행사, 요일 차이 때문에 실제 판매량은 직선 주변에 조금씩 흩어지는 상황입니다.",
+        "x_label": "하루 평균 기온",
+        "x_unit": "℃",
+        "y_label": "아이스크림 판매량",
+        "y_unit": "개",
         "best": "직선",
-        "quad_compare_coeffs": np.array([30.0, 1750.0, 3300.0], dtype=float),
+        "quad_compare_coeffs": np.array([0.15, 0.8, 3.0], dtype=float),
     },
     "던진 공의 시간과 높이": {
         "x": np.array([0, 1, 2, 3, 4, 5, 6], dtype=float),
@@ -184,6 +184,16 @@ def clean_text(value, default="작성한 내용이 없습니다."):
     return text if text else default
 
 
+def save_stage_result(answer_key, content):
+    st.session_state[answer_key] = content
+    st.session_state[f"{answer_key}_time"] = datetime.datetime.now().strftime("%H:%M:%S")
+
+
+def saved_status_text(answer_key):
+    saved_time = st.session_state.get(f"{answer_key}_time", "")
+    return f"저장 완료: {saved_time}" if saved_time else "아직 저장하지 않았습니다."
+
+
 def normalize_pdf_output(value):
     if isinstance(value, (bytes, bytearray)):
         return bytes(value)
@@ -249,19 +259,32 @@ def build_canva_ethics_prompt():
     symbol_1 = prompt_text(st.session_state.get("d3_ethics_symbol_1", ""), "AI 로봇과 사람")
     symbol_2 = prompt_text(st.session_state.get("d3_ethics_symbol_2", ""), "공정함을 뜻하는 저울")
     style = prompt_text(st.session_state.get("d3_poster_style", ""), "깔끔한 공익광고")
+    color_guides = {
+        "깔끔한 공익광고": "흰색과 밝은 회색을 바탕으로 신뢰감을 주는 파랑, 차분한 남색, 포인트 노랑을 사용해 깨끗하고 공적인 느낌을 줍니다.",
+        "강한 경고 메시지": "검정 또는 짙은 회색 배경에 빨강, 주황, 노랑을 포인트로 사용해 위험성과 경각심이 즉시 느껴지게 합니다.",
+        "따뜻한 교육 캠페인": "부드러운 크림색, 따뜻한 초록, 하늘색, 연한 주황을 사용해 공감과 배려가 느껴지는 분위기를 만듭니다.",
+        "미래적인 디지털 스타일": "짙은 남색 또는 어두운 배경에 청록, 보라, 전기 파랑을 사용하고 디지털 그리드나 빛나는 선 느낌을 더합니다.",
+    }
+    color_guide = color_guides.get(style, color_guides["깔끔한 공익광고"])
 
     return (
-        "Canva에서 사용할 인공지능 윤리 포스터를 만들어줘.\n"
-        "대상은 고등학교 1학년 학생이고, 교실 발표용으로 한눈에 메시지가 보이게 구성해줘.\n"
+        "인공지능 윤리 포스터를 만들어줘.\n"
+        "이 포스터의 역할은 인공지능을 더 책임 있게 사용하자는 윤리적 메시지를 사회적으로 전달하는 것이다.\n"
+        "대상은 학생만이 아니라 모든 사람이다. 나이와 직업이 달라도 한눈에 이해하고 공감할 수 있게 구성해줘.\n"
+        "공공장소, 학교 게시판, 온라인 캠페인에서 함께 볼 수 있는 공익 포스터처럼 만들어줘.\n\n"
+        "[반드시 포함할 내용]\n"
         f"주제: {topic}\n"
-        f"깊은 질문(D.E.E.P Question): {question}\n"
-        f"핵심 메시지: {message}\n"
-        f"포함할 상징 1: {symbol_1}\n"
-        f"포함할 상징 2: {symbol_2}\n"
+        f"깊은 질문(D.E.E.P Question)을 포스터에서 가장 눈에 띄는 1순위 메인 카피로 크게 배치하기: {question}\n"
+        f"핵심 메시지는 깊은 질문보다 작게, 질문 아래에서 행동 방향을 알려주는 문장으로 넣기: {message}\n"
+        f"상징 1을 시각 요소로 반드시 넣기: {symbol_1}\n"
+        f"상징 2를 시각 요소로 반드시 넣기: {symbol_2}\n\n"
+        "[디자인 방향]\n"
         f"디자인 분위기: {style}\n"
-        "구성: 큰 제목 1개, 짧은 부제 1개, 핵심 문장 2~3개, 시각적 상징 중심.\n"
-        "색감: 신뢰를 주는 파랑, 주의를 주는 노랑, 여백이 있는 흰색을 함께 사용.\n"
-        "주의: 글자는 너무 많지 않게 하고, AI 예측의 편리함과 인간의 책임을 함께 드러내줘."
+        f"색감: {color_guide}\n"
+        "구성: 깊은 질문을 포스터 전체에서 가장 큰 글씨와 가장 강한 대비로 배치해줘. 제목, 핵심 메시지, 보조 문장은 모두 깊은 질문보다 작고 덜 강조되게 해줘.\n"
+        "깊은 질문은 포스터를 보는 사람이 가장 먼저 읽는 문장이 되게 하고, 핵심 메시지는 그 질문에 대한 답이나 행동 방향처럼 아래쪽에 배치해줘.\n"
+        "상징들은 장식이 아니라 인공지능 윤리 문제를 이해하게 만드는 중심 이미지가 되도록 배치해줘.\n"
+        "주의: 글자는 너무 많지 않게 하고, AI의 편리함만 강조하지 말고 공정성, 개인정보 보호, 인간의 책임 중 선택한 주제의 윤리적 방향이 분명히 드러나게 해줘."
     )
 
 
@@ -303,10 +326,6 @@ def create_portfolio_pdf(
     pdf.h2("탐구 출발 질문")
     add_text_box_to_pdf(pdf, intro_title, intro_answer)
 
-    pdf.h2("R.E 인공지능 윤리 포스터 프롬프트")
-    for title, answer_text in poster_entries:
-        add_text_box_to_pdf(pdf, title, answer_text, fill_color=(250, 250, 250))
-
     linked_reflections = [
         principle_data[1][1] if len(principle_data) > 1 else "",
         principle_data[2][1] if len(principle_data) > 2 else "",
@@ -320,6 +339,11 @@ def create_portfolio_pdf(
         if reflection_text.strip():
             add_text_box_to_pdf(pdf, "나의 해석", reflection_text, fill_color=(245, 245, 245))
         add_figure_to_pdf(pdf, figure_title, figure)
+
+    pdf.add_page()
+    pdf.h2("문제 4. 모둠활동 2. AI 윤리 포스터 프롬프트")
+    for title, answer_text in poster_entries:
+        add_text_box_to_pdf(pdf, title, answer_text, fill_color=(250, 250, 250))
 
     return normalize_pdf_output(pdf.output(dest="S"))
 
@@ -966,9 +990,9 @@ def build_mission_rows():
     slope = float(st.session_state.get("d3_loss_slope", 7.0))
     current_loss = sse(LOSS_Y, slope * LOSS_X + LOSS_INTERCEPT)
 
-    dataset_name = st.session_state.get("d3_compare_dataset", "택시 이동 거리와 요금")
+    dataset_name = st.session_state.get("d3_compare_dataset", "기온과 아이스크림 판매량")
     if dataset_name not in COMPARE_DATASETS:
-        dataset_name = "택시 이동 거리와 요금"
+        dataset_name = "기온과 아이스크림 판매량"
     _, _, linear_coeffs, quad_coeffs, linear_loss, quad_loss = get_regression_compare_metrics(dataset_name)
 
     return [
@@ -981,7 +1005,7 @@ def build_mission_rows():
             ),
         ),
         (
-            "문제 3. 직선과 곡선 모델 비교",
+            "문제 3. 모둠활동 1. 직선과 곡선 모델 비교",
             (
                 f"선택한 데이터셋: {dataset_name}\n"
                 f"직선 모델의 오차: {linear_loss:.2f}\n"
@@ -995,9 +1019,9 @@ def build_mission_rows():
 
 def build_figure_items():
     slope = float(st.session_state.get("d3_loss_slope", 7.0))
-    dataset_name = st.session_state.get("d3_compare_dataset", "택시 이동 거리와 요금")
+    dataset_name = st.session_state.get("d3_compare_dataset", "기온과 아이스크림 판매량")
     if dataset_name not in COMPARE_DATASETS:
-        dataset_name = "택시 이동 거리와 요금"
+        dataset_name = "기온과 아이스크림 판매량"
 
     compare_fig, _, _, _, _ = make_regression_compare_figure(
         dataset_name,
@@ -1035,16 +1059,16 @@ def run():
         stage_intro(
             "문제제기",
             "AI가 게임에서 여러 번 시도하고 고치는 장면을 보며, 예측이 틀렸을 때 생기는 "
-            "오차가 무엇인지 짧게 확인하는 도입 단계입니다.",
+            "오차가 무엇인지 확인하는 도입 단계입니다.",
             "AI는 왜 오차를 줄이려고 할까?",
             "#e3f2fd",
             "#bbdefb",
         )
 
         st.markdown(pretty_title("1. 문제제기: 인공지능은 어떻게 학습할까", "#e3f2fd", "#bbdefb"), unsafe_allow_html=True)
-        st.write(
-            "아래 영상은 OpenAI의 AI들이 숨바꼭질 게임을 반복하며 더 나은 행동을 찾아가는 예시입니다. "
-            "처음부터 완벽하게 행동하는 것이 아니라, 결과를 보며 계속 고쳐 간다는 점에 주목해 보세요."
+        st.markdown(
+            "아래 영상은 OpenAI의 AI들이 숨바꼭질 게임을 반복하며 **더 나은 행동**을 찾아가는 예시입니다. "
+            "처음부터 완벽하게 행동하는 것이 아니라, **결과를 보며 계속 고쳐 간다는 점**에 주목해 보세요."
         )
         st.video("https://www.youtube.com/watch?v=kopoLzvh5jY")
 
@@ -1056,7 +1080,7 @@ def run():
         video_q2 = st.text_input(
             "오차는 어떤 두 값을 비교할 때 생길까?",
             key="d3_fu_video_q2",
-            placeholder="힌트: 실제로 나온 결과와 미리 예상한 값을 비교합니다.",
+            placeholder="힌트: ____로 나온 결과와 미리 ___한 값을 비교합니다.",
         )
         if st.button("정답 보기", key="d3_fu_video_answer_btn", use_container_width=True):
             st.session_state["d3_fu_show_video_answer"] = True
@@ -1074,29 +1098,27 @@ def run():
                 st.latex(r"\text{오차}=|\text{실제값}-\text{예측값}|")
             with answer_col2:
                 st.markdown(pretty_title("AI 학습의 핵심", "#fff3e0", "#ffe0b2"), unsafe_allow_html=True)
-                st.info(
-                    "인공지능은 처음부터 정답을 아는 것이 아니라, 실제값과 예측값을 비교합니다. "
-                    "그리고 오차, 즉 `|실제값 - 예측값|`이 작아지도록 자신의 전략이나 예측 방법을 계속 고쳐 가며 학습합니다."
+                st.markdown(
+                    "인공지능은 처음부터 정답을 아는 것이 아니라, **실제값**과 **예측값**을 비교합니다. "
+                    "그리고 **오차**, 즉 `|실제값 - 예측값|`이 작아지도록 자신의 전략이나 예측 방법을 계속 고쳐 가며 학습합니다."
                 )
 
-        if video_q1.strip() or video_q2.strip():
+        if st.button("문제 1 결과 저장", key="d3_save_1", use_container_width=True):
             video_q1_text = video_q1.strip() if video_q1.strip() else "아직 작성하지 않았습니다."
             video_q2_text = video_q2.strip() if video_q2.strip() else "아직 작성하지 않았습니다."
-            st.session_state["d3_answer_1"] = (
+            save_stage_result(
+                "d3_answer_1",
                 "[영상 관찰]\n"
                 f"AI가 계속 고치려고 하는 것: {video_q1_text}\n"
                 f"오차가 생기는 비교: {video_q2_text}\n\n"
                 "[핵심 이해]\n"
-                "인공지능은 실제값과 예측값을 비교하고, 그 차이인 오차가 작아지도록 학습한다."
+                "인공지능은 실제값과 예측값을 비교하고, 그 차이인 오차가 작아지도록 학습한다.",
             )
-        else:
-            st.session_state["d3_answer_1"] = ""
-            st.caption("영상 아래 질문에 답하면 포트폴리오에 문제제기 활동 결과가 저장됩니다.")
+        st.caption(saved_status_text("d3_answer_1"))
     with tabs[1]:
         stage_intro(
             "수학의 언어: 오차를 손실함수로 구조화하기",
-            "FU에서 확인한 오차를 오차제곱의 합으로 모아 손실함수로 표현하고, "
-            "여러 기울기 m을 비교하며 손실함수가 이차함수 모양이 되고 최솟값을 가진다는 사실을 발견하는 과정입니다.",
+            "예측선의 기울기를 바꾸어 보며 실제 데이터에 가장 잘 맞는 선을 찾아보는 단계입니다.",
             "어떤 기울기에서 손실이 가장 작아질까?",
             "#fff8e1",
             "#ffecb3",
@@ -1105,22 +1127,22 @@ def run():
         st.markdown(pretty_title("1. 오차를 손실함수로 표현하기", "#e3f2fd", "#bbdefb"), unsafe_allow_html=True)
         col_m1, col_m2 = st.columns([1, 1])
         with col_m1:
-            st.write(
-                "AI가 만든 예측선이 실제 데이터와 얼마나 가까운지 보려면, 여러 오차를 하나로 모아야 합니다. "
-                "이 활동에서는 **오차를 제곱해서 모두 더한 값**을 손실이라고 부릅니다."
+            st.markdown(
+                "AI가 만든 **예측**이 실제 데이터와 얼마나 가까운지 보려면, 여러 **오차**를 하나로 모아야 합니다. "
+                "이 활동에서는 **오차를 제곱해서 모두 더한 값**을 **손실**이라고 부릅니다."
             )
-            st.info(
-                "오늘의 활동: 기울기 `m`을 움직여 보며 손실이 가장 작아지는 값을 찾아봅니다."
-            )
+
         with col_m2:
             st.latex(r"\boxed{\text{오차}=\text{실제값}-\text{예측값}}")
             st.latex(r"\boxed{\text{손실함수(이차함수)}=\text{오차}^2+\cdots}")
-            st.caption(
-                "`+ ...`는 모든 데이터의 오차제곱을 계속 더한다는 뜻입니다."
-            )
+
 
         st.markdown(pretty_title("2. 데이터를 잘 설명하는 기울기 찾기", "#ede7f6", "#d1c4e9"), unsafe_allow_html=True)
-        slope = st.slider("기울기 m", 3.0, 10.5, 7.0, 0.1, key="d3_loss_slope")
+        st.markdown(
+            "슬라이더로 **기울기 m**을 바꾸며, 데이터 점들과 가장 가까워지는 **예측선**을 찾아봅니다. "
+            "**손실이 가장 작을 때의 m**이 데이터를 가장 잘 설명하는 기울기입니다."
+        )
+        slope = st.slider("기울기 m", 3.0, 10.5, 4.0, 0.1, key="d3_loss_slope")
         current_loss = sse(LOSS_Y, slope * LOSS_X + LOSS_INTERCEPT)
         best_m = float(np.sum(LOSS_X * (LOSS_Y - LOSS_INTERCEPT)) / np.sum(LOSS_X**2))
 
@@ -1153,43 +1175,38 @@ def run():
             columns=2,
         )
 
-        st.markdown(pretty_title("1️⃣모둠활동: 손실함수가 최소가 되는 기울기 m 찾기", "#fff3e0", "#ffe0b2"), unsafe_allow_html=True)
+        st.markdown(pretty_title("3. 손실함수가 최소가 되는 기울기 m 찾기", "#fff3e0", "#ffe0b2"), unsafe_allow_html=True)
+        st.markdown(
+            "**손실**은 예측선이 실제 데이터와 얼마나 멀리 떨어져 있는지를 나타내는 값입니다. "
+            "따라서 **손실이 가장 작아지는 기울기 m**을 찾으면, **데이터에 가장 잘 맞는 예측선**을 찾을 수 있습니다."
+        )
         group_m_answer = st.text_input(
             "문항 1: 손실함수가 최소가 되는 m의 값은 무엇인가?",
             key="d3_t_group_m",
             placeholder="예: 표와 그래프를 보고 m 값을 적어 보세요.",
         )
-        group_reason_answer = st.text_area(
-            "문항 2: 왜 그 기울기 m에서 손실함수가 가장 작아지는지 수학적으로 설명하시오.",
-            key="d3_t_group_reason",
-            height=110,
-            placeholder="힌트: 실제값과 예측값의 차이를 제곱해서 모두 더한 값이 가장 작은지 생각해 보세요.",
-        )
-        if st.button("모둠활동 1 정답 확인", key="d3_t_group_answer_btn", use_container_width=True):
+        if st.button("정답 확인", key="d3_t_group_answer_btn", use_container_width=True):
             st.session_state["d3_t_show_answer"] = True
         if st.session_state.get("d3_t_show_answer", False):
             st.success(
                 f"정답 예시: 손실함수가 최소가 되는 기울기는 m ≈ {best_m:.1f}입니다. "
-                "이때 손실함수 그래프에서 가장 낮은 점, 즉 이차함수의 최솟값에 가장 가까우며 "
-                "각 데이터의 실제값과 예측값 사이의 오차제곱의 합이 가장 작기 때문입니다."
+                "이때 손실함수 그래프에서 가장 낮은 점에 가장 가깝습니다."
             )
 
-        if group_m_answer.strip() or group_reason_answer.strip():
-            st.session_state["d3_answer_2"] = (
+        if st.button("문제 2 결과 저장", key="d3_save_2", use_container_width=True):
+            save_stage_result(
+                "d3_answer_2",
                 "[손실함수 구조화]\n"
                 "FU에서 인식한 오차를 오차제곱의 합인 손실함수로 표현하였다.\n"
                 "여러 기울기 m을 비교하며 손실함수가 어떻게 달라지는지 확인하였다.\n"
                 "손실함수는 기울기 m에 대한 이차함수처럼 U자 모양이 되며, 가장 낮은 점이 최솟값임을 확인하였다.\n\n"
-                "[모둠활동 1]\n"
                 f"문항 1 답: {group_m_answer.strip() if group_m_answer.strip() else '아직 작성하지 않았습니다.'}\n"
-                f"문항 2 설명: {group_reason_answer.strip() if group_reason_answer.strip() else '아직 작성하지 않았습니다.'}\n\n"
+                "\n"
                 "[핵심 정리]\n"
                 f"손실함수가 최소가 되는 m은 약 {best_m:.1f}이며, 그 이유는 오차제곱의 합이 가장 작기 때문이다. "
-                "이를 통해 인공지능은 손실함수라는 이차함수의 최솟값을 찾는 과정으로 학습한다고 이해하였다."
+                "이를 통해 인공지능은 손실함수라는 이차함수의 최솟값을 찾는 과정으로 학습한다고 이해하였다.",
             )
-        else:
-            st.session_state["d3_answer_2"] = ""
-            st.caption("모둠활동 1의 답을 작성하면 포트폴리오에 T 단계 활동 결과가 저장됩니다.")
+        st.caption(saved_status_text("d3_answer_2"))
 
     with tabs[2]:
         stage_intro(
@@ -1201,42 +1218,42 @@ def run():
             "#c8e6c9",
         )
 
-        top_col1, top_col2 = st.columns([1, 1])
-        with top_col1:
-            st.markdown(pretty_title("머신러닝이란?", "#e3f2fd", "#bbdefb"), unsafe_allow_html=True)
-            st.write(
-                "머신러닝은 사람이 모든 규칙을 직접 정하는 대신, 컴퓨터가 데이터의 모양을 보고 "
-                "오차가 작아지는 식을 자동으로 찾는 방법입니다."
-            )
-            st.info("오늘은 같은 데이터에 대해 직선(1차) 모델과 곡선(2차) 모델을 비교합니다.")
-        with top_col2:
+        st.markdown(pretty_title("1. 머신러닝이란?", "#e3f2fd", "#bbdefb"), unsafe_allow_html=True)
+        st.markdown(
+            "**머신러닝**은 사람이 규칙을 하나하나 정해 주는 것이 아니라, 컴퓨터가 **데이터의 패턴**을 살펴보며 "
+            "**예측값이 실제값에 가까워지는 식**을 찾아가는 방법입니다. "
+            "즉, 여러 모델을 비교하면서 **오차가 더 작은 예측 방법**을 선택하는 과정입니다."
+        )
+        st.markdown(pretty_title("2. 머신러닝으로 데이터 예측하기", "#ede7f6", "#d1c4e9"), unsafe_allow_html=True)
+        st.markdown(
+            "**비교할 데이터셋**을 고르고 **직선 모델** 또는 **곡선 모델**을 선택해 봅니다. "
+            "선택한 모델의 **식과 그래프**를 보며, 어떤 모델이 데이터 점들에 더 가깝게 맞는지 비교합니다."
+        )
+
+        model_left, model_right = st.columns([1, 1.25])
+        with model_left:
             st.markdown(pretty_title("비교할 데이터셋 선택", "#fff8e1", "#ffecb3"), unsafe_allow_html=True)
             if st.session_state.get("d3_compare_dataset") not in COMPARE_DATASETS:
-                st.session_state["d3_compare_dataset"] = "택시 이동 거리와 요금"
+                st.session_state["d3_compare_dataset"] = "기온과 아이스크림 판매량"
             dataset_name = st.selectbox(
                 "비교할 데이터셋",
                 list(COMPARE_DATASETS.keys()),
                 key="d3_compare_dataset",
             )
             dataset = COMPARE_DATASETS[dataset_name]
-            st.caption(dataset["story"])
-
-        model_choice = st.selectbox(
-            "머신러닝 모델 선택",
-            ["직선(1차)", "곡선(2차)"],
-            key="d3_u_model_choice",
-            help="직선은 한 방향으로 늘거나 줄어드는 데이터에, 곡선은 휘어진 변화가 있는 데이터에 잘 맞는 경우가 많습니다.",
-        )
+            model_choice = st.selectbox(
+                "머신러닝 모델 선택",
+                ["직선(1차)", "곡선(2차)"],
+                key="d3_u_model_choice",
+                help="직선은 한 방향으로 늘거나 줄어드는 데이터에, 곡선은 휘어진 변화가 있는 데이터에 잘 맞는 경우가 많습니다.",
+            )
 
         compare_fig, linear_loss, quad_loss, linear_coeffs, quad_coeffs = make_regression_compare_figure(
             dataset_name, True, True, model_choice
         )
-        selected_loss = linear_loss if model_choice == "직선(1차)" else quad_loss
         selected_coeffs = linear_coeffs if model_choice == "직선(1차)" else quad_coeffs
         recommended_model = "직선(1차)" if dataset["best"] == "직선" else "곡선(2차)"
-        col_c1, col_c2 = st.columns([1, 1.25])
-        with col_c1:
-            st.markdown(pretty_title("머신러닝이 자동으로 찾은 식", "#fff8e1", "#ffecb3"), unsafe_allow_html=True)
+        with model_left:
             st.markdown(f"**{model_choice} 모델 식**")
             st.latex(
                 poly_to_latex(
@@ -1245,11 +1262,9 @@ def run():
                     force_degree=2 if model_choice == "곡선(2차)" else None,
                 )
             )
-            st.info(f"현재 선택한 모델은 **{model_choice}**입니다.")
-        with col_c2:
+        with model_right:
             st.markdown(pretty_title("그래프 개형 비교하기", "#ede7f6", "#d1c4e9"), unsafe_allow_html=True)
             st.pyplot(compare_fig)
-            st.caption("굵게 표시된 선이 현재 선택한 머신러닝 모델입니다.")
 
         st.markdown(pretty_title("직선 모델과 곡선 모델 비교", "#f1f8e9", "#dcedc8"), unsafe_allow_html=True)
         render_value_cards(
@@ -1268,34 +1283,13 @@ def run():
                     "bg": "#ffebee",
                     "border": "#ef9a9a",
                 },
-                {
-                    "title": "선택한 모델 손실",
-                    "value": f"{selected_loss:.2f}",
-                    "detail": f"현재 선택한 {model_choice}의 손실입니다.",
-                    "bg": "#fff8e1",
-                    "border": "#ffcc80",
-                },
-                {
-                    "title": "추천 모델",
-                    "value": recommended_model,
-                    "detail": "데이터의 모양과 손실을 함께 보고 판단합니다.",
-                    "bg": "#f1f8e9",
-                    "border": "#aed581",
-                },
             ],
-            columns=4,
+            columns=2,
         )
-        if recommended_model == "직선(1차)":
-            st.success(
-                "이 데이터는 약간의 오차가 있지만 전체적으로 거의 일정한 방향으로 변합니다. "
-                "2차 모델이 손실을 조금 더 줄일 수 있어도, 데이터 모양을 설명하기에는 더 단순한 직선 모델이 자연스럽습니다."
-            )
-        else:
-            st.success("이 데이터는 올라갔다 내려가거나 휘어진 모양이 있으므로, 곡선 모델이 더 자연스럽습니다.")
 
-        st.markdown(pretty_title("2️⃣모둠활동: 어떤 모델이 데이터에 더 잘 맞을까?", "#fff3e0", "#ffe0b2"), unsafe_allow_html=True)
+        st.markdown(pretty_title("1️⃣ 모둠활동: 어떤 모델이 데이터에 더 잘 맞을까?", "#fff3e0", "#ffe0b2"), unsafe_allow_html=True)
         group_model_answer = st.selectbox(
-            "문항 1: 이 데이터에는 어떤 모델이 더 잘 맞는가?",
+            f"문항 1: {dataset_name} 데이터는 어떤 모델이 더 잘 맞는가?",
             ["직선(1차)", "곡선(2차)"],
             key="d3_u_group_model_answer",
         )
@@ -1303,7 +1297,7 @@ def run():
             "문항 2: 왜 그 모델이 더 적절한지 오차나 데이터의 모양을 바탕으로 설명하시오.",
             key="d3_u_group_model_reason",
             height=110,
-            placeholder="예: 데이터가 휘어진 모양이고, 곡선 모델의 손실이 더 작기 때문이다.",
+            placeholder="오차, 손실, 데이터의 모양을 바탕으로 설명하시오.",
         )
         if st.button("모둠활동 정답 확인", key="d3_u_group_answer_btn", use_container_width=True):
             st.session_state["d3_u_show_answer"] = True
@@ -1320,9 +1314,10 @@ def run():
                     f"데이터가 휘어진 모양이며, 곡선 모델의 손실({quad_loss:.2f})이 직선 모델의 손실({linear_loss:.2f})보다 작기 때문입니다."
                 )
 
-        if group_model_reason.strip():
-            st.session_state["d3_answer_3"] = (
-                "[모델 비교와 해석]\n"
+        if st.button("문제 3 결과 저장", key="d3_save_3", use_container_width=True):
+            save_stage_result(
+                "d3_answer_3",
+                "[모둠활동 1. 모델 비교와 해석]\n"
                 f"선택한 데이터셋: {dataset_name}\n"
                 "데이터의 모양을 보고 직선 모델과 곡선 모델을 비교하였다.\n"
                 f"머신러닝이 찾은 직선 모델 손실: {linear_loss:.2f}\n"
@@ -1330,11 +1325,9 @@ def run():
                 f"더 적절하다고 선택한 모델: {group_model_answer}\n"
                 f"선택 이유: {group_model_reason.strip()}\n\n"
                 "[핵심 정리]\n"
-                "직선 모델과 곡선 모델 중 더 적절한 모델을 선택하고, 손실 또는 오차의 크기를 근거로 이유를 설명하였다."
+                "직선 모델과 곡선 모델 중 더 적절한 모델을 선택하고, 손실 또는 오차의 크기를 근거로 이유를 설명하였다.",
             )
-        else:
-            st.session_state["d3_answer_3"] = ""
-            st.caption("모둠활동 문항 2의 이유를 작성하면 포트폴리오에 U 단계 활동 결과가 저장됩니다.")
+        st.caption(saved_status_text("d3_answer_3"))
 
     with tabs[3]:
         stage_intro(
@@ -1346,84 +1339,16 @@ def run():
             "#ffe0b2",
         )
 
-        st.markdown(pretty_title("1️⃣ 학생 정보 입력 및 탐구 포트폴리오 저장", "#e3f2fd", "#bbdefb"), unsafe_allow_html=True)
-        st.info("모둠 이름과 학생 정보를 먼저 입력하면, 앞 단계에서 저장한 활동 결과를 바로 PDF 포트폴리오로 받을 수 있습니다.")
-        group_name = st.text_input("모둠 이름 (예: 1모둠)", key="d3_group")
-        info_cols = st.columns(2)
-        with info_cols[0]:
-            stu_id_1 = st.text_input("학번 (예: 10101)", max_chars=5, key="d3_id_1")
-        with info_cols[1]:
-            stu_name_1 = st.text_input("이름 (예: 홍길동)", key="d3_name_1")
-
-        class_num = class_key_from_ids(stu_id_1)
-        if group_name and stu_id_1 and stu_name_1:
-            if class_num in PORT_URLS:
-                student_info = {
-                    "group": group_name,
-                    "id_1": stu_id_1,
-                    "name_1": stu_name_1,
-                }
-                principle_data = [
-                    (
-                        "문제 1. 오차란 무엇인가",
-                        clean_text(st.session_state.get("d3_answer_1", ""))
-                        + "\n\n[학생 질문]\n"
-                        + clean_text(st.session_state.get("d3_answer_1_student_q", "")),
-                    ),
-                    (
-                        "문제 2. 손실함수(이차함수)와 최솟값",
-                        clean_text(st.session_state.get("d3_answer_2", ""))
-                        + "\n\n[학생 질문]\n"
-                        + clean_text(st.session_state.get("d3_answer_2_student_q", "")),
-                    ),
-                    (
-                        "문제 3. 데이터에 맞는 모델 고르기",
-                        clean_text(st.session_state.get("d3_answer_3", ""))
-                        + "\n\n[학생 질문]\n"
-                        + clean_text(st.session_state.get("d3_answer_3_student_q", "")),
-                    ),
-                ]
-                pdf_bytes = create_portfolio_pdf(
-                    student_info,
-                    principle_data,
-                    build_mission_rows(),
-                    poster_prompt_entries(),
-                    build_figure_items(),
-                )
-
-                save_cols = st.columns(2)
-                with save_cols[0]:
-                    st.download_button(
-                        label="탐구 결과 PDF 다운로드",
-                        data=pdf_bytes,
-                        file_name=f"{group_name}_{stu_name_1}_4차시_탐구포트폴리오.pdf",
-                        mime="application/pdf",
-                        use_container_width=True,
-                    )
-                with save_cols[1]:
-                    port_url = PORT_URLS.get(class_num)
-                    st.markdown(
-                        f"""<a href="{port_url}" target="_blank"
-                           style="display: block; padding: 10px; background: linear-gradient(90deg, #43a047 0%, #66bb6a 100%); color: white; text-decoration: none; border-radius: 8px; font-weight: bold; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                           {class_num}반 포트폴리오 패들렛 열기
-                        </a>""",
-                        unsafe_allow_html=True,
-                    )
-            else:
-                st.error("학번의 세 번째 숫자가 해당 학급(1, 2, 5, 6반)인지 다시 확인해 주세요.")
-        else:
-            st.warning("모둠 이름과 학번, 이름을 입력하면 탐구 포트폴리오를 바로 받을 수 있습니다.")
-
-        st.markdown("---")
-        st.markdown(pretty_title("3️⃣모둠활동: AI 윤리 포스터 프롬프트 만들기", "#f1f8e9", "#dcedc8"), unsafe_allow_html=True)
-        st.write(
+        class_num = class_key_from_ids(st.session_state.get("d3_id_1", ""))
+        st.markdown(pretty_title("2️⃣모둠활동: AI 윤리 포스터 프롬프트 만들기", "#f1f8e9", "#dcedc8"), unsafe_allow_html=True)
+        st.markdown(
             "인공지능 윤리는 AI를 만들고 사용할 때 **사람에게 해를 주지 않고, 공정하고 책임 있게 쓰이도록 고민하는 기준**입니다. "
-            "AI가 오차를 줄여 좋은 예측을 하더라도, 그 예측이 누군가에게 불리하거나 개인정보를 함부로 쓰거나 "
-            "책임을 피하는 방식으로 사용된다면 문제가 될 수 있습니다."
+            "AI가 **오차를 줄여 좋은 예측**을 하더라도, 그 예측이 누군가에게 불리하거나 **개인정보**를 함부로 쓰거나 "
+            "**책임을 피하는 방식**으로 사용된다면 문제가 될 수 있습니다."
         )
-        st.info(
-            "이번 활동에서는 ‘AI가 잘 맞히는가?’를 넘어, ‘AI를 어떻게 써야 사람과 사회에 도움이 될까?’를 "
-            "포스터 메시지로 표현해 봅니다."
+        st.markdown(
+            "이번 활동에서는 ‘AI가 잘 맞히는가?’를 넘어, 모든 사람이 보고 공감할 수 있는 "
+            "**인공지능 윤리 포스터 메시지**를 만들어 봅니다."
         )
 
         st.markdown(pretty_title("1. 윤리 주제 선택하기", "#e3f2fd", "#bbdefb"), unsafe_allow_html=True)
@@ -1468,10 +1393,16 @@ def run():
             ["깔끔한 공익광고", "강한 경고 메시지", "따뜻한 교육 캠페인", "미래적인 디지털 스타일"],
             key="d3_poster_style",
         )
+        st.caption("선택한 분위기에 따라 Canva 프롬프트의 색감과 시각 방향이 자동으로 달라집니다.")
 
         st.markdown(pretty_title("3. Canva 포스터 프롬프트 만들기", "#ede7f6", "#d1c4e9"), unsafe_allow_html=True)
         if st.button("Canva 포스터 프롬프트 만들기", key="d3_make_canva_prompt", use_container_width=True):
             st.session_state["d3_canva_prompt"] = build_canva_ethics_prompt()
+            save_stage_result(
+                "d3_answer_4",
+                "[모둠활동 2. AI 윤리 포스터 프롬프트]\n"
+                + "\n".join(f"{title}: {clean_text(value)}" for title, value in poster_prompt_entries()),
+            )
         if st.session_state.get("d3_canva_prompt"):
             st.success("프롬프트가 생성되었습니다. Canva에서 포스터를 만들 때 아래 내용을 복사해 활용하세요.")
             st.code(st.session_state["d3_canva_prompt"], language="markdown")
@@ -1498,6 +1429,77 @@ def run():
                 st.info("학생 정보의 학번을 입력하면 우리 반 갤러리 패들렛 바로가기 버튼이 나타납니다.")
         else:
             st.info("주제, 질문, 메시지, 상징을 정리한 뒤 버튼을 누르면 Canva 포스터 제작 프롬프트가 생성됩니다.")
+
+        st.caption(saved_status_text("d3_answer_4"))
+
+        st.markdown("---")
+        st.markdown(pretty_title("💾  학생 정보 입력 및 탐구 포트폴리오 저장", "#e3f2fd", "#bbdefb"), unsafe_allow_html=True)
+        st.info("모둠활동 내용을 정리한 뒤 모둠 이름과 학생 정보를 입력하면, 활동 결과가 포함된 PDF 포트폴리오를 받을 수 있습니다.")
+        group_name = st.text_input("모둠 이름 (예: 1모둠)", key="d3_group")
+        info_cols = st.columns(2)
+        with info_cols[0]:
+            stu_id_1 = st.text_input("학번 (예: 10101)", max_chars=5, key="d3_id_1")
+        with info_cols[1]:
+            stu_name_1 = st.text_input("이름 (예: 홍길동)", key="d3_name_1")
+
+        class_num = class_key_from_ids(stu_id_1)
+        if group_name and stu_id_1 and stu_name_1:
+            if class_num in PORT_URLS:
+                student_info = {
+                    "group": group_name,
+                    "id_1": stu_id_1,
+                    "name_1": stu_name_1,
+                }
+                principle_data = [
+                    (
+                        "문제 1. 오차란 무엇인가",
+                        clean_text(st.session_state.get("d3_answer_1", ""))
+                        + "\n\n[학생 질문]\n"
+                        + clean_text(st.session_state.get("d3_answer_1_student_q", "")),
+                    ),
+                    (
+                        "문제 2. 손실함수(이차함수)와 최솟값",
+                        clean_text(st.session_state.get("d3_answer_2", ""))
+                        + "\n\n[학생 질문]\n"
+                        + clean_text(st.session_state.get("d3_answer_2_student_q", "")),
+                    ),
+                    (
+                        "문제 3. 모둠활동 1. 데이터에 맞는 모델 고르기",
+                        clean_text(st.session_state.get("d3_answer_3", ""))
+                        + "\n\n[학생 질문]\n"
+                        + clean_text(st.session_state.get("d3_answer_3_student_q", "")),
+                    ),
+                ]
+                pdf_bytes = create_portfolio_pdf(
+                    student_info,
+                    principle_data,
+                    build_mission_rows(),
+                    poster_prompt_entries(),
+                    build_figure_items(),
+                )
+
+                save_cols = st.columns(2)
+                with save_cols[0]:
+                    st.download_button(
+                        label="탐구 결과 PDF 다운로드",
+                        data=pdf_bytes,
+                        file_name=f"{group_name}_{stu_name_1}_4차시_탐구포트폴리오.pdf",
+                        mime="application/pdf",
+                        use_container_width=True,
+                    )
+                with save_cols[1]:
+                    port_url = PORT_URLS.get(class_num)
+                    st.markdown(
+                        f"""<a href="{port_url}" target="_blank"
+                           style="display: block; padding: 10px; background: linear-gradient(90deg, #43a047 0%, #66bb6a 100%); color: white; text-decoration: none; border-radius: 8px; font-weight: bold; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                           {class_num}반 포트폴리오 패들렛 열기
+                        </a>""",
+                        unsafe_allow_html=True,
+                    )
+            else:
+                st.error("학번의 세 번째 숫자가 해당 학급(1, 2, 5, 6반)인지 다시 확인해 주세요.")
+        else:
+            st.warning("모둠 이름과 학번, 이름을 입력하면 탐구 포트폴리오를 바로 받을 수 있습니다.")
 
     st.markdown("<hr style='border: 2px solid #2196F3;'>", unsafe_allow_html=True)
 

@@ -4,6 +4,7 @@ import tempfile
 
 import matplotlib as mpl
 import matplotlib.font_manager as fm
+import matplotlib.patheffects as path_effects
 import numpy as np
 import pandas as pd
 import streamlit as st
@@ -83,6 +84,35 @@ PORT_URLS = {"1": "https://padlet.com/ps0andd/p_1", "2": "https://padlet.com/ps0
 QA_URLS = {"1": "https://padlet.com/ps0andd/q_1", "2": "https://padlet.com/ps0andd/q_2", "5": "https://padlet.com/ps0andd/q_5", "6": "https://padlet.com/ps0andd/q_6"}
 GALLERY_URLS = {"1": "https://padlet.com/ps0andd/g_1", "2": "https://padlet.com/ps0andd/g_2", "5": "https://padlet.com/ps0andd/g_5", "6": "https://padlet.com/ps0andd/g_6"}
 GPT_URL = "https://chatgpt.com"
+SOCIAL_TOPIC_SUPPORT = {
+    "환경과 기후": {
+        "guide": "예: 쓰레기 문제, 기후 위기, 물과 숲을 지키는 행동",
+        "questions": [
+            "길가에 쓰레기가 많아지면 우리 동네 사람들은 어떤 불편을 겪게 될까?",
+            "기후가 더워지면 우리 학교와 마을의 생활은 어떻게 달라질까?",
+            "깨끗한 물과 숲을 지키기 위해 우리가 먼저 바꿀 수 있는 행동은 무엇일까?",
+        ],
+        "symbols": ["버려진 일회용 컵", "뜨거운 태양 아래 시든 나무", "물방울을 감싼 손"],
+    },
+    "안전과 기술": {
+        "guide": "예: AI 오분류, 개인정보 보호, 기술 사용에서의 사람 확인",
+        "questions": [
+            "AI가 사람을 잘못 판단하면 누가 어떤 피해를 입을 수 있을까?",
+            "편리한 기술을 사용할 때 개인정보는 어디까지 맡겨도 괜찮을까?",
+            "자동화된 판단을 그대로 믿기 전에 사람이 확인해야 할 것은 무엇일까?",
+        ],
+        "symbols": ["자물쇠가 걸린 스마트폰", "경고 표시가 뜬 얼굴 인식 화면", "사람 손과 로봇 손 사이의 확인 표시"],
+    },
+    "다양성과 존중": {
+        "guide": "예: 차별 반대, 서로의 다름 존중, 함께 살아가기",
+        "questions": [
+            "다르다는 이유로 배제되는 사람이 생기면 공동체는 무엇을 잃게 될까?",
+            "서로 다른 생각과 모습을 가진 사람들이 함께 지내려면 어떤 태도가 필요할까?",
+            "존중받는 교실을 만들기 위해 우리가 멈춰야 할 말과 행동은 무엇일까?",
+        ],
+        "symbols": ["서로 다른 색의 손이 맞잡은 모습", "원 안에 함께 서 있는 사람들", "깨진 선을 잇는 하트"],
+    },
+}
 
 
 def rgb_from_pattern(pattern):
@@ -134,11 +164,10 @@ def ensure_state():
         set_binary_grid(BINARY_PATTERNS[st.session_state.get("i3_binary_shape", "계단")].copy())
         st.session_state["i3_binary_shape_applied"] = st.session_state.get("i3_binary_shape", "계단")
     st.session_state.setdefault("i3_gray_show_matrix", False)
+    st.session_state.setdefault("i3_gray_math_principle", "C = kA + (1-k)B")
     st.session_state.setdefault("i3_social_topic", "환경과 기후")
     st.session_state.setdefault("i3_social_question_prompt", "")
-    st.session_state.setdefault("i3_social_image_thought", "")
     st.session_state.setdefault("i3_social_image_symbol_1", "")
-    st.session_state.setdefault("i3_social_image_symbol_2", "")
     st.session_state.setdefault("i3_generated_prompt", "")
     for idx in range(1, 5):
         st.session_state.setdefault(f"i3_saved_{idx}", "")
@@ -170,11 +199,16 @@ def draw_image(image, title, cmap=None, show_values=False, value_range=None, fig
         for row in range(image.shape[0]):
             for col in range(image.shape[1]):
                 val = int(image[row, col])
-                if plot_max == plot_min:
-                    brightness = 0
-                else:
-                    brightness = (float(image[row, col]) - plot_min) / (plot_max - plot_min) * 255
-                ax.text(col, row, str(val), ha="center", va="center", fontsize=value_fontsize, color="white" if brightness > 145 else "black")
+                ax.text(
+                    col,
+                    row,
+                    str(val),
+                    ha="center",
+                    va="center",
+                    fontsize=value_fontsize,
+                    color="#1565c0",
+                    path_effects=[path_effects.withStroke(linewidth=2, foreground="white")],
+                )
     fig.tight_layout()
     return fig
 def apply_local_style():
@@ -322,19 +356,45 @@ def matrix_text(grid):
 
 
 def binary_matrix_frame(grid):
-    return pd.DataFrame(
+    frame = pd.DataFrame(
         grid.astype(int),
-        index=range(1, grid.shape[0] + 1),
-        columns=range(1, grid.shape[1] + 1),
+        index=[str(row) for row in range(1, grid.shape[0] + 1)],
+        columns=[str(col) for col in range(1, grid.shape[1] + 1)],
     )
+    frame.index.name = "행/열"
+    return frame
 
 
 def sanitize_binary_frame(frame):
-    df = pd.DataFrame(frame).apply(pd.to_numeric, errors="coerce").fillna(0)
+    df = pd.DataFrame(frame).copy()
+    df = df.apply(pd.to_numeric, errors="coerce").fillna(0)
     df = df.clip(0, 1).round().astype(int)
     df.index = range(1, df.shape[0] + 1)
     df.columns = range(1, df.shape[1] + 1)
     return df
+
+
+def binary_matrix_editor(grid, key_prefix):
+    edited_frame = st.data_editor(
+        binary_matrix_frame(grid),
+        key=key_prefix,
+        hide_index=False,
+        use_container_width=True,
+        height=260,
+        num_rows="fixed",
+        column_config={
+            str(col): st.column_config.NumberColumn(
+                str(col),
+                min_value=0,
+                max_value=1,
+                step=1,
+                format="%d",
+                width=42,
+            )
+            for col in range(1, grid.shape[1] + 1)
+        },
+    )
+    return sanitize_binary_frame(edited_frame).values
 
 
 def set_binary_grid(grid, refresh_editor=False):
@@ -346,7 +406,7 @@ def set_binary_grid(grid, refresh_editor=False):
 
 
 def character_gray_matrix(name):
-    return np.clip(255 - to_gray(base_image(name)), 0, 255).astype(int)
+    return np.clip(to_gray(base_image(name)), 0, 255).astype(int)
 
 
 def combine_gray_matrices(name_a, name_b, k_value):
@@ -506,7 +566,7 @@ def create_pdf(student, rows):
         pdf.cell(0, 8, "문제 4. 우리의 픽셀 아트 프롬프트", ln=1, fill=True)
         for title, text in social_image_prompt_entries():
             add_text_box_to_pdf(pdf, title, text)
-        add_text_box_to_pdf(pdf, "GPT 이미지 생성 프롬프트", st.session_state.get("i3_generated_prompt", ""))
+        add_text_box_to_pdf(pdf, "학생이 작성한 프롬프트 만들기 결과", st.session_state.get("i3_generated_prompt", ""))
     return normalize_pdf_output(pdf.output(dest="S"))
 
 
@@ -530,9 +590,7 @@ def social_image_prompt_entries():
     return [
         ("선택한 주제", st.session_state.get("i3_social_topic", "")),
         ("생각해 볼 질문", st.session_state.get("i3_social_question_prompt", "")),
-        ("이미지로 전하고 싶은 한마디", st.session_state.get("i3_social_image_thought", "")),
         ("상징 1", st.session_state.get("i3_social_image_symbol_1", "")),
-        ("상징 2", st.session_state.get("i3_social_image_symbol_2", "")),
     ]
 
 
@@ -545,26 +603,41 @@ def build_social_image_prompt():
         st.session_state.get("i3_social_question_prompt", ""),
         "생각해 볼 질문을 먼저 적어 주세요.",
     )
-    message = student_text_or_default(
-        st.session_state.get("i3_social_image_thought", ""),
-        "이미지로 전하고 싶은 한마디를 적어 주세요.",
-    )
     symbol_1 = student_text_or_default(
         st.session_state.get("i3_social_image_symbol_1", ""),
-        "첫 번째 상징을 적어 주세요.",
-    )
-    symbol_2 = student_text_or_default(
-        st.session_state.get("i3_social_image_symbol_2", ""),
-        "두 번째 상징을 적어 주세요.",
+        "상징을 적어 주세요.",
     )
     return (
-    "15×15 회색조 픽셀아트를 만들어줘.\n"
-    f"주제는 '{topic}'이고, 생각해 볼 질문은 \"{question}\"이다.\n"
-    f"이미지로 전하고 싶은 한마디는 \"{message}\"이다.\n"
-    f"반드시 '{symbol_1}'와 '{symbol_2}'를 포함해 줘.\n"
-    "작은 크기이므로 배경과 글씨는 넣지 말고, 상징이 바로 보이게 단순하게 구성해 줘.\n"
-    "색상은 0, 30, 60, 90, 120, 140, 160, 180, 200, 210, 220, 230, 255만 사용해 줘.\n"
-    f"출력은 1) 픽셀아트 이미지 2) 15×15 행렬 3) 생각해 볼 질문: {question} 4) 전하고 싶은 한마디: {message} 순서로 해 줘.\n"
+    "20×20 회색조 픽셀아트를 만들어 주세요.\n\n"
+
+    "[핵심 조건]\n"
+    "- 이미지는 반드시 20행 20열의 정사각형 픽셀 격자로 구성합니다.\n"
+    "- 한 칸에는 하나의 회색조 값만 사용합니다.\n"
+    "- 각 픽셀 칸은 크게 확대한 정사각형 블록으로 보여 주세요.\n"
+    "- 모든 픽셀 칸에는 격자선이 보이게 해 주세요.\n"
+    "- 각 픽셀 칸의 중앙에 해당 픽셀의 회색조 숫자를 직접 적어 주세요.\n"
+    "- 숫자는 픽셀 색 위에 잘 보이도록 표시해 주세요.\n"
+    "- 어두운 픽셀에는 흰색 숫자\n"
+    "- 밝은 픽셀에는 검은색 숫자\n"
+    "- 작은 세부 묘사는 넣지 말고 큰 사각형 픽셀 블록만 사용합니다.\n"
+    "- 글자 설명, 제목, 배경 장식은 넣지 않습니다.\n"
+    "- 단, 픽셀 칸 안의 회색조 숫자는 반드시 표시합니다.\n"
+    "- 핵심 상징이 바로 보이도록 단순하게 구성합니다.\n\n"
+
+    "[내용 조건]\n"
+    f"- 주제: {topic}\n"
+    f"- 생각해 볼 질문: {question}\n"
+    f"- 핵심 상징: {symbol_1}\n\n"
+
+    "[색상 조건]\n"
+    "- 사용할 수 있는 색상 값은 다음 13개뿐입니다.\n"
+    "- 0, 30, 60, 90, 120, 140, 160, 180, 200, 210, 220, 230, 255\n"
+    "- 행렬의 모든 값은 반드시 위 숫자 중 하나여야 합니다.\n"
+    "- 픽셀 칸 안에 표시되는 숫자도 반드시 해당 칸의 회색조 값과 일치해야 합니다.\n\n"
+
+    "[출력 순서]\n"
+    "1. 픽셀아트 이미지: 20×20 격자 형태로 출력하고, 각 픽셀 위에 회색조 숫자를 표시\n"
+    f"2. 생각해 볼 질문: {question}\n"
 )
 
 
@@ -578,7 +651,7 @@ def run():
     ensure_state()
     page_banner(
         "이미지를 행렬로 보는 인공지능",
-        "그림은 숫자 배열이고, 색 이미지는 RGB 세 행렬이며, 행렬 연산으로 그림이 변하고, 인공지능은 그 숫자 패턴을 읽는다는 핵심 흐름을 실습으로 익힙니다.",
+        "그림은 숫자 배열이고, 행렬 연산으로 그림이 변하고, 인공지능은 그 숫자 패턴을 읽는다는 핵심 흐름을 실습으로 익힙니다.",
     )
     st.markdown("<hr style='border:2px solid #2196F3;'>", unsafe_allow_html=True)
 
@@ -587,25 +660,17 @@ def run():
     with tabs[0]:
         stage_intro(
             "문제 발견",
-            "실생활 얼굴 인식 상황을 떠올리며, AI가 얼굴을 구별할 때 어떤 정보를 변수로 삼을지 짧게 가설을 세우는 도입 단계입니다.",
+            "사람이 얼굴을 인식하는 상황을 떠올리며, AI가 얼굴을 구별할때 어떤 정보를 변수로 삼을지 짧게 가설을 세우는 도입 단계입니다.",
             "AI는 얼굴을 어떻게 인식할까?",
             "#e3f2fd",
             "#bbdefb",
         )
         st.markdown(pretty_title("문제제기", "#e3f2fd", "#bbdefb"), unsafe_allow_html=True)
-        st.write(
-            "휴대폰 얼굴 인식은 사람의 얼굴을 읽어 같은 사람인지 구별합니다. "
-            "그런데 컴퓨터는 얼굴을 볼 때 무엇을 정보로 삼고 있을까요?"
+        st.markdown(
+            "휴대폰 **얼굴 인식**은 사람의 얼굴을 읽어 휴대폰 소유자와 같은 사람인지 구별합니다. "
+            "그런데 **AI는 얼굴을 볼 때 무엇을 정보로 삼고 있을까요?**"
         )
-        with st.expander("행렬의 정의와 성분 표현 보기", expanded=False):
-            st.markdown(
-                """
-                행렬은 숫자를 가로와 세로로 줄 맞추어 놓은 직사각형 배열입니다.
-                한 칸에 들어 있는 숫자를 **성분**이라고 하고, `a(2,3)`처럼 행과 열의 위치로 나타낼 수 있습니다.
-                """
-            )
-            st.latex(r"A=\begin{bmatrix}79 & 41 \\ 57 & 22\end{bmatrix}, \quad a_{2,1}=57")
-
+        
         fu_face_image = face_grid_image(25)
         fu_left, fu_right = st.columns([1, 1])
         with fu_left:
@@ -632,7 +697,7 @@ def run():
         hypothesis = st.text_input(
             "짧은 가설 쓰기",
             key="i3_hypothesis",
-            placeholder="예: AI는 얼굴의 위치와 밝기 차이를 보고 사람을 구별할 것 같다.",
+            placeholder="예: AI는 얼굴의 ___과___을 보고 사람을 구별할 것 같다.",
         )
 
         if st.button("문제 1 결과 저장", key="i3_save_1"):
@@ -653,8 +718,16 @@ def run():
                 },
             )
         st.caption(saved_status_text(1))
+        with st.expander("행렬의 정의와 성분 표현 보기", expanded=False):
+            st.markdown(
+                """
+                여러 개의 수를 직사각형 모양으로 배열하여 괄호로 묶어 나타낸것을 **행렬**이라고 합니다.
+                행렬을 구성하고 있는 각각의 수를 **성분**이라고 하고, `(2,1)`처럼 행과 열의 위치로 나타낼 수 있습니다. 일반적으로 m개의 행과 n개의 열로 이루어진 행렬을 `m×n 행렬`이라고 부릅니다.
+                """
+            )
+            st.latex(r"A=\begin{bmatrix}79 & 41 \\ 57 & 22\end{bmatrix}, \quad a_{21}=57")
         st.caption("다음 [T] 단계에서는 작은 그림을 숫자 표로 바꾸며 이 생각을 더 구체적으로 확인합니다.")
-
+        
     with tabs[1]:
         stage_intro(
             "수학의 언어",
@@ -665,21 +738,11 @@ def run():
         )
         
         st.markdown(pretty_title("격자로 표현된 이미지를 어떻게 행렬로 나타낼까?", "#ede7f6", "#d1c4e9"), unsafe_allow_html=True)
-        st.write(
+        st.markdown(
             "이번에는 `계단`과 `체스판` 무늬 중 하나를 선택해, 왼쪽 행렬과 오른쪽 이미지를 함께 바꾸어 봅니다. "
-            "행렬의 한 칸은 이미지의 한 칸과 정확히 대응하므로, 숫자를 바꾸면 그림이 바뀌고 그림의 칸을 누르면 행렬도 함께 바뀝니다."
+            "**행렬의 한 칸**은 **이미지의 한 칸**과 정확히 대응하므로, 숫자를 바꾸면 그림이 바뀌고 그림의 칸을 누르면 행렬도 함께 바뀝니다."
         )
-        with st.expander("행렬의 연산 간단히 보기", expanded=False):
-            st.write(
-                "행렬의 합은 **같은 위치에 있는 수끼리** 더합니다. "
-                "예를 들어 왼쪽 위는 왼쪽 위끼리, 오른쪽 아래는 오른쪽 아래끼리 계산합니다. "
-                "실수배는 행렬의 **모든 칸에 같은 수를 곱하는 것**입니다."
-            )
-            st.latex(r"A=\begin{bmatrix}1 & 0 \\ 1 & 1\end{bmatrix},\quad B=\begin{bmatrix}0 & 1 \\ 1 & 0\end{bmatrix}")
-            st.latex(r"A+B=\begin{bmatrix}1+0 & 0+1 \\ 1+1 & 1+0\end{bmatrix}=\begin{bmatrix}1 & 1 \\ 2 & 1\end{bmatrix}")
-            st.latex(r"2A=\begin{bmatrix}2\times1 & 2\times0 \\ 2\times1 & 2\times1\end{bmatrix}=\begin{bmatrix}2 & 0 \\ 2 & 2\end{bmatrix}")
-            st.caption("즉, 행렬은 자리 바꾸어 계산하는 것이 아니라 같은 자리의 성분끼리 계산합니다.")
-
+        
         binary_shape = st.radio(
             "기본 무늬 선택",
             ["계단", "체스판"],
@@ -693,31 +756,12 @@ def run():
         current_grid = np.array(st.session_state["i3_binary_grid"], dtype=int)
         editor_key = f"i3_t_binary_editor_{int(st.session_state.get('i3_binary_editor_version', 0))}"
 
-        activity_left, activity_right = st.columns([1.1, 0.9], gap="large")
+        activity_left, activity_right = st.columns([1.35, 0.85], gap="medium")
         with activity_left:
             st.markdown(pretty_title("행렬에 0 또는 1 입력하기", "#fff8e1", "#ffecb3"), unsafe_allow_html=True)
-            input_matrix = st.data_editor(
-                binary_matrix_frame(current_grid),
-                key=editor_key,
-                hide_index=True,
-                use_container_width=True,
-                height=260,
-                num_rows="fixed",
-                column_config={
-                    col: st.column_config.NumberColumn(
-                        str(col),
-                        min_value=0,
-                        max_value=1,
-                        step=1,
-                        format="%d",
-                        width=42,
-                    )
-                    for col in range(1, current_grid.shape[1] + 1)
-                },
-            )
-            answer_matrix = sanitize_binary_frame(input_matrix)
-            if not np.array_equal(answer_matrix.values, current_grid):
-                set_binary_grid(answer_matrix.values.copy())
+            answer_matrix = binary_matrix_editor(current_grid, editor_key)
+            if not np.array_equal(answer_matrix, current_grid):
+                set_binary_grid(answer_matrix.copy())
             current_grid = np.array(st.session_state["i3_binary_grid"], dtype=int)
 
         with activity_right:
@@ -749,10 +793,10 @@ def run():
         else:
             st.info("행렬의 값을 바꾸면 오른쪽 표현도 바로 함께 바뀝니다. 지금은 기본 무늬를 직접 수정한 상태입니다.")
 
-        st.info(
-            "- 이미지는 행과 열을 가진 값의 배열로 표현될 수 있습니다.\n"
-            "- 따라서 이미지는 행렬로 나타낼 수 있습니다.\n"
-            "- AI도 이미지를 이런 수학적 표현으로 읽을 수 있습니다."
+        st.markdown(
+            "- **이미지**는 행과 열을 가진 **값의 배열**로 표현될 수 있습니다.\n"
+            "- 따라서 이미지는 **행렬**로 나타낼 수 있습니다.\n"
+            "- **AI**도 이미지를 이런 **수학적 표현**으로 읽을 수 있습니다."
         )
 
         if st.button("문제 2 결과 저장", key="i3_save_2"):
@@ -777,9 +821,19 @@ def run():
             "#c8e6c9",
         )
         st.markdown(pretty_title("행렬 합성으로 이미지 변화 살펴보기", "#ede7f6", "#d1c4e9"), unsafe_allow_html=True)
-        st.write(
-            "이번 활동은 AI의 이미지 처리 원리를 단순화한 행렬 합성 시뮬레이션입니다. "
-            "두 이미지를 행렬 A, 행렬 B로 두고 `C = kA + (1-k)B`를 적용해, k 값에 따라 결과 행렬 C와 결과 이미지가 어떻게 달라지는지 살펴봅니다."
+        with st.expander("행렬의 연산 간단히 보기", expanded=False):
+            st.write(
+                "행렬의 합은 **같은 위치에 있는 수끼리** 더합니다. "
+                "실수배는 행렬의 **모든 칸에 같은 수를 곱하는 것**입니다."
+            )
+            st.latex(r"A=\begin{bmatrix}1 & 0 \\ 1 & 1\end{bmatrix},\quad B=\begin{bmatrix}0 & 1 \\ 1 & 0\end{bmatrix}")
+            st.latex(r"A+B=\begin{bmatrix}1+0 & 0+1 \\ 1+1 & 1+0\end{bmatrix}=\begin{bmatrix}1 & 1 \\ 2 & 1\end{bmatrix}")
+            st.latex(r"2A=\begin{bmatrix}2\times1 & 2\times0 \\ 2\times1 & 2\times1\end{bmatrix}=\begin{bmatrix}2 & 0 \\ 2 & 2\end{bmatrix}")
+            st.caption("즉, 행렬은 자리 바꾸어 계산하는 것이 아니라 같은 자리의 성분끼리 계산합니다.")
+
+        st.markdown(
+            "이번 활동은 **AI의 이미지 처리 원리**를 단순화한 **행렬 합성 시뮬레이션**입니다. "
+            "두 이미지를 **행렬 A**, **행렬 B**로 두고 `C = kA + (1-k)B`를 적용해, **k 값**에 따라 **결과 행렬 C**와 결과 이미지가 어떻게 달라지는지 살펴봅니다."
         )
 
         choose_left, choose_right = st.columns(2)
@@ -793,6 +847,7 @@ def run():
             k_value = st.slider("k 값 (0 ≤ k ≤ 1)", 0.0, 1.0, 0.5, 0.1, key="i3_gray_k")
         with blend_right:
             st.markdown(pretty_title("합성 계산식", "#e3f2fd", "#bbdefb"), unsafe_allow_html=True)
+            st.latex(fr"C = kA + (1-k)B")
             st.latex(fr"C = {k_value:.1f}A + ({1-k_value:.1f})B")
         matrix_a, matrix_b, matrix_result = combine_gray_matrices(char_a, char_b, k_value)
         if "i3_gray_show_matrix" not in st.session_state:
@@ -803,21 +858,50 @@ def run():
             if st.button(toggle_label, key="i3_gray_toggle_matrix", use_container_width=True):
                 st.session_state["i3_gray_show_matrix"] = not st.session_state["i3_gray_show_matrix"]
             if not st.session_state["i3_gray_show_matrix"]:
-                st.caption("버튼을 누르면 아래에 행렬 A, 행렬 B, 결과 행렬 C가 함께 보입니다.")
+                st.caption("버튼을 누르면 이미지 위에 0~255 회색조 행렬값이 함께 보입니다.")
+            else:
+                st.caption("이미지 위 숫자는 각 픽셀의 회색조 행렬값입니다. 값의 범위는 0~255입니다.")
 
         preview_cols = st.columns(3)
         with preview_cols[0]:
-            st.pyplot(draw_image(matrix_a, f"{char_a} → 행렬 A", "gray_r"), use_container_width=True)
-            if st.session_state["i3_gray_show_matrix"]:
-                st.dataframe(df_from(matrix_a), use_container_width=True, height=320)
+            st.pyplot(
+                draw_image(
+                    matrix_a,
+                    f"{char_a} → 행렬 A",
+                    "gray",
+                    show_values=st.session_state["i3_gray_show_matrix"],
+                    value_range=(0, 255),
+                    fig_size=(4.6, 4.6),
+                    value_fontsize=8,
+                ),
+                use_container_width=True,
+            )
         with preview_cols[1]:
-            st.pyplot(draw_image(matrix_b, f"{char_b} → 행렬 B", "gray_r"), use_container_width=True)
-            if st.session_state["i3_gray_show_matrix"]:
-                st.dataframe(df_from(matrix_b), use_container_width=True, height=320)
+            st.pyplot(
+                draw_image(
+                    matrix_b,
+                    f"{char_b} → 행렬 B",
+                    "gray",
+                    show_values=st.session_state["i3_gray_show_matrix"],
+                    value_range=(0, 255),
+                    fig_size=(4.6, 4.6),
+                    value_fontsize=8,
+                ),
+                use_container_width=True,
+            )
         with preview_cols[2]:
-            st.pyplot(draw_image(matrix_result, "결과 행렬 C", "gray_r"), use_container_width=True)
-            if st.session_state["i3_gray_show_matrix"]:
-                st.dataframe(df_from(matrix_result), use_container_width=True, height=320)
+            st.pyplot(
+                draw_image(
+                    matrix_result,
+                    "결과 행렬 C",
+                    "gray",
+                    show_values=st.session_state["i3_gray_show_matrix"],
+                    value_range=(0, 255),
+                    fig_size=(4.6, 4.6),
+                    value_fontsize=8,
+                ),
+                use_container_width=True,
+            )
 
         st.markdown(pretty_title(" 1️⃣ 모둠활동: k = 1일 때 어떤 캐릭터가 남을까?", "#f1f8e9", "#c5e1a5"), unsafe_allow_html=True)
         st.markdown("**k = 1일 때 결과 이미지는 어떤 행렬과 같아지는지, 식 `C = kA + (1-k)B`를 이용해 설명해 보자.**")
@@ -857,20 +941,85 @@ def run():
                         (f"{char_b} 행렬 B", matrix_b.copy()),
                         ("결과 행렬 C", matrix_result.copy()),
                     ],
-                    "images": [("결과 이미지 C", matrix_result.copy(), "gray_r")],
+                    "images": [("결과 이미지 C", matrix_result.copy(), "gray")],
                 },
             )
         st.caption(saved_status_text(3))
     with tabs[3]:
         stage_intro(
             "R.E: 우리의 삶과 사회로 연결하기",
-            "앞 단계에서 배운 행렬 표현을 바탕으로, 사회적 메시지를 담은 15×15 픽셀아트 프롬프트를 직접 만드는 단계입니다.",
-            "사회적 메시지를 담은 이미지를 행렬 기반 픽셀아트로 어떻게 표현할 수 있을까?",
+            "앞 단계에서 배운 행렬 표현을 바탕으로, 사회적 주제를 담은 픽셀아트 프롬프트를 직접 만드는 단계입니다.",
+            "사회적 주제를 담은 이미지를 행렬 기반 픽셀아트로 어떻게 표현할 수 있을까?",
             "#fff3e0",
             "#ffe0b2",
         )
-        st.markdown(pretty_title("1️⃣ 학생 정보 입력 및 포트폴리오 저장", "#e3f2fd", "#bbdefb"), unsafe_allow_html=True)
-        st.info("모둠 이름과 학생 정보를 먼저 입력하면, 앞 단계에서 저장한 활동 결과를 바로 PDF 포트폴리오로 받을 수 있습니다.")
+        st.markdown(pretty_title("2️⃣ 모둠활동: 사회적 주제 픽셀아트 프롬프트 만들기", "#ede7f6", "#d1c4e9"), unsafe_allow_html=True)
+        st.markdown(
+            "이제 모둠별로 1개의 **픽셀아트 프롬프트**를 기획해 봅시다. 먼저 **주제**를 고르고, 그 주제 안에서 **깊은 질문**을 정한 뒤, "
+            "이미지에 꼭 들어갈 **상징 1개**를 정리하면 프롬프트 만들기 버튼으로 바로 사용할 문장을 만들 수 있습니다. "
+            "픽셀아트는 많은 내용을 넣기보다 하나의 **핵심 장면**이 선명하게 보이도록 단순하게 표현하는 것이 중요합니다."
+        )
+
+        st.markdown(pretty_title("1단계:주제 선택", "#f4f9ff", "#dbeafe"), unsafe_allow_html=True)
+        topic_choice = st.radio(
+            "우리 모둠이 표현할 사회적 주제",
+            ["환경과 기후", "안전과 기술", "다양성과 존중"],
+            key="i3_social_topic",
+            horizontal=True,
+        )
+        topic_support = SOCIAL_TOPIC_SUPPORT[topic_choice]
+        st.caption(f"주제 안내: {topic_support['guide']}")
+
+        st.markdown(pretty_title("2단계: 질문과 상징 정리", "#fff8e1", "#ffecb3"), unsafe_allow_html=True)
+        st.text_area(
+            "깊은 질문(D.E.E.P Question)",
+            key="i3_social_question_prompt",
+            height=110,
+            placeholder=f"예: {topic_support['questions'][0]}",
+        )
+        st.text_input(
+            "상징 1",
+            key="i3_social_image_symbol_1",
+            placeholder=f"예: {topic_support['symbols'][0]}",
+        )
+        st.markdown("**상징은 1개**만 넣는 것이 좋습니다. 픽셀아트에서는 복잡한 배경보다 **핵심 장면**이 먼저 보여야 합니다.")
+
+        st.markdown(pretty_title("3단계:프롬프트 만들기", "#e8f5e9", "#c8e6c9"), unsafe_allow_html=True)
+        if st.button("프롬프트 만들기", key="i3_make_social_prompt", use_container_width=True):
+            st.session_state["i3_generated_prompt"] = build_social_image_prompt()
+        generated_prompt = st.session_state.get("i3_generated_prompt", "")
+        if generated_prompt:
+            st.code(generated_prompt, language="markdown")
+            st.caption("입력 내용을 바꾸었다면 버튼을 다시 눌러 새 프롬프트를 만들어 주세요.")
+            class_key = class_key_from_ids(st.session_state.get("i3_id_1", ""))
+            gallery_url = GALLERY_URLS.get(class_key)
+            if gallery_url:
+                link_cols = st.columns(2)
+                with link_cols[0]:
+                    st.markdown(
+                        f"""<a href="{GPT_URL}" target="_blank" style="display:block;padding:11px;background:linear-gradient(90deg,#7e57c2 0%,#42a5f5 100%);color:white;text-decoration:none;border-radius:8px;font-weight:bold;text-align:center;margin-top:8px;">GPT 바로가기</a>""",
+                        unsafe_allow_html=True,
+                    )
+                with link_cols[1]:
+                    st.markdown(
+                        f"""<a href="{gallery_url}" target="_blank" style="display:block;padding:11px;background:linear-gradient(90deg,#7e57c2 0%,#42a5f5 100%);color:white;text-decoration:none;border-radius:8px;font-weight:bold;text-align:center;margin-top:8px;">{class_key}반 갤러리 패들렛 바로가기</a>""",
+                        unsafe_allow_html=True,
+                    )
+            else:
+                st.info("학생 정보의 학번을 입력하면 우리 반 갤러리 패들렛 바로가기 버튼이 나타납니다.")
+        else:
+            st.info("주제, 질문, 상징 1개를 정리한 뒤 프롬프트 만들기 버튼을 눌러 보세요.")
+
+        st.session_state["i3_saved_4"] = (
+            f"주제는 '{topic_choice}'였고, 사회적 주제를 담은 20×20 픽셀아트 프롬프트를 구상했다."
+        )
+        st.session_state["i3_saved_detail_4"] = {
+            "writings": social_image_prompt_entries() + [("학생이 작성한 프롬프트 만들기 결과", generated_prompt)]
+        }
+
+        st.markdown("---")
+        st.markdown(pretty_title("💾 학생 정보 입력 및 포트폴리오 저장", "#e3f2fd", "#bbdefb"), unsafe_allow_html=True)
+        st.info("모둠 이름과 학생 정보를 입력하면, 앞 단계에서 저장한 활동 결과와 위에서 만든 프롬프트를 PDF 포트폴리오로 받을 수 있습니다.")
         group_name = st.text_input("모둠 이름", key="i3_group")
 
         info_cols = st.columns(2)
@@ -907,91 +1056,6 @@ def run():
                     st.info("학번의 세 번째 숫자가 1, 2, 5, 6 중 하나이면 반별 패들렛 버튼이 나타납니다.")
         else:
             st.warning("모둠 이름과 학번, 이름을 입력하면 포트폴리오를 바로 받을 수 있습니다.")
-
-        st.markdown("---")
-        st.markdown(pretty_title("2️⃣ 모둠활동: 사회적 메시지 픽셀아트 프롬프트 만들기", "#ede7f6", "#d1c4e9"), unsafe_allow_html=True)
-        st.info(
-            "이제 모둠별로 1개의 픽셀아트 프롬프트를 기획해 봅시다. 먼저 주제를 고르고, 그 주제 안에서 깊은 질문과 사회적 메시지를 정한 뒤, "
-            "이미지에 꼭 들어갈 상징 2개를 정리하면 프롬프트 만들기 버튼으로 바로 사용할 문장을 만들 수 있습니다. "
-            "15×15 픽셀아트는 매우 작은 이미지이므로, 많은 내용을 넣기보다 하나의 핵심 메시지가 선명하게 보이도록 단순하게 표현하는 것이 중요합니다."
-        )
-
-        st.markdown(pretty_title("1단계:주제 선택", "#f4f9ff", "#dbeafe"), unsafe_allow_html=True)
-        topic_choice = st.radio(
-            "우리 모둠이 표현할 사회적 주제",
-            ["환경과 기후", "안전과 기술", "다양성과 존중"],
-            key="i3_social_topic",
-            horizontal=True,
-        )
-        topic_guides = {
-            "환경과 기후": "예: 쓰레기 문제, 기후 위기, 물과 숲을 지키는 행동",
-            "안전과 기술": "예: AI 오분류, 개인정보 보호, 기술 사용에서의 사람 확인",
-            "다양성과 존중": "예: 차별 반대, 서로의 다름 존중, 함께 살아가기",
-        }
-        st.caption(f"주제 안내: {topic_guides[topic_choice]}")
-
-        st.markdown(pretty_title("2단계: 질문과 메시지 정리", "#fff8e1", "#ffecb3"), unsafe_allow_html=True)
-        question_cols = st.columns(2)
-        with question_cols[0]:
-            st.text_area(
-                "깊은 질문(D.E.E.P Question)",
-                key="i3_social_question_prompt",
-                height=110,
-                placeholder="예: 길가에 쓰레기가 많아지면 우리 동네 사람들은 어떤 불편을 겪게 될까?",
-            )
-        with question_cols[1]:
-            st.text_area(
-                "사회적 메시지",
-                key="i3_social_image_thought",
-                height=110,
-                placeholder="예: 쓰레기를 아무 데나 버리지 말고, 우리 동네를 함께 깨끗하게 지키자.",
-            )
-        symbol_cols = st.columns(2)
-        with symbol_cols[0]:
-            st.text_input(
-                "상징 1",
-                key="i3_social_image_symbol_1",
-                placeholder="예: 길가버려진 컵",
-            )
-        with symbol_cols[1]:
-            st.text_input(
-                "상징 2",
-                key="i3_social_image_symbol_2",
-                placeholder="예: 쓰레기통",
-            )
-        st.caption("상징은 2개 정도만 넣는 것이 좋습니다. 15×15 픽셀아트에서는 복잡한 배경보다 핵심 장면이 먼저 보여야 합니다.")
-
-        st.markdown(pretty_title("3단계:프롬프트 만들기", "#e8f5e9", "#c8e6c9"), unsafe_allow_html=True)
-        if st.button("프롬프트 만들기", key="i3_make_social_prompt", use_container_width=True):
-            st.session_state["i3_generated_prompt"] = build_social_image_prompt()
-        generated_prompt = st.session_state.get("i3_generated_prompt", "")
-        if generated_prompt:
-            st.code(generated_prompt, language="markdown")
-            st.caption("입력 내용을 바꾸었다면 버튼을 다시 눌러 새 프롬프트를 만들어 주세요.")
-            gallery_url = GALLERY_URLS.get(class_key)
-            if gallery_url:
-                link_cols = st.columns(2)
-                with link_cols[0]:
-                    st.markdown(
-                        f"""<a href="{GPT_URL}" target="_blank" style="display:block;padding:11px;background:linear-gradient(90deg,#7e57c2 0%,#42a5f5 100%);color:white;text-decoration:none;border-radius:8px;font-weight:bold;text-align:center;margin-top:8px;">GPT 바로가기</a>""",
-                        unsafe_allow_html=True,
-                    )
-                with link_cols[1]:
-                    st.markdown(
-                        f"""<a href="{gallery_url}" target="_blank" style="display:block;padding:11px;background:linear-gradient(90deg,#7e57c2 0%,#42a5f5 100%);color:white;text-decoration:none;border-radius:8px;font-weight:bold;text-align:center;margin-top:8px;">{class_key}반 갤러리 패들렛 바로가기</a>""",
-                        unsafe_allow_html=True,
-                    )
-            else:
-                st.info("학생 정보의 학번을 입력하면 우리 반 갤러리 패들렛 바로가기 버튼이 나타납니다.")
-        else:
-            st.info("주제, 질문, 메시지, 상징 2개를 정리한 뒤 프롬프트 만들기 버튼을 눌러 보세요.")
-
-        st.session_state["i3_saved_4"] = (
-            f"주제는 '{topic_choice}'였고, 사회적 메시지를 담은 15×15 픽셀아트 프롬프트를 구상했다."
-        )
-        st.session_state["i3_saved_detail_4"] = {
-            "writings": social_image_prompt_entries() + [("GPT 이미지 생성 프롬프트", generated_prompt)]
-        }
     st.markdown("<hr style='border:2px solid #2196F3;'>", unsafe_allow_html=True)
 
 
