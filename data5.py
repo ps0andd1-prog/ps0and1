@@ -1755,6 +1755,7 @@ def run():
                 mime="application/pdf",
                 use_container_width=True,
             )
+            st.warning("⚠️ 모둠원들이 동시에 PDF 다운로드 버튼을 누르면 오류가 날 수 있습니다. 한 명씩 차례대로 눌러 주세요.")
             render_portfolio_link(st.session_state.get("d5_class", CLASS_OPTIONS[0]))
         else:
             st.info("데이터 선택 탭에서 모둠명을 입력하면 보고서 PDF를 저장할 수 있습니다.")

@@ -247,6 +247,28 @@ AI_ETHICS_TOPIC_GUIDES = {
 }
 
 
+AI_ETHICS_TOPIC_EXAMPLES = {
+    "AI 공정성": {
+        "question": "예: AI가 편리하다고 해서 학생의 가능성을 자동으로 판단해도 괜찮을까?",
+        "message": "예: AI의 판단이 모두에게 공정한지 사람이 계속 점검해야 한다.",
+        "symbol_1": "예: AI 로봇과 다양한 학생들",
+        "symbol_2": "예: 공정함을 뜻하는 저울",
+    },
+    "개인정보 보호": {
+        "question": "예: 더 정확한 예측을 위해서라면 나의 얼굴과 위치 정보까지 AI에 맡겨도 괜찮을까?",
+        "message": "예: 편리함보다 먼저, 내 정보가 어디에 쓰이는지 알고 선택할 권리가 필요하다.",
+        "symbol_1": "예: 자물쇠가 걸린 스마트폰",
+        "symbol_2": "예: 얼굴 데이터와 보호막",
+    },
+    "인간의 책임": {
+        "question": "예: AI가 틀린 판단을 했을 때 그 책임은 AI에게 있을까, 사람에게 있을까?",
+        "message": "예: AI는 도구일 뿐이며, 최종 결정과 책임은 사람이 확인해야 한다.",
+        "symbol_1": "예: AI 화면을 확인하는 사람",
+        "symbol_2": "예: 책임을 뜻하는 체크리스트",
+    },
+}
+
+
 def prompt_text(value, default):
     text = str(value).strip() if value is not None else ""
     return text if text else default
@@ -254,10 +276,11 @@ def prompt_text(value, default):
 
 def build_canva_ethics_prompt():
     topic = prompt_text(st.session_state.get("d3_ethics_topic", ""), "AI 공정성")
-    question = prompt_text(st.session_state.get("d3_ethics_question", ""), "AI의 판단을 우리는 언제 믿어야 할까?")
-    message = prompt_text(st.session_state.get("d3_ethics_message", ""), "AI의 예측은 편리하지만 사람이 책임 있게 확인해야 한다.")
-    symbol_1 = prompt_text(st.session_state.get("d3_ethics_symbol_1", ""), "AI 로봇과 사람")
-    symbol_2 = prompt_text(st.session_state.get("d3_ethics_symbol_2", ""), "공정함을 뜻하는 저울")
+    topic_examples = AI_ETHICS_TOPIC_EXAMPLES.get(topic, AI_ETHICS_TOPIC_EXAMPLES["AI 공정성"])
+    question = prompt_text(st.session_state.get("d3_ethics_question", ""), topic_examples["question"].removeprefix("예: "))
+    message = prompt_text(st.session_state.get("d3_ethics_message", ""), topic_examples["message"].removeprefix("예: "))
+    symbol_1 = prompt_text(st.session_state.get("d3_ethics_symbol_1", ""), topic_examples["symbol_1"].removeprefix("예: "))
+    symbol_2 = prompt_text(st.session_state.get("d3_ethics_symbol_2", ""), topic_examples["symbol_2"].removeprefix("예: "))
     style = prompt_text(st.session_state.get("d3_poster_style", ""), "깔끔한 공익광고")
     color_guides = {
         "깔끔한 공익광고": "흰색과 밝은 회색을 바탕으로 신뢰감을 주는 파랑, 차분한 남색, 포인트 노랑을 사용해 깨끗하고 공적인 느낌을 줍니다.",
@@ -1213,7 +1236,7 @@ def run():
             "AI 이해: 손실을 기준으로 모델 비교하기",
             "T 단계에서 배운 손실을 줄이는 기준으로 여러 모델을 비교합니다. "
             "직선 모델과 곡선 모델 중 어떤 것이 데이터에 더 적절한지 디지털 도구로 실험하는 단계입니다.",
-            "어떤 데이터에는 어떤 식이 더 잘 맞을까?",
+            "직선과 곡선 모델 중 어떤 모델이 데이터를 더 잘 설명할까?",
             "#e8f5e9",
             "#c8e6c9",
         )
@@ -1359,6 +1382,7 @@ def run():
             key="d3_ethics_topic",
         )
         st.info(AI_ETHICS_TOPIC_GUIDES[ethics_topic])
+        topic_examples = AI_ETHICS_TOPIC_EXAMPLES.get(ethics_topic, AI_ETHICS_TOPIC_EXAMPLES["AI 공정성"])
         st.markdown(pretty_title("2. 질문과 메시지 정리하기", "#fff8e1", "#ffecb3"), unsafe_allow_html=True)
         prompt_cols = st.columns(2)
         with prompt_cols[0]:
@@ -1366,27 +1390,27 @@ def run():
                 "깊은 질문(D.E.E.P Question)",
                 height=110,
                 key="d3_ethics_question",
-                placeholder="예: AI가 편리하다고 해서 학생의 가능성을 자동으로 판단해도 괜찮을까?",
+                placeholder=topic_examples["question"],
             )
         with prompt_cols[1]:
             st.text_area(
                 "포스터로 전하고 싶은 메시지",
                 height=110,
                 key="d3_ethics_message",
-                placeholder="예: AI의 예측은 참고하되, 최종 판단은 사람이 책임 있게 확인해야 한다.",
+                placeholder=topic_examples["message"],
             )
         symbol_cols = st.columns(2)
         with symbol_cols[0]:
             st.text_input(
                 "이미지에 넣을 상징 1",
                 key="d3_ethics_symbol_1",
-                placeholder="예: AI 로봇과 학생",
+                placeholder=topic_examples["symbol_1"],
             )
         with symbol_cols[1]:
             st.text_input(
                 "이미지에 넣을 상징 2",
                 key="d3_ethics_symbol_2",
-                placeholder="예: 공정함을 뜻하는 저울",
+                placeholder=topic_examples["symbol_2"],
             )
         st.selectbox(
             "포스터 분위기",
@@ -1487,6 +1511,7 @@ def run():
                         mime="application/pdf",
                         use_container_width=True,
                     )
+                    st.warning("⚠️ 모둠원들이 동시에 PDF 다운로드 버튼을 누르면 오류가 날 수 있습니다. 한 명씩 차례대로 눌러 주세요.")
                 with save_cols[1]:
                     port_url = PORT_URLS.get(class_num)
                     st.markdown(

@@ -790,6 +790,7 @@ print(f"2. 교차 검증: f({a})의 결과는?", f(a))"""
                             mime="application/pdf",
                             use_container_width=True
                         )
+                        st.warning("⚠️ 모둠원들이 동시에 PDF 다운로드 버튼을 누르면 오류가 날 수 있습니다. 한 명씩 차례대로 눌러 주세요.")
                     with col_btn2:
                         st.markdown(
                             f"""<a href="{padlet_portfolio_url}" target="_blank" 

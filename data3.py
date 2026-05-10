@@ -1048,6 +1048,7 @@ def run():
                     "application/pdf",
                     use_container_width=True,
                 )
+                st.warning("⚠️ 모둠원들이 동시에 PDF 다운로드 버튼을 누르면 오류가 날 수 있습니다. 한 명씩 차례대로 눌러 주세요.")
             with p2:
                 port_url = PORT_URLS.get(class_key)
                 if port_url:

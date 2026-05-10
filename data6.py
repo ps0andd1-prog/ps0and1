@@ -1244,6 +1244,7 @@ def create_prompt_pdf(group_name, dataset, prompt_text):
                     mime="application/pdf",
                     use_container_width=True,
                 )
+                st.warning("⚠️ 모둠원들이 동시에 PDF 다운로드 버튼을 누르면 오류가 날 수 있습니다. 한 명씩 차례대로 눌러 주세요.")
             else:
                 st.info("모둠명을 입력하면 앱 기획 PDF를 저장할 수 있습니다.")
 
@@ -1593,6 +1594,7 @@ def run():
                     mime="application/pdf",
                     use_container_width=True,
                 )
+                st.warning("⚠️ 모둠원들이 동시에 PDF 다운로드 버튼을 누르면 오류가 날 수 있습니다. 한 명씩 차례대로 눌러 주세요.")
             else:
                 st.info("모둠명을 입력하면 앱 기획 PDF를 저장할 수 있습니다.")
 
