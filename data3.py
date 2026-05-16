@@ -510,7 +510,7 @@ class ReportPDF(FPDF):
         self.set_xy(10, 5)
         self.set_text_color(255, 255, 255)
         self.set_font("Nanum", "", 16)
-        self.cell(0, 10, "F.U.T.U.R.E. 프로젝트 3차시 포트폴리오", ln=1, align="C")
+        self.cell(0, 10, "F.U.T.U.R.E. 프로젝트 2-1 포트폴리오", ln=1, align="C")
         self.set_text_color(33, 33, 33)
         self.ln(10)
 
