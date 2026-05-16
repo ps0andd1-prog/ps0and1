@@ -92,7 +92,7 @@ class ThemedPDF(FPDF):
         self.set_xy(10, 6)
         self.set_text_color(255, 255, 255)
         self.set_font(self._font_family, "", 19)
-        self.cell(0, 10, "F.U.T.U.R.E. 프로젝트 4차시 탐구 포트폴리오", ln=1, align="C")
+        self.cell(0, 10, "F.U.T.U.R.E. 프로젝트 2-2 탐구 포트폴리오", ln=1, align="C")
         self.set_text_color(33, 33, 33)
         self.ln(18)
 
@@ -1507,7 +1507,7 @@ def run():
                     st.download_button(
                         label="탐구 결과 PDF 다운로드",
                         data=pdf_bytes,
-                        file_name=f"{group_name}_{stu_name_1}_4차시_탐구포트폴리오.pdf",
+                        file_name=f"{group_name}_{stu_name_1}_2-2_탐구포트폴리오.pdf",
                         mime="application/pdf",
                         use_container_width=True,
                     )
