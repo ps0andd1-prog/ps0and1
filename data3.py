@@ -1044,7 +1044,7 @@ def run():
                 st.download_button(
                     "📄 이미지 탐구 포트폴리오 PDF 다운로드",
                     pdf,
-                    f"{group_name}_{stu_name_1}_3차시_이미지포트폴리오.pdf",
+                    f"{group_name}_{stu_name_1}_2-1_이미지포트폴리오.pdf",
                     "application/pdf",
                     use_container_width=True,
                 )
