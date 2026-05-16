@@ -274,13 +274,29 @@ def prompt_text(value, default):
     return text if text else default
 
 
+def poster_text_or_default(value, default):
+    text = str(value).strip() if value is not None else ""
+    return text if text else default
+
+
 def build_canva_ethics_prompt():
     topic = prompt_text(st.session_state.get("d3_ethics_topic", ""), "AI 공정성")
-    topic_examples = AI_ETHICS_TOPIC_EXAMPLES.get(topic, AI_ETHICS_TOPIC_EXAMPLES["AI 공정성"])
-    question = prompt_text(st.session_state.get("d3_ethics_question", ""), topic_examples["question"].removeprefix("예: "))
-    message = prompt_text(st.session_state.get("d3_ethics_message", ""), topic_examples["message"].removeprefix("예: "))
-    symbol_1 = prompt_text(st.session_state.get("d3_ethics_symbol_1", ""), topic_examples["symbol_1"].removeprefix("예: "))
-    symbol_2 = prompt_text(st.session_state.get("d3_ethics_symbol_2", ""), topic_examples["symbol_2"].removeprefix("예: "))
+    question = poster_text_or_default(
+        st.session_state.get("d3_ethics_question", ""),
+        "깊은 질문을 먼저 적어 주세요.",
+    )
+    message = poster_text_or_default(
+        st.session_state.get("d3_ethics_message", ""),
+        "포스터로 전하고 싶은 메시지를 먼저 적어 주세요.",
+    )
+    symbol_1 = poster_text_or_default(
+        st.session_state.get("d3_ethics_symbol_1", ""),
+        "상징 1을 먼저 적어 주세요.",
+    )
+    symbol_2 = poster_text_or_default(
+        st.session_state.get("d3_ethics_symbol_2", ""),
+        "상징 2를 먼저 적어 주세요.",
+    )
     style = prompt_text(st.session_state.get("d3_poster_style", ""), "깔끔한 공익광고")
     color_guides = {
         "깔끔한 공익광고": "흰색과 밝은 회색을 바탕으로 신뢰감을 주는 파랑, 차분한 남색, 포인트 노랑을 사용해 깨끗하고 공적인 느낌을 줍니다.",
@@ -291,23 +307,37 @@ def build_canva_ethics_prompt():
     color_guide = color_guides.get(style, color_guides["깔끔한 공익광고"])
 
     return (
-        "인공지능 윤리 포스터를 만들어줘.\n"
-        "이 포스터의 역할은 인공지능을 더 책임 있게 사용하자는 윤리적 메시지를 사회적으로 전달하는 것이다.\n"
-        "대상은 학생만이 아니라 모든 사람이다. 나이와 직업이 달라도 한눈에 이해하고 공감할 수 있게 구성해줘.\n"
-        "공공장소, 학교 게시판, 온라인 캠페인에서 함께 볼 수 있는 공익 포스터처럼 만들어줘.\n\n"
-        "[반드시 포함할 내용]\n"
-        f"주제: {topic}\n"
-        f"깊은 질문(D.E.E.P Question)을 포스터에서 가장 눈에 띄는 1순위 메인 카피로 크게 배치하기: {question}\n"
-        f"핵심 메시지는 깊은 질문보다 작게, 질문 아래에서 행동 방향을 알려주는 문장으로 넣기: {message}\n"
-        f"상징 1을 시각 요소로 반드시 넣기: {symbol_1}\n"
-        f"상징 2를 시각 요소로 반드시 넣기: {symbol_2}\n\n"
-        "[디자인 방향]\n"
-        f"디자인 분위기: {style}\n"
-        f"색감: {color_guide}\n"
-        "구성: 깊은 질문을 포스터 전체에서 가장 큰 글씨와 가장 강한 대비로 배치해줘. 제목, 핵심 메시지, 보조 문장은 모두 깊은 질문보다 작고 덜 강조되게 해줘.\n"
-        "깊은 질문은 포스터를 보는 사람이 가장 먼저 읽는 문장이 되게 하고, 핵심 메시지는 그 질문에 대한 답이나 행동 방향처럼 아래쪽에 배치해줘.\n"
-        "상징들은 장식이 아니라 인공지능 윤리 문제를 이해하게 만드는 중심 이미지가 되도록 배치해줘.\n"
-        "주의: 글자는 너무 많지 않게 하고, AI의 편리함만 강조하지 말고 공정성, 개인정보 보호, 인간의 책임 중 선택한 주제의 윤리적 방향이 분명히 드러나게 해줘."
+        "인공지능 윤리 포스터를 만들어 주세요.\n\n"
+
+        "[핵심 조건]\n"
+        "- 인공지능을 더 책임 있게 사용하자는 윤리적 메시지를 사회적으로 전달하는 공익 포스터로 구성합니다.\n"
+        "- 대상은 학생만이 아니라 모든 사람입니다.\n"
+        "- 나이와 직업이 달라도 한눈에 이해하고 공감할 수 있게 구성합니다.\n"
+        "- 공공장소, 학교 게시판, 온라인 캠페인에서 함께 볼 수 있는 포스터처럼 만듭니다.\n"
+        "- 글자는 너무 많지 않게 합니다.\n"
+        "- AI의 편리함만 강조하지 않습니다.\n"
+        "- 선택한 윤리 주제의 방향이 분명히 드러나게 합니다.\n"
+        "- 상징들은 단순한 장식이 아니라 인공지능 윤리 문제를 이해하게 만드는 중심 이미지가 되도록 배치합니다.\n\n"
+
+        "[내용 조건]\n"
+        f"- 주제: {topic}\n"
+        f"- 깊은 질문(D.E.E.P Question): {question}\n"
+        f"- 핵심 메시지: {message}\n"
+        f"- 상징 1: {symbol_1}\n"
+        f"- 상징 2: {symbol_2}\n\n"
+
+        "[디자인 조건]\n"
+        f"- 디자인 분위기: {style}\n"
+        f"- 색감: {color_guide}\n"
+        "- 깊은 질문은 포스터 전체에서 가장 큰 글씨와 가장 강한 대비로 배치합니다.\n"
+        "- 제목, 핵심 메시지, 보조 문장은 모두 깊은 질문보다 작고 덜 강조되게 합니다.\n"
+        "- 깊은 질문은 포스터를 보는 사람이 가장 먼저 읽는 문장이 되게 합니다.\n"
+        "- 핵심 메시지는 깊은 질문 아래쪽에 배치하고, 질문에 대한 답이나 행동 방향처럼 보이게 합니다.\n\n"
+
+        "[출력 순서]\n"
+        "1. 인공지능 윤리 포스터 이미지\n"
+        f"2. 깊은 질문: {question}\n"
+        f"3. 핵심 메시지: {message}\n"
     )
 
 
