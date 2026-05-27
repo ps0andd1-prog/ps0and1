@@ -132,6 +132,30 @@ TYPE_FEATURE_OPTIONS = {
     ],
 }
 
+FEATURE_DESCRIPTIONS = {
+    "핵심 데이터 카드": "가장 중요한 수치나 비교 결과를 카드처럼 짧게 보여 줍니다.",
+    "그래프 또는 시각화 자료": "데이터의 변화나 관계를 막대, 선, 아이콘 등으로 쉽게 보이게 합니다.",
+    "짧은 설명 문장": "그래프나 수치가 뜻하는 바를 한두 문장으로 풀어 줍니다.",
+    "주의 문구/한계 안내": "데이터를 해석할 때 조심해야 할 점이나 한계를 알려 줍니다.",
+    "간단한 사용 안내": "사용자가 화면을 어떻게 보면 되는지 짧게 안내합니다.",
+    "시작 화면 안내": "게임의 배경, 목표, 시작 방법을 처음 화면에서 알려 줍니다.",
+    "선택 버튼 또는 단계 구성": "사용자가 선택하며 진행할 수 있도록 버튼이나 단계를 만듭니다.",
+    "선택에 따른 피드백 문구": "선택 결과가 어떤 의미인지 바로 설명해 줍니다.",
+    "점수/성공 조건": "사용자가 목표를 달성했는지 알 수 있게 점수나 성공 기준을 둡니다.",
+    "마무리 배운 점 정리": "게임을 끝낸 뒤 데이터에서 배운 핵심 내용을 정리합니다.",
+    "표지 카드": "카드뉴스의 주제와 핵심 메시지를 첫 장에서 보여 줍니다.",
+    "문제 상황 소개 카드": "이 데이터가 왜 필요한지 실제 문제 상황을 설명합니다.",
+    "데이터 설명 카드": "사용한 자료와 주요 변수를 쉽게 소개합니다.",
+    "의미 해석 카드": "데이터를 보고 알 수 있는 의미를 카드 한 장으로 정리합니다.",
+    "실천 제안 카드": "사용자가 할 수 있는 행동이나 해결 방향을 제안합니다.",
+    "강한 제목": "한눈에 주제가 보이도록 짧고 힘 있는 제목을 넣습니다.",
+    "핵심 수치 강조": "가장 중요한 숫자나 결과를 크게 보여 줍니다.",
+    "그래프 또는 아이콘 시각화": "그래프나 아이콘으로 포스터의 메시지를 빠르게 전달합니다.",
+    "한눈에 보이는 핵심 메시지": "포스터를 스쳐 봐도 남는 한 문장 메시지를 넣습니다.",
+    "실천 제안 문구": "보는 사람이 바로 떠올릴 수 있는 행동 제안을 넣습니다.",
+    "주의 문구": "자료를 오해하지 않도록 필요한 주의점을 짧게 넣습니다.",
+}
+
 STYLE_OPTIONS = [
     "밝고 친근한 교육용",
     "깔끔한 정보 전달형",
@@ -274,22 +298,25 @@ def pretty_title(text, color1, color2):
     """
 
 
-def page_banner(title, description):
+def page_banner(title, description, question=None):
+    question_html = ""
+    if question:
+        question_html = (
+            '<div style="background:rgba(255,255,255,0.72);border-radius:12px;'
+            'padding:10px 12px;border:1px solid rgba(255,255,255,0.85);'
+            'color:#37474f;line-height:1.6;margin-top:12px;">'
+            f"<b>핵심 탐구 질문</b><br>{question}</div>"
+        )
     st.markdown(
-        f"""
-        <div style="
-            background: linear-gradient(135deg, #e3f2fd 0%, #d1c4e9 100%);
-            border-radius: 22px;
-            padding: 22px 24px;
-            box-shadow: 0 8px 20px rgba(33, 150, 243, 0.10);
-            border: 1px solid #dbe7f3;
-            margin-bottom: 14px;
-        ">
-            <div style="font-size:0.9rem; font-weight:700; color:#5e35b1; margin-bottom:8px;">F.U.T.U.R.E. 프로젝트 STEP 3-2</div>
-            <div style="font-size:1.9rem; font-weight:800; color:#1f2937; margin-bottom:8px;">{title}</div>
-            <div style="font-size:1rem; line-height:1.7; color:#37474f;">{description}</div>
-        </div>
-        """,
+        (
+            '<div style="background:linear-gradient(135deg,#e3f2fd 0%,#d1c4e9 100%);'
+            'border-radius:22px;padding:22px 24px;box-shadow:0 8px 20px rgba(33,150,243,0.10);'
+            'border:1px solid #dbe7f3;margin-bottom:14px;">'
+            '<div style="font-size:0.9rem;font-weight:700;color:#5e35b1;margin-bottom:8px;">F.U.T.U.R.E. 프로젝트</div>'
+            f'<div style="font-size:1.9rem;font-weight:800;color:#1f2937;margin-bottom:8px;">{title}</div>'
+            f'<div style="font-size:1rem;line-height:1.7;color:#37474f;">{description}</div>'
+            f"{question_html}</div>"
+        ),
         unsafe_allow_html=True,
     )
 
@@ -408,40 +435,41 @@ def apply_recommended_features(features):
 
 def render_app_type_selector_cards(selected_type):
     items = app_type_overview_cards()
-    for start in range(0, len(items), 2):
-        row_items = items[start:start + 2]
-        row_cols = st.columns(2)
+    columns_per_row = min(4, len(items))
+    for start in range(0, len(items), columns_per_row):
+        row_items = items[start:start + columns_per_row]
+        row_cols = st.columns(columns_per_row)
         for col, item in zip(row_cols, row_items):
             with col:
                 is_selected = item["title"] == selected_type
                 border = "#fb8c00" if is_selected else item["border"]
-                shadow = "0 8px 18px rgba(251, 140, 0, 0.20)" if is_selected else "0 4px 12px rgba(33, 150, 243, 0.08)"
+                shadow = "0 5px 12px rgba(251, 140, 0, 0.16)" if is_selected else "0 3px 8px rgba(33, 150, 243, 0.07)"
                 badge_bg = "#fff3e0" if is_selected else "rgba(255,255,255,0.72)"
-                badge_text = "현재 선택됨" if is_selected else "아래 버튼으로 선택"
+                badge_text = "선택됨" if is_selected else "선택 가능"
                 st.markdown(
                     f"""
                     <div style="
                         height:100%;
-                        min-height:180px;
-                        padding:16px 18px;
-                        border-radius:18px;
+                        min-height:118px;
+                        padding:10px 12px;
+                        border-radius:12px;
                         background:{item['bg']};
                         border:2px solid {border};
                         box-shadow:{shadow};
-                        margin-bottom:10px;
+                        margin-bottom:6px;
                         transition:all 0.2s ease;
                     ">
-                        <div style="font-size:1.05rem; color:#37474f; margin-bottom:8px; font-weight:800;">{item['title']}</div>
-                        <div style="font-size:1.2rem; color:#263238; font-weight:800; margin-bottom:8px;">{item['value']}</div>
-                        <div style="font-size:0.9rem; color:#546e7a; line-height:1.65; margin-bottom:12px;">{item['detail']}</div>
+                        <div style="font-size:0.9rem; color:#37474f; margin-bottom:4px; font-weight:800;">{item['title']}</div>
+                        <div style="font-size:1rem; color:#263238; font-weight:800; margin-bottom:5px;">{item['value']}</div>
+                        <div style="font-size:0.8rem; color:#546e7a; line-height:1.45; margin-bottom:8px;">{item['detail']}</div>
                         <div style="
                             display:inline-block;
-                            padding:6px 10px;
+                            padding:3px 8px;
                             border-radius:999px;
                             background:{badge_bg};
                             border:1px solid rgba(0,0,0,0.08);
                             color:#6d4c41;
-                            font-size:0.82rem;
+                            font-size:0.74rem;
                             font-weight:700;
                         ">{badge_text}</div>
                     </div>
@@ -471,6 +499,10 @@ def ensure_state():
     d5_field = st.session_state.get("d5_field", field_for_dataset(d5_dataset))
     st.session_state.setdefault("d6_group", d5_group)
     st.session_state.setdefault("d6_class", d5_class)
+    if d5_group:
+        st.session_state["d6_group"] = d5_group
+    if d5_class in CLASS_OPTIONS:
+        st.session_state["d6_class"] = d5_class
     if st.session_state.get("d6_class") not in CLASS_OPTIONS:
         st.session_state["d6_class"] = d5_class
     st.session_state.setdefault("d6_field", d5_field if d5_field in FIELD_ORDER else field_for_dataset(d5_dataset))
@@ -507,6 +539,7 @@ def ensure_state():
     st.session_state.setdefault("d6_social_value", "")
     st.session_state.setdefault("d6_limit_note", "")
     st.session_state.setdefault("d6_human_check", "")
+    st.session_state.setdefault("d6_ai_ethics", "")
     st.session_state.setdefault("d6_prompt_reflection", "")
     inherited_analysis = st.session_state.get("d5_analysis_report", "")
     inherited_interpretation = st.session_state.get("d5_interpretation_report", "")
@@ -518,11 +551,22 @@ def ensure_state():
     st.session_state.setdefault("d6_visual_style", STYLE_OPTIONS[0])
     st.session_state.setdefault("d6_data_meaning", inherited_interpretation)
     st.session_state.setdefault("d6_prompt_extra", "")
-    st.session_state.setdefault("d6_game_meaning", inherited_interpretation)
     st.session_state.setdefault("d6_game_story", "")
     st.session_state.setdefault("d6_game_goal", "")
     st.session_state.setdefault("d6_game_rule", "")
     st.session_state.setdefault("d6_game_feedback", "")
+    st.session_state.setdefault("d6_info_question", "")
+    st.session_state.setdefault("d6_info_key_data", "")
+    st.session_state.setdefault("d6_info_action", "")
+    st.session_state.setdefault("d6_card_cover", "")
+    st.session_state.setdefault("d6_card_problem", "")
+    st.session_state.setdefault("d6_card_interpretation", "")
+    st.session_state.setdefault("d6_card_action", "")
+    st.session_state.setdefault("d6_card_tone", "")
+    st.session_state.setdefault("d6_poster_title", "")
+    st.session_state.setdefault("d6_poster_number", "")
+    st.session_state.setdefault("d6_poster_visual", "")
+    st.session_state.setdefault("d6_poster_message", "")
     st.session_state.setdefault("d6_custom_data_name", "")
     st.session_state.setdefault("d6_custom_topic", "")
     st.session_state.setdefault("d6_custom_x", "")
@@ -530,9 +574,9 @@ def ensure_state():
     st.session_state.setdefault("d6_custom_rows", "")
     st.session_state.setdefault("d6_custom_analysis", "")
     st.session_state.setdefault("d6_custom_interpretation", "")
-    if not st.session_state.get("d6_project_title"):
-        dataset_label = st.session_state["d6_dataset"].split(":")[0]
-        st.session_state["d6_project_title"] = f"{dataset_label} 데이터 기반 앱 기획"
+    dataset_label = st.session_state["d6_dataset"].split(":")[0]
+    if st.session_state.get("d6_project_title") == f"{dataset_label} 데이터 기반 앱 기획":
+        st.session_state["d6_project_title"] = ""
 
 
 def current_dataset():
@@ -589,33 +633,17 @@ def get_project_materials():
             "uses_future": True,
         }
 
-    data_name = clean_text(st.session_state.get("d6_custom_data_name", ""), "학생이 직접 설계한 프로젝트 자료")
-    sample_rows = clean_text(
-        st.session_state.get("d6_custom_rows", ""),
-        "아직 예시 자료를 입력하지 않았습니다. 학생이 생각한 자료 예시나 숫자, 표 아이디어를 적어 주세요.",
-    )
-    analysis = clean_text(
-        st.session_state.get("d6_custom_analysis", ""),
-        "아직 자료의 특징 요약을 작성하지 않았습니다. 직접 설계한 자료에서 보일 경향이나 특징을 적어 주세요.",
-    )
-    interpretation = clean_text(
-        st.session_state.get("d6_custom_interpretation", ""),
-        "아직 자료 해석을 작성하지 않았습니다. 이 자료를 통해 전달하고 싶은 의미나 시사점을 적어 주세요.",
-    )
-    topic = clean_text(
-        st.session_state.get("d6_custom_topic", ""),
-        "아직 프로젝트 자료의 주제와 문제 상황을 작성하지 않았습니다.",
-    )
+    title = clean_text(st.session_state.get("d6_project_title", ""), "학생이 직접 설계한 앱")
     return {
-        "name": data_name,
+        "name": title,
         "x_column": "",
         "y_column": "",
         "selected_table": None,
-        "sample_rows": sample_rows,
-        "analysis": analysis,
-        "interpretation": interpretation,
-        "topic": topic,
-        "source_label": "학생이 직접 설계한 프로젝트 자료",
+        "sample_rows": "별도 예시 자료를 입력하지 않고, 앱 설계 탭에서 작성한 방향을 바탕으로 구성합니다.",
+        "analysis": "학생이 직접 정한 앱 유형별 작성 내용을 중심으로 구성합니다.",
+        "interpretation": "앱 설계 탭의 화면 구성, 메시지, 행동 제안, 피드백 내용을 최종 프롬프트에 반영합니다.",
+        "topic": title,
+        "source_label": "학생 직접 앱 설계",
         "uses_future": False,
     }
 
@@ -648,7 +676,7 @@ def output_type_focus_points(output_type):
             "마지막에 주의 문구를 꼭 넣기",
         ],
         "카드뉴스형": [
-            "카드 흐름을 5장 안팎으로 단순하게 잡기",
+            "카드 흐름을 4장으로 압축해서 잡기",
             "각 카드마다 제목과 한 문장만 분명히 쓰기",
             "마지막 카드는 실천 제안으로 마무리하기",
         ],
@@ -721,51 +749,150 @@ def recommended_feature_pack(output_type):
     return packs.get(output_type, {"features": [], "reason": ""})
 
 
-def render_future_flow_box():
-    st.markdown(pretty_title("FUTURE 흐름 한눈에 보기", "#e3f2fd", "#bbdefb"), unsafe_allow_html=True)
-    st.markdown(
-        """
-        <div style="
-            background: linear-gradient(135deg, #f8fbff 0%, #eef4ff 100%);
-            border-radius: 18px;
-            border: 1px solid #dbe7f3;
-            padding: 16px 18px;
-            margin-bottom: 12px;
-            box-shadow: 0 4px 12px rgba(33, 150, 243, 0.06);
-            line-height: 1.8;
-            color: #37474f;
-        ">
-            <b>F.U.</b> 누구의 어떤 문제를 해결할까?<br>
-            <b>T</b> 데이터가 말해 주는 핵심 의미는 무엇일까?<br>
-            <b>U</b> 어떤 앱 유형으로 구현하면 가장 잘 전달될까?<br>
-            <b>R</b> 결과를 볼 때 어떤 한계와 책임을 함께 적어야 할까?<br>
-            <b>E</b> 이 결과물은 어떤 사회적 실천으로 이어질 수 있을까?
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+def render_type_specific_prompt_inputs(output_type):
+    st.markdown(pretty_title(f"{output_type} 앱에 맞게 프롬프트 내용 쓰기", "#fff8e1", "#ffecb3"), unsafe_allow_html=True)
+    if output_type == "정보형":
+        st.info("정보형은 5DAY에서 이어 온 자료를 바탕으로, 사용자가 더 쉽게 이해하도록 어떤 내용과 기능을 추가할지 정합니다.")
+        st.text_area(
+            "첫 화면에서 던질 질문 또는 문제",
+            key="d6_info_question",
+            height=90,
+            placeholder="예: 우리 지역의 기후 변화는 생활에 어떤 영향을 줄까?",
+        )
+        left, right = st.columns(2)
+        with left:
+            st.text_area(
+                "앱에 추가로 보여 주고 싶은 내용",
+                key="d6_info_key_data",
+                height=105,
+                placeholder="예: 그래프 아래에 사용자가 쉽게 이해할 수 있는 핵심 해석 카드와 예시 상황을 넣고 싶다.",
+            )
+        with right:
+            st.text_area(
+                "앱에 넣고 싶은 상호작용 또는 기능",
+                key="d6_info_action",
+                height=105,
+                placeholder="예: 사용자가 궁금한 값을 선택하면 관련 설명이 바뀌거나, 핵심 내용을 퀴즈처럼 확인하는 기능을 넣고 싶다.",
+            )
+    elif output_type == "카드뉴스형":
+        st.info("카드뉴스형은 4장으로 압축해 만듭니다. 표지-문제/데이터-의미 해석-실천 제안 흐름으로 정리합니다.")
+        left, right = st.columns(2)
+        with left:
+            st.text_area(
+                "1장 표지 핵심 문장",
+                key="d6_card_cover",
+                height=95,
+                placeholder="예: 숫자로 보는 우리 생활 속 변화",
+            )
+            st.text_area(
+                "2장 문제 상황과 데이터 소개",
+                key="d6_card_problem",
+                height=105,
+                placeholder="예: 어떤 문제가 있고, 5DAY 자료에서 어떤 변수와 그래프를 보면 되는지 함께 소개한다.",
+            )
+        with right:
+            st.text_area(
+                "3장 의미 해석",
+                key="d6_card_interpretation",
+                height=95,
+                placeholder="예: 데이터의 경향이 실제 생활에서 어떤 의미인지 한 문장으로 정리한다.",
+            )
+            st.text_area(
+                "4장 실천 제안",
+                key="d6_card_action",
+                height=105,
+                placeholder="예: 사용자가 오늘부터 할 수 있는 작은 행동을 제안한다.",
+            )
+        st.text_area(
+            "카드뉴스 분위기",
+            key="d6_card_tone",
+            height=80,
+            placeholder="예: 짧고 선명한 문장, 밝은 색감, 학생 눈높이 표현",
+        )
+    elif output_type == "포스터형":
+        st.info("포스터형은 한 화면 안에서 제목, 핵심 수치, 시각 자료, 행동 제안이 바로 보여야 합니다.")
+        left, right = st.columns(2)
+        with left:
+            st.text_area(
+                "1. 포스터에 크게 넣을 제목",
+                key="d6_poster_title",
+                height=95,
+                placeholder="예: 데이터가 알려 주는 작은 변화의 신호",
+            )
+            st.text_area(
+                "2. 가장 강조할 숫자 또는 결과",
+                key="d6_poster_number",
+                height=105,
+                placeholder="예: 그래프에서 가장 눈에 띄는 증가, 감소, 차이를 크게 보여 준다.",
+            )
+        with right:
+            st.text_area(
+                "3. 넣고 싶은 시각 요소",
+                key="d6_poster_visual",
+                height=95,
+                placeholder="예: 그래프 1개, 아이콘 3개, 핵심 수치를 담은 큰 숫자",
+            )
+            st.text_area(
+                "4. 핵심 메시지와 행동 제안",
+                key="d6_poster_message",
+                height=105,
+                placeholder="예: 데이터는 생활 속 선택을 더 나은 방향으로 바꾸는 힌트가 된다. 결과를 보고 자신의 생활 습관이나 선택을 점검해 보자.",
+            )
+    else:
+        st.info("게임형은 복잡한 기능보다 핵심 의미, 배경 상황, 목표, 진행 방식만 분명하면 충분합니다.")
+        left, right = st.columns(2)
+        with left:
+            st.text_area(
+                "게임 배경 상황",
+                key="d6_game_story",
+                height=110,
+                placeholder="예: 플레이어는 작은 가게의 운영자가 되어 제한된 선택 속에서 더 나은 결과를 만들어야 한다.",
+            )
+            st.text_area(
+                "게임 목표",
+                key="d6_game_goal",
+                height=100,
+                placeholder="예: 주어진 선택을 통해 가장 좋은 결과를 만들며 데이터의 의미를 이해한다.",
+            )
+        with right:
+            st.text_area(
+                "게임 진행 방식",
+                key="d6_game_rule",
+                height=110,
+                placeholder="예: 한 단계마다 선택지를 고르고, 선택 결과에 따라 점수와 메시지가 바뀌도록 한다.",
+            )
+            st.text_area(
+                "선택 뒤 피드백 방식",
+                key="d6_game_feedback",
+                height=100,
+                placeholder="예: 좋은 선택을 하면 데이터 의미를 설명하는 칭찬 메시지, 아쉬운 선택을 하면 다시 생각하게 하는 힌트를 준다.",
+            )
 
 
-def build_presentation_summary_text():
-    materials = get_project_materials()
-    output_type = st.session_state.get("d6_output_type", OUTPUT_TYPES[0])
-    problem_text = (
-        clean_text(st.session_state.get("d6_game_story", ""), materials["topic"])
-        if output_type == "게임형"
-        else clean_text(st.session_state.get("d6_problem_situation", ""), materials["topic"])
-    )
-    meaning_text = (
-        clean_text(st.session_state.get("d6_game_meaning", ""), materials["interpretation"])
-        if output_type == "게임형"
-        else clean_text(st.session_state.get("d6_data_meaning", ""), materials["interpretation"])
-    )
-    action_text = clean_text(st.session_state.get("d6_social_value", ""), "이 결과물을 통해 제안하고 싶은 실천을 더 적어 주세요.")
-
-    return (
-        f"1. 우리 모둠은 {problem_text}\n"
-        f"2. 이 결과물은 {meaning_text}\n"
-        f"3. 그래서 우리는 {action_text}"
-    )
+def app_type_prompt_plan(output_type):
+    if output_type == "정보형":
+        return f"""[정보형 앱 작성 내용]
+- 첫 화면 질문/문제: {clean_text(st.session_state.get("d6_info_question", ""), "첫 화면에서 던질 질문이나 문제를 적어 주세요.")}
+- 추가로 보여 주고 싶은 내용: {clean_text(st.session_state.get("d6_info_key_data", ""), "data5 자료를 바탕으로 앱에 추가하고 싶은 내용이나 화면 요소를 적어 주세요.")}
+- 넣고 싶은 상호작용/기능: {clean_text(st.session_state.get("d6_info_action", ""), "정보형 앱에 넣고 싶은 상호작용이나 기능을 자유롭게 적어 주세요.")}"""
+    if output_type == "카드뉴스형":
+        return f"""[카드뉴스형 앱 작성 내용]
+- 1장 표지 핵심 문장: {clean_text(st.session_state.get("d6_card_cover", ""), "표지에 넣을 핵심 문장을 적어 주세요.")}
+- 2장 문제 상황과 데이터 소개: {clean_text(st.session_state.get("d6_card_problem", ""), "문제 상황과 5DAY 자료를 어떻게 소개할지 적어 주세요.")}
+- 3장 의미 해석: {clean_text(st.session_state.get("d6_card_interpretation", ""), "데이터의 의미 해석을 적어 주세요.")}
+- 4장 실천 제안: {clean_text(st.session_state.get("d6_card_action", ""), "마지막 실천 제안을 적어 주세요.")}
+- 카드뉴스 분위기: {clean_text(st.session_state.get("d6_card_tone", ""), "카드뉴스의 문장과 시각 분위기를 적어 주세요.")}"""
+    if output_type == "포스터형":
+        return f"""[포스터형 앱 작성 내용]
+- 1. 크게 넣을 제목: {clean_text(st.session_state.get("d6_poster_title", ""), "포스터 제목을 적어 주세요.")}
+- 2. 강조할 숫자/결과: {clean_text(st.session_state.get("d6_poster_number", ""), "강조할 숫자나 결과를 적어 주세요.")}
+- 3. 시각 요소: {clean_text(st.session_state.get("d6_poster_visual", ""), "넣고 싶은 그래프, 아이콘, 배치 요소를 적어 주세요.")}
+- 4. 핵심 메시지와 행동 제안: {clean_text(st.session_state.get("d6_poster_message", ""), "한눈에 남길 핵심 메시지와 행동 제안을 적어 주세요.")}"""
+    return f"""[게임형 앱 작성 내용]
+- 배경 상황: {clean_text(st.session_state.get("d6_game_story", ""), "게임의 배경 이야기와 상황을 적어 주세요.")}
+- 게임 목표: {clean_text(st.session_state.get("d6_game_goal", ""), "플레이어가 게임에서 이루어야 할 목표를 적어 주세요.")}
+- 규칙과 진행 방식: {clean_text(st.session_state.get("d6_game_rule", ""), "플레이 규칙과 진행 방식을 적어 주세요.")}
+- 피드백 방식: {clean_text(st.session_state.get("d6_game_feedback", ""), "성공·실패·선택 결과에 따라 어떤 피드백을 줄지 적어 주세요.")}"""
 
 
 def _legacy_build_prompt_text_unused(dataset):
@@ -885,14 +1012,14 @@ def build_prompt_text(dataset):
     if not feature_lines:
         feature_lines = "- 핵심 데이터와 메시지를 분명하게 보여 주는 기본 구성"
     source_condition = (
-        "- 이번 결과물은 FUTURE 프로젝트 자료에서 이미 분석한 데이터와 해석을 그대로 이어받아 활용합니다."
+        "- 이 앱은 FUTURE 프로젝트 자료에서 이미 분석한 데이터와 해석을 그대로 이어받아 활용합니다."
         if materials["uses_future"]
-        else "- 이번 결과물은 학생이 직접 설계한 프로젝트 자료를 바탕으로 구성합니다."
+        else "- 이 앱은 별도 자료 정리보다 학생이 직접 정한 앱 설계 방향을 중심으로 구성합니다."
     )
     source_request = (
         "- 보고서를 다시 업로드하라고 요구하지 말고, 아래에 제공한 데이터와 분석 내용을 바로 활용해 주세요."
         if materials["uses_future"]
-        else "- 아래에 정리한 프로젝트 자료의 주제, 예시 자료, 특징, 해석을 바탕으로 결과물을 구체화해 주세요."
+        else "- 아래 앱 유형별 작성 내용을 바탕으로 화면 구성, 문구, 기능 흐름을 구체화해 주세요."
     )
     axis_lines = (
         f"- 독립 변수(X): {materials['x_column']}\n- 종속 변수(Y): {materials['y_column']}\n"
@@ -902,27 +1029,10 @@ def build_prompt_text(dataset):
     focus_lines = "\n".join(f"- {item}" for item in output_type_focus_points(output_type))
     if not focus_lines:
         focus_lines = "- 핵심 메시지가 분명하게 보이도록 구성해 주세요."
+    type_plan = app_type_prompt_plan(output_type)
 
-    common_header = f"""당신은 Canva AI의 바이브 코딩으로 바로 구현할 수 있는 학생용 결과물을 기획하는 도우미입니다.
-
-아래 조건을 바탕으로 한국어 결과물을 만들어 주세요.
-
-[기본 정보]
-- 결과물 유형: {output_type}
-- 프로젝트 제목: {title}
-- 제작 주체: {group_name}
-- 주요 대상: {target_user}
-- 이 사용자를 선택한 이유: {target_reason}
-- 시각 스타일: {style}
-
-[중요 조건]
-{source_condition}
-{source_request}
-- 고등학교 1학년 학생이 이해할 수 있는 쉬운 문장으로 작성해 주세요.
-- 결과물 안에는 데이터의 의미, 해석, 주의점이 함께 드러나야 합니다.
-- 복잡한 로그인, 관리자 기능, 긴 메뉴 구조는 넣지 말고 학생이 바로 사용할 수 있게 단순하게 구성해 주세요.
-
-[프로젝트 자료]
+    if materials["uses_future"]:
+        material_section = f"""[프로젝트 자료]
 - 자료 이름: {materials['name']}
 - 자료 출처 방식: {materials['source_label']}
 - 자료가 다루는 주제/문제 상황: {materials['topic']}
@@ -934,84 +1044,80 @@ def build_prompt_text(dataset):
 {materials['analysis']}
 
 [프로젝트 자료 해석 내용]
-{materials['interpretation']}
+{materials['interpretation']}"""
+    else:
+        material_section = f"""[직접 앱 설계 방식]
+- 자료 출처 방식: {materials['source_label']}
+- 별도 자료 입력 없이, 학생이 앱 설계 탭에서 정한 방향을 중심으로 앱을 만듭니다.
+- 프로젝트 제목: {title}"""
 
-[이번 결과물에서 강조할 구성 요소]
+    common_header = f"""Canva AI의 바이브 코딩으로 바로 구현할 학생용 앱을 제작해 주세요.
+
+[기본 정보]
+- 앱 유형: {output_type}
+- 프로젝트 제목: {title}
+- 제작 주체: {group_name}
+- 주요 대상: {target_user}
+- 이 사용자를 선택한 이유: {target_reason}
+- 시각 스타일: {style}
+
+[중요 조건]
+{source_condition}
+{source_request}
+- 고등학교 1학년 학생이 바로 이해하고 사용할 수 있게 만듭니다.
+- 데이터의 의미, 해석, 주의점이 앱 안에서 자연스럽게 보이게 합니다.
+- 로그인, 관리자 기능, 긴 메뉴는 넣지 않고 단순한 화면 흐름으로 구성합니다.
+
+{material_section}
+
+[앱 유형에 맞는 상호작용 기능]
 {feature_lines}
 
-[이 유형에서 특히 중요한 점]
+[이 앱 유형에서 중요한 점]
 {focus_lines}
 
-[결과물 방향]
+[앱 방향]
 {output_type_guide(output_type)}
+
+{type_plan}
 """
 
+    ai_ethics = clean_text(
+        st.session_state.get("d6_ai_ethics", ""),
+        "AI가 만든 앱을 사용할 때 데이터의 한계, 과장 금지, 사람의 확인이 필요하다는 점을 적어 주세요.",
+    )
+    prompt_extra = clean_text(st.session_state.get("d6_prompt_extra", ""), "추가 요청이 있으면 적어 주세요.")
+
     if output_type == "게임형":
-        game_meaning = clean_text(st.session_state.get("d6_game_meaning", ""), "이전 데이터에서 얻은 핵심 의미를 더 분명하게 적어 주세요.")
-        game_story = clean_text(st.session_state.get("d6_game_story", ""), "게임의 배경 이야기와 상황을 적어 주세요.")
-        game_goal = clean_text(st.session_state.get("d6_game_goal", ""), "플레이어가 게임에서 이루어야 할 목표를 적어 주세요.")
-        game_rule = clean_text(st.session_state.get("d6_game_rule", ""), "플레이 규칙과 진행 방식을 적어 주세요.")
-        game_feedback = clean_text(st.session_state.get("d6_game_feedback", ""), "성공·실패·선택 결과에 따라 어떤 피드백을 줄지 적어 주세요.")
-        social_value = clean_text(st.session_state.get("d6_social_value", ""), "이 게임이 학생에게 주는 학습적 가치와 사회적 의미를 적어 주세요.")
-        limit_note = clean_text(st.session_state.get("d6_limit_note", ""), "게임이 단순화한 부분과 실제 상황과의 차이를 적어 주세요.")
-        human_check = clean_text(st.session_state.get("d6_human_check", ""), "교사나 사용자가 다시 확인해야 할 부분을 적어 주세요.")
-        prompt_extra = clean_text(st.session_state.get("d6_prompt_extra", ""), "추가 요청이 있으면 적어 주세요.")
         return f"""{common_header}
-[게임으로 바꾸려는 핵심 의미]
-- 이 게임은 데이터의 숫자를 그대로 계산하기보다, 이전 분석에서 얻은 의미를 경험하게 하는 것이 핵심입니다.
-- 데이터에서 얻은 핵심 의미: {game_meaning}
-
-[게임 기획]
-- 배경 상황: {game_story}
-- 게임 목표: {game_goal}
-- 규칙과 진행 방식: {game_rule}
-- 피드백 방식: {game_feedback}
-
-[교육적 가치와 책임]
-- 이 게임이 주는 가치: {social_value}
-- 게임이 단순화한 부분: {limit_note}
-- 사람이 다시 확인할 점: {human_check}
+[AI 윤리와 사용 주의]
+- {ai_ethics}
 
 [최종 요청]
-- Canva AI의 바이브 코딩으로 구현할 수 있는 간단한 교육용 게임 앱 기획안을 만들어 주세요.
-- 화면 수는 4개 안팎으로 단순하게 구성해 주세요: 시작 화면, 선택 화면, 피드백 화면, 마무리 화면.
-- 선택지는 한 단계마다 2~3개 정도로 단순하게 제안해 주세요.
-- 학생이 데이터의 의미를 자연스럽게 이해하도록 질문, 선택, 피드백을 포함해 주세요.
-- 결과물은 바로 제작에 사용할 수 있도록 화면별 문구와 기능을 짧고 구체적으로 제안해 주세요.
+- 간단한 교육용 게임 앱으로 구현해 주세요.
+- 화면은 4개 안팎으로 구성합니다: 시작, 선택, 피드백, 마무리.
+- 선택지는 단계마다 2~3개로 제한합니다.
+- 질문, 선택, 피드백을 통해 데이터의 의미를 이해하게 합니다.
+- 각 화면에 들어갈 문구와 기능을 짧고 구체적으로 써 주세요.
 - 추가 요청: {prompt_extra}
 """
 
-    problem_situation = clean_text(st.session_state.get("d6_problem_situation", ""), "이 결과물이 다루려는 실제 문제 상황을 적어 주세요.")
-    project_goal = clean_text(st.session_state.get("d6_project_goal", ""), "이 결과물을 통해 사용자가 무엇을 이해하거나 행동하게 할지 적어 주세요.")
-    data_meaning = clean_text(st.session_state.get("d6_data_meaning", ""), "이전 데이터 분석에서 드러난 핵심 의미를 적어 주세요.")
-    social_value = clean_text(st.session_state.get("d6_social_value", ""), "이 결과물이 사회에 주는 시사점이나 실천 가치를 적어 주세요.")
-    limit_note = clean_text(st.session_state.get("d6_limit_note", ""), "결과물을 볼 때 주의해야 할 점을 적어 주세요.")
-    human_check = clean_text(st.session_state.get("d6_human_check", ""), "사람이 다시 확인해야 할 점을 적어 주세요.")
-    prompt_extra = clean_text(st.session_state.get("d6_prompt_extra", ""), "추가 요청이 있으면 적어 주세요.")
-
     structure_request = {
-        "정보형": "- 정보형 앱 또는 정보 페이지 형식으로 4개 안팎의 섹션을 제안해 주세요: 제목, 핵심 데이터, 그래프 설명, 해석/주의 안내.",
-        "카드뉴스형": "- 카드뉴스는 5장 안팎으로 제안해 주세요. 각 장마다 제목, 한 줄 핵심 문장, 근거 데이터를 넣어 주세요.",
-        "포스터형": "- 포스터형은 한 화면 안에 제목, 핵심 수치, 시각 요소, 행동 제안이 분명하게 보이도록 영역별로 제안해 주세요.",
-    }.get(output_type, "- 결과물 유형에 맞는 구성안을 제시해 주세요.")
+        "정보형": "- 정보형 앱은 4개 안팎의 섹션으로 구성합니다: 제목, 핵심 데이터, 그래프 설명, 해석/주의 안내.",
+        "카드뉴스형": "- 카드뉴스형 앱은 4장으로 압축해 구성합니다: 표지, 문제/데이터, 의미 해석, 실천 제안.",
+        "포스터형": "- 포스터형 앱은 한 화면에 제목, 핵심 수치, 시각 요소, 행동 제안이 보이게 구성합니다.",
+    }.get(output_type, "- 선택한 앱 유형에 맞는 구성안을 제시해 주세요.")
 
     return f"""{common_header}
-[실제 문제와 목표]
-- 문제 상황: {problem_situation}
-- 결과물 목표: {project_goal}
-- 데이터에서 드러난 핵심 의미: {data_meaning}
-
-[사회적 의미와 책임]
-- 사회에 주는 시사점/실천 가치: {social_value}
-- 결과물의 한계와 주의점: {limit_note}
-- 사람이 다시 확인할 점: {human_check}
+[AI 윤리와 사용 주의]
+- {ai_ethics}
 
 [최종 요청]
-- Canva AI에서 바로 제작할 수 있도록 결과물의 구성안과 문구를 짧고 구체적으로 작성해 주세요.
+- Canva AI에서 바로 구현할 수 있는 앱 구성안과 화면 문구를 짧고 구체적으로 작성해 주세요.
 {structure_request}
-- 데이터와 해석 내용을 시각 자료와 함께 자연스럽게 연결해 주세요.
-- 학생이 한눈에 이해할 수 있도록 핵심 메시지는 한두 문장으로 정리해 주세요.
-- 마지막에는 학생이 기억해야 할 핵심 메시지와 실천 제안을 포함해 주세요.
+- 데이터와 해석을 시각 요소와 연결해 주세요.
+- 핵심 메시지는 한두 문장으로 정리해 주세요.
+- 마지막 화면에는 핵심 메시지와 실천 제안을 넣어 주세요.
 - 추가 요청: {prompt_extra}
 """
 
@@ -1019,7 +1125,6 @@ def build_prompt_text(dataset):
 def create_prompt_pdf(group_name, dataset, prompt_text):
     materials = get_project_materials()
     output_type = st.session_state.get("d6_output_type", OUTPUT_TYPES[0])
-    presentation_summary = build_presentation_summary_text()
 
     pdf = ThemedPDF()
     pdf.add_font("Nanum", "", font_path, uni=True)
@@ -1048,26 +1153,16 @@ def create_prompt_pdf(group_name, dataset, prompt_text):
 
     add_text_box_to_pdf(pdf, "프로젝트 제목", st.session_state.get("d6_project_title", ""))
     add_text_box_to_pdf(pdf, "주요 대상 선택 이유", st.session_state.get("d6_target_reason", ""))
-    add_text_box_to_pdf(pdf, "프로젝트 자료 분석 내용", materials["analysis"])
-    add_text_box_to_pdf(pdf, "프로젝트 자료 해석 내용", materials["interpretation"])
-    add_text_box_to_pdf(pdf, "프로젝트 자료 예시", materials["sample_rows"])
-
-    if output_type == "게임형":
-        add_text_box_to_pdf(pdf, "게임으로 바꾼 핵심 의미", st.session_state.get("d6_game_meaning", ""))
-        add_text_box_to_pdf(pdf, "게임 배경 상황", st.session_state.get("d6_game_story", ""))
-        add_text_box_to_pdf(pdf, "게임 목표", st.session_state.get("d6_game_goal", ""))
-        add_text_box_to_pdf(pdf, "게임 진행 방식", st.session_state.get("d6_game_rule", ""))
-        add_text_box_to_pdf(pdf, "피드백 방식", st.session_state.get("d6_game_feedback", ""))
+    if materials["uses_future"]:
+        add_text_box_to_pdf(pdf, "프로젝트 자료 분석 내용", materials["analysis"])
+        add_text_box_to_pdf(pdf, "프로젝트 자료 해석 내용", materials["interpretation"])
+        add_text_box_to_pdf(pdf, "프로젝트 자료 예시", materials["sample_rows"])
     else:
-        add_text_box_to_pdf(pdf, "보여 주고 싶은 문제", st.session_state.get("d6_problem_situation", ""))
-        add_text_box_to_pdf(pdf, "사용자에게 기대하는 변화", st.session_state.get("d6_project_goal", ""))
-        add_text_box_to_pdf(pdf, "데이터 핵심 메시지", st.session_state.get("d6_data_meaning", ""))
+        add_text_box_to_pdf(pdf, "직접 앱 설계 방식", "별도 자료 입력 없이 앱 설계 탭에서 작성한 유형별 방향을 중심으로 구성했습니다.")
 
-    add_text_box_to_pdf(pdf, "이 앱이 주는 가치", st.session_state.get("d6_social_value", ""))
-    add_text_box_to_pdf(pdf, "조심해서 봐야 할 점", st.session_state.get("d6_limit_note", ""))
-    add_text_box_to_pdf(pdf, "사람이 다시 판단할 부분", st.session_state.get("d6_human_check", ""))
+    add_text_box_to_pdf(pdf, f"{output_type} 작성 내용", app_type_prompt_plan(output_type))
+    add_text_box_to_pdf(pdf, "AI 윤리와 사용 주의", st.session_state.get("d6_ai_ethics", ""))
     add_text_box_to_pdf(pdf, "추가 요청", st.session_state.get("d6_prompt_extra", ""))
-    add_text_box_to_pdf(pdf, "모둠 발표용 3문장 요약", presentation_summary)
     add_text_box_to_pdf(pdf, "최종 Canva 구현 프롬프트", prompt_text, fill_color=(250, 250, 250))
     return normalize_pdf_output(pdf.output(dest="S"))
 
@@ -1183,7 +1278,7 @@ def create_prompt_pdf(group_name, dataset, prompt_text):
         feature_col, style_col = st.columns([1.15, 0.85])
         with feature_col:
             st.multiselect(
-                "앱에 꼭 넣고 싶은 기능",
+                "앱 유형에 맞는 상호작용 기능",
                 FEATURE_OPTIONS,
                 key="d6_feature_options",
             )
@@ -1253,19 +1348,12 @@ def run():
     apply_local_style()
     ensure_state()
     page_banner(
-        "STEP 3-2. 결과를 앱으로 확장하기",
+        "AI 바이브 코딩으로 앱 제작",
         "앞 차시에서 분석한 데이터 예측 결과를 실제 사람들에게 도움이 되는 결과물로 바꾸는 단계입니다. "
-        "6DAY에서는 FUTURE 프로젝트 자료의 해석을 그대로 이어받아, Canva AI에서 만들 결과물의 종류를 정하고 그에 맞는 최종 프롬프트를 완성합니다.",
+        "6DAY에서는 FUTURE 프로젝트 자료의 해석을 그대로 이어받아, Canva AI에서 만들 앱의 종류를 정하고 그에 맞는 최종 프롬프트를 완성합니다.",
+        "AI 예측 결과를 어떻게 사회적 실천으로 확장할까?",
     )
     st.markdown("<hr style='border: 2px solid #2196F3;'>", unsafe_allow_html=True)
-
-    stage_intro(
-        "세상과 연결: 어떤 결과물로 확장할까?",
-        "이 단계에서는 FUTURE 프로젝트 자료의 데이터 분석 결과를 바탕으로, 실제로 사람들에게 보여 주거나 체험하게 할 결과물을 기획합니다. "
-        "정보형, 카드뉴스형, 포스터형은 FUTURE 프로젝트 자료의 데이터를 그대로 활용하고, 게임형은 데이터에서 읽은 의미를 경험으로 바꾸는 데 집중합니다.",
-        "우리 모둠은 FUTURE 프로젝트 자료의 분석 결과를 어떤 형태의 결과물로 바꾸면 가장 잘 전달할 수 있을까?",
-    )
-    render_future_flow_box()
 
     dataset = current_dataset()
     reports = get_inherited_reports()
@@ -1276,14 +1364,20 @@ def run():
     subtabs = st.tabs(
         [
             "1️⃣[E] 앱 유형 선택",
-            "2️⃣[E] 프로젝트 자료 정리",
-            "3️⃣[E] 결과물 설계",
+            "2️⃣[E] 프로젝트 설정",
+            "3️⃣[E] 앱 설계",
             "4️⃣[E] 프롬프트 확인",
         ]
     )
 
     with subtabs[0]:
-        st.markdown(pretty_title("1. 어떤 앱 유형으로 만들까?", "#e8f5e9", "#c8e6c9"), unsafe_allow_html=True)
+        st.markdown(pretty_title("1. 앱 유형 선택", "#e8f5e9", "#c8e6c9"), unsafe_allow_html=True)
+        class_col, group_col = st.columns([0.35, 0.65])
+        with class_col:
+            st.selectbox("반", CLASS_OPTIONS, key="d6_class")
+        with group_col:
+            st.text_input("모둠명", key="d6_group", placeholder="예: 1모둠")
+
         material_label = "FUTURE 프로젝트 자료" if using_future_materials() else "직접 설계한 프로젝트 자료"
 
         st.info(
@@ -1294,279 +1388,103 @@ def run():
         st.caption(
             f"즉, 같은 {material_label}라도 어떤 앱 유형을 고르느냐에 따라 Canva AI에 적어야 하는 프롬프트 방식이 달라집니다."
         )
-        st.radio(
-            "프로젝트 자료 반영 방식 선택",
-            ["FUTURE 프로젝트 자료 반영하기", "학생이 직접 프로젝트 자료 설계하기"],
-            key="d6_material_mode",
-            horizontal=True,
-        )
-        if using_future_materials():
-            st.info("현재는 FUTURE 프로젝트 자료를 그대로 이어받아 결과물을 기획합니다. 필요하면 아래에서 자료를 펼쳐 보고 앱 유형을 판단할 수 있습니다.")
-            with st.expander("FUTURE 프로젝트 자료를 보며 앱 유형 정하기", expanded=False):
-                preview_col, note_col = st.columns([1.05, 0.95])
-                with preview_col:
-                    preview_df = dataset["selected_table"].copy()
-                    preview_df.insert(0, "행", range(1, len(preview_df) + 1))
-                    st.dataframe(preview_df, use_container_width=True, hide_index=True, height=220)
-                    st.caption("FUTURE 프로젝트 자료에서 선택한 X, Y 데이터를 그대로 확인하며 어떤 앱 유형이 잘 맞을지 생각해 볼 수 있습니다.")
-                with note_col:
-                    st.markdown("**FUTURE 프로젝트 자료 분석 내용**")
-                    st.write(reports["analysis"])
-                    st.markdown("**FUTURE 프로젝트 자료 결과 해석 내용**")
-                    st.write(reports["interpretation"])
-        else:
-            st.info("현재는 FUTURE 프로젝트 자료를 사용하지 않고, 학생이 직접 프로젝트 자료를 설계하는 방식입니다. 다음 탭에서 자료 이름, 주제, 예시 자료, 해석을 직접 정리하게 됩니다.")
-
-        st.markdown(pretty_title("가장 먼저, 앱 유형을 선택해 주세요", "#fff3e0", "#ffccbc"), unsafe_allow_html=True)
-        st.markdown(
-            f"""
-            <div style="
-                background: linear-gradient(135deg, #fff8e1 0%, #ffe0b2 100%);
-                border: 2px solid #ffb74d;
-                border-radius: 18px;
-                padding: 16px 18px;
-                margin-bottom: 12px;
-                box-shadow: 0 4px 12px rgba(255, 167, 38, 0.12);
-            ">
-                <div style="font-size:0.95rem; font-weight:700; color:#e65100; margin-bottom:6px;">앱 유형 선택이 가장 중요합니다</div>
-                <div style="font-size:1.15rem; font-weight:800; color:#263238; margin-bottom:6px;">현재 선택: {st.session_state.get("d6_output_type", OUTPUT_TYPES[0])}</div>
-                <div style="font-size:0.92rem; line-height:1.7; color:#5d4037;">
-                    이 선택에 따라 뒤에서 작성할 프롬프트의 문장 구조와 필요한 입력 항목이 달라집니다.
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-        select_col, title_col = st.columns([1, 1])
-        with select_col:
-            group_col, class_col = st.columns([1.0, 0.45])
-            with group_col:
-                st.text_input("모둠명", key="d6_group", placeholder="예: 1모둠")
-            with class_col:
-                st.selectbox("반", CLASS_OPTIONS, key="d6_class")
-            st.selectbox("주요 대상", TARGET_USERS, key="d6_target_user")
-            st.text_input(
-                "이 사용자를 선택한 이유",
-                key="d6_target_reason",
-                placeholder="예: 기후 데이터를 처음 접하는 학생들이 쉽게 이해하고 바로 행동으로 옮길 수 있게 돕고 싶다.",
-            )
-        with title_col:
-            st.text_input("프로젝트 제목", key="d6_project_title", placeholder="예: 환경 데이터를 쉽게 알려 주는 카드뉴스")
-            st.selectbox("원하는 시각 스타일", STYLE_OPTIONS, key="d6_visual_style")
-            st.info(output_type_guide(st.session_state["d6_output_type"]))
-            st.caption(prompt_input_guide(st.session_state["d6_output_type"]))
-            focus_points = output_type_focus_points(st.session_state["d6_output_type"])
-            if focus_points:
-                st.markdown("**이 유형에서는 이 정도만 정하면 충분해요**")
-                for item in focus_points:
-                    st.markdown(f"- {item}")
 
     with subtabs[1]:
+        st.markdown(pretty_title("2. 프로젝트 설정", "#fff3e0", "#ffccbc"), unsafe_allow_html=True)
+
+        material_col, project_col = st.columns([0.9, 1.1])
+        with material_col:
+            st.markdown("**프로젝트 자료 반영하기**")
+            st.caption("기본값은 FUTURE 프로젝트 자료 반영입니다.")
+            future_selected = using_future_materials()
+            future_btn, custom_btn = st.columns(2)
+            with future_btn:
+                if st.button(
+                    "자료 반영",
+                    key="d6_use_future_materials",
+                    type="primary" if future_selected else "secondary",
+                    use_container_width=True,
+                ):
+                    st.session_state["d6_material_mode"] = "FUTURE 프로젝트 자료 반영하기"
+                    st.rerun()
+            with custom_btn:
+                if st.button(
+                    "직접 설계",
+                    key="d6_use_custom_materials",
+                    type="secondary" if future_selected else "primary",
+                    use_container_width=True,
+                ):
+                    st.session_state["d6_material_mode"] = "학생이 직접 프로젝트 자료 설계하기"
+                    st.rerun()
             if using_future_materials():
-                st.markdown(pretty_title("2. FUTURE 프로젝트 자료의 데이터와 해석을 그대로 이어받기", "#fff8e1", "#ffecb3"), unsafe_allow_html=True)
-                data_col, report_col = st.columns([1.05, 0.95])
-                with data_col:
+                st.success("FUTURE 프로젝트 자료를 앱 기획에 반영합니다.")
+                with st.expander("반영할 FUTURE 프로젝트 자료 확인", expanded=False):
                     preview_df = dataset["selected_table"].copy()
                     preview_df.insert(0, "행", range(1, len(preview_df) + 1))
-                    st.dataframe(preview_df, use_container_width=True, hide_index=True, height=260)
-                    st.caption("FUTURE 프로젝트 자료에서 선택한 X, Y 데이터를 그대로 이어받아 프롬프트의 근거 자료로 사용합니다.")
-                with report_col:
-                    with st.expander("FUTURE 프로젝트 자료 분석 내용 보기", expanded=True):
-                        st.write(reports["analysis"])
-                    with st.expander("FUTURE 프로젝트 자료 결과 해석 내용 보기", expanded=True):
-                        st.write(reports["interpretation"])
+                    st.dataframe(preview_df, use_container_width=True, hide_index=True, height=180)
+                    st.markdown("**분석 내용**")
+                    st.write(reports["analysis"])
+                    st.markdown("**결과 해석 내용**")
+                    st.write(reports["interpretation"])
             else:
-                st.markdown(pretty_title("2. 학생이 직접 프로젝트 자료 설계하기", "#fff8e1", "#ffecb3"), unsafe_allow_html=True)
-                left, right = st.columns(2)
-                with left:
-                    st.text_input("프로젝트 자료 이름", key="d6_custom_data_name", placeholder="예: 우리 학교 급식 만족도와 잔반량 자료")
-                    st.info("직접 설계 모드에서는 독립변수와 종속변수를 꼭 나누지 않아도 됩니다. 자료의 주제와 의미를 중심으로 자유롭게 설계해 보세요.")
-                    st.text_area(
-                        "프로젝트 자료의 주제와 문제 상황",
-                        key="d6_custom_topic",
-                        height=120,
-                        placeholder="예: 학생들의 급식 만족도와 실제 잔반량 사이의 관계를 바탕으로 더 나은 급식 선택 문화를 돕고 싶다.",
-                    )
-                with right:
-                    st.text_area(
-                        "예시 자료 또는 표 아이디어",
-                        key="d6_custom_rows",
-                        height=120,
-                        placeholder="예: 만족도 2점-잔반량 많음, 만족도 4점-잔반량 보통, 만족도 5점-잔반량 적음",
-                    )
-                    st.text_area(
-                        "자료의 특징 요약",
-                        key="d6_custom_analysis",
-                        height=120,
-                        placeholder="예: 만족도가 높을수록 잔반량이 줄어드는 경향이 보일 것이라고 예상한다.",
-                    )
-                    st.text_area(
-                        "자료 해석과 시사점",
-                        key="d6_custom_interpretation",
-                        height=120,
-                        placeholder="예: 학생의 선택과 만족도를 반영하면 음식물 쓰레기를 줄이는 데 도움이 될 수 있다.",
-                    )
-                st.caption("직접 설계한 프로젝트 자료는 이후 결과물 설계와 최종 Canva 프롬프트에 그대로 반영됩니다.")
+                st.info("직접 설계 모드입니다. 별도 자료 입력 없이 다음 탭에서 학생이 원하는 앱 방향을 유형별로 설계합니다.")
+
+        with project_col:
+            st.text_input("프로젝트 제목", key="d6_project_title", placeholder="예: 환경 데이터를 쉽게 알려 주는 앱")
+            target_col, style_col = st.columns([1, 1])
+            with target_col:
+                st.selectbox("주요 대상", TARGET_USERS, key="d6_target_user")
+            with style_col:
+                st.selectbox("원하는 시각 스타일", STYLE_OPTIONS, key="d6_visual_style")
+            st.text_area(
+                f"{st.session_state.get('d6_target_user', '이 사용자')}를 선택한 이유",
+                key="d6_target_reason",
+                height=86,
+                placeholder=f"{st.session_state.get('d6_target_user', '주요 대상')}에게 왜 이 앱이 필요한지, 어떤 도움을 주고 싶은지 적어 보세요.",
+            )
+            st.info(output_type_guide(st.session_state["d6_output_type"]))
+            st.caption(prompt_input_guide(st.session_state["d6_output_type"]))
 
     with subtabs[2]:
-            st.markdown(pretty_title("3. 결과물 방향을 간단히 정하기", "#ede7f6", "#d1c4e9"), unsafe_allow_html=True)
+            st.markdown(pretty_title("3. 앱 방향을 간단히 정하기", "#ede7f6", "#d1c4e9"), unsafe_allow_html=True)
             output_type = st.session_state["d6_output_type"]
             recommended_pack = recommended_feature_pack(output_type)
-            render_value_cards(
-                [
-                    {
-                        "title": "추천 기능",
-                        "value": ", ".join(recommended_pack["features"][:2]) if recommended_pack["features"] else "기본 구성",
-                        "detail": "선택한 앱 유형에 맞춰 특히 잘 어울리는 기능을 추천합니다.",
-                        "bg": "#f4f9ff",
-                        "border": "#90caf9",
-                    },
-                    {
-                        "title": "추천 이유",
-                        "value": output_type,
-                        "detail": recommended_pack["reason"],
-                        "bg": "#fff8e1",
-                        "border": "#ffcc80",
-                    },
-                ],
-                columns=2,
-            )
 
             feature_left, feature_right = st.columns([1.2, 0.8])
             with feature_left:
                 st.multiselect(
-                    "결과물에 꼭 넣고 싶은 기능",
+                    "앱 유형에 맞는 상호작용 기능",
                     TYPE_FEATURE_OPTIONS[output_type],
                     key="d6_feature_options",
                 )
             with feature_right:
                 st.button(
-                    "추천 기능 적용",
+                    "추천 상호작용 적용",
                     key=f"d6_apply_features_{output_type}",
                     use_container_width=True,
                     on_click=apply_recommended_features,
                     args=(recommended_pack["features"],),
                 )
-                st.caption("추천 기능을 바탕으로 시작한 뒤, 모둠 아이디어에 맞게 더 추가하거나 빼도 됩니다.")
+                st.caption("추천 상호작용을 바탕으로 시작한 뒤, 모둠 아이디어에 맞게 더 추가하거나 빼도 됩니다.")
 
-            if output_type == "게임형":
-                st.info("게임형은 복잡한 기능보다 핵심 의미, 배경 상황, 목표, 진행 방식만 분명하면 충분합니다.")
-                left, right = st.columns(2)
-                with left:
-                    st.text_area(
-                        "게임으로 바꾸고 싶은 데이터 의미",
-                        key="d6_game_meaning",
-                        height=120,
-                        placeholder="예: 광고 횟수가 늘어날수록 방문자 수와 매출이 함께 증가한다는 의미를 게임 속 선택 결과로 느끼게 하고 싶다.",
-                    )
-                    st.text_area(
-                        "게임 배경 상황",
-                        key="d6_game_story",
-                        height=140,
-                        placeholder="예: 플레이어는 작은 가게의 운영자가 되어 제한된 선택 속에서 더 나은 결과를 만들어야 한다.",
-                    )
-                    st.text_area(
-                        "게임 목표",
-                        key="d6_game_goal",
-                        height=110,
-                        placeholder="예: 주어진 선택을 통해 가장 좋은 결과를 만들며 데이터의 의미를 이해한다.",
-                    )
-                with right:
-                    st.text_area(
-                        "게임 진행 방식",
-                        key="d6_game_rule",
-                        height=160,
-                        placeholder="예: 한 단계마다 선택지를 고르고, 선택 결과에 따라 점수와 메시지가 바뀌도록 한다.",
-                    )
-                    st.text_area(
-                        "선택 뒤 피드백 방식",
-                        key="d6_game_feedback",
-                        height=160,
-                        placeholder="예: 좋은 선택을 하면 데이터 의미를 설명하는 칭찬 메시지, 아쉬운 선택을 하면 다시 생각하게 하는 힌트를 준다.",
-                    )
-            else:
-                st.info("정보형, 카드뉴스형, 포스터형은 세 가지만 정하면 충분합니다. 보여 주고 싶은 문제, 사용자가 느낄 변화, 데이터의 핵심 메시지를 정해 보세요.")
-                left, right = st.columns(2)
-                with left:
-                    st.text_area(
-                        "누구에게 어떤 문제를 보여 줄까?",
-                        key="d6_problem_situation",
-                        height=140,
-                        placeholder="예: 기후 변화 데이터를 학생들이 숫자만 보고 지나치지 않고 생활 문제와 연결해 이해하도록 돕고 싶다.",
-                    )
-                    st.text_area(
-                        "사용자가 보고 무엇을 느끼거나 하게 할까?",
-                        key="d6_project_goal",
-                        height=140,
-                        placeholder="예: 사용자가 데이터를 보고 어떤 경향이 있는지 이해하고, 생활 속 실천까지 생각하게 한다.",
-                    )
-                with right:
-                    st.text_area(
-                        "데이터로 꼭 전하고 싶은 핵심 한 문장",
-                        key="d6_data_meaning",
-                        height=140,
-                        placeholder="예: 데이터의 증가와 감소가 단순한 숫자 변화가 아니라 실제 생활과 연결된다는 점을 강조하고 싶다.",
-                    )
-                    st.info(f"{output_type}은 {output_type_guide(output_type)}")
+            with st.expander("앱 유형에 맞는 상호작용 설명 보기", expanded=False):
+                recommended_features = set(recommended_pack["features"])
+                for feature in TYPE_FEATURE_OPTIONS[output_type]:
+                    badge = " 추천" if feature in recommended_features else ""
+                    description = FEATURE_DESCRIPTIONS.get(feature, "이 앱 유형에 맞게 추가할 수 있는 구성 요소입니다.")
+                    st.markdown(f"- **{feature}**{badge}: {description}")
+                st.markdown("**추천 기준**")
+                st.write(recommended_pack["reason"])
 
-            st.markdown(pretty_title("4. 마지막으로 꼭 넣을 안내", "#fce4ec", "#f8bbd0"), unsafe_allow_html=True)
-            st.markdown(pretty_title("사회적 가치와 실천을 돕는 질문 씨앗", "#e3f2fd", "#bbdefb"), unsafe_allow_html=True)
-            render_value_cards(
-                [
-                    {
-                        "title": "문제 예방",
-                        "value": "이 결과물이 어떤 문제를 예방하는 데 도움이 될까?",
-                        "detail": "단순 정보 제공이 아니라 실제 위험이나 혼란을 줄이는 방향을 떠올려 보세요.",
-                        "bg": "#f4f9ff",
-                        "border": "#90caf9",
-                    },
-                    {
-                        "title": "더 나은 판단",
-                        "value": "사람들이 어떤 판단을 더 잘 내리게 될까?",
-                        "detail": "이 결과물을 본 뒤 사용자가 무엇을 더 똑똑하게 결정할 수 있을지 생각해 보세요.",
-                        "bg": "#fff8e1",
-                        "border": "#ffcc80",
-                    },
-                    {
-                        "title": "필요한 대상",
-                        "value": "이 결과물이 누구에게 가장 필요할까?",
-                        "detail": "선택한 사용자 중에서도 특히 더 필요한 상황이나 사람을 떠올려 보세요.",
-                        "bg": "#f1f8e9",
-                        "border": "#aed581",
-                    },
-                    {
-                        "title": "기대 행동",
-                        "value": "결과를 보고 사용자가 무엇을 하게 되길 바랄까?",
-                        "detail": "읽고 끝나는 것이 아니라 어떤 행동으로 이어지면 좋을지 적어 보세요.",
-                        "bg": "#ede7f6",
-                        "border": "#b39ddb",
-                    },
-                ],
-                columns=2,
+            render_type_specific_prompt_inputs(output_type)
+
+            st.markdown(pretty_title("4. AI 윤리와 사용 주의", "#fce4ec", "#f8bbd0"), unsafe_allow_html=True)
+            st.text_area(
+                "AI가 만든 앱을 사용할 때 꼭 안내해야 할 점",
+                key="d6_ai_ethics",
+                height=130,
+                placeholder="예: 이 앱의 결과는 참고용이며, 데이터가 적거나 한쪽으로 치우치면 결과가 달라질 수 있다. 중요한 판단은 사람이 다른 자료와 함께 다시 확인해야 한다.",
             )
-            trust_col1, trust_col2, trust_col3 = st.columns(3)
-            with trust_col1:
-                st.text_area(
-                    "이 앱이 주는 가치",
-                    key="d6_social_value",
-                    height=120,
-                    placeholder="예: 데이터를 근거로 생각하고 판단하는 힘을 기를 수 있다.",
-                )
-            with trust_col2:
-                st.text_area(
-                    "조심해서 봐야 할 점",
-                    key="d6_limit_note",
-                    height=120,
-                    placeholder="예: 적은 데이터만으로 만든 결과이므로 모든 상황을 대표한다고 볼 수는 없다.",
-                )
-            with trust_col3:
-                st.text_area(
-                    "사람이 다시 판단할 부분",
-                    key="d6_human_check",
-                    height=120,
-                    placeholder="예: 실제 중요한 판단은 사람의 검토와 다른 자료 확인이 함께 필요하다.",
-                )
 
     with subtabs[3]:
             st.markdown(pretty_title("4. 최종 프롬프트 확인", "#e3f2fd", "#bbdefb"), unsafe_allow_html=True)
@@ -1579,11 +1497,8 @@ def run():
             )
 
             prompt_text = build_prompt_text(dataset)
-            presentation_summary = build_presentation_summary_text()
             st.code(prompt_text, language="markdown")
             render_canva_gallery_links(st.session_state.get("d6_class", CLASS_OPTIONS[0]))
-            st.markdown(pretty_title("모둠 발표용 3문장 요약", "#fff8e1", "#ffecb3"), unsafe_allow_html=True)
-            st.code(presentation_summary, language="markdown")
 
             if st.session_state.get("d6_group", "").strip():
                 pdf_bytes = create_prompt_pdf(st.session_state["d6_group"], dataset, prompt_text)
