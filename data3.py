@@ -665,7 +665,7 @@ def run():
             "#e3f2fd",
             "#bbdefb",
         )
-        st.markdown(pretty_title("문제제기", "#e3f2fd", "#bbdefb"), unsafe_allow_html=True)
+        st.markdown(pretty_title("❔문제제기: AI는 얼굴을 어떤 정보로 구별할까?", "#e3f2fd", "#bbdefb"), unsafe_allow_html=True)
         st.markdown(
             "휴대폰 **얼굴 인식**은 사람의 얼굴을 읽어 휴대폰 소유자와 같은 사람인지 구별합니다. "
             "그런데 **AI는 얼굴을 볼 때 무엇을 정보로 삼고 있을까요?**"

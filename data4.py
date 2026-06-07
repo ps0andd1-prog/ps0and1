@@ -1118,7 +1118,7 @@ def run():
             "#bbdefb",
         )
 
-        st.markdown(pretty_title("1. 문제제기: 인공지능은 어떻게 학습할까", "#e3f2fd", "#bbdefb"), unsafe_allow_html=True)
+        st.markdown(pretty_title("❔ 문제제기: AI는 왜 오차를 줄이려고 할까?", "#e3f2fd", "#bbdefb"), unsafe_allow_html=True)
         st.markdown(
             "아래 영상은 OpenAI의 AI들이 숨바꼭질 게임을 반복하며 **더 나은 행동**을 찾아가는 예시입니다. "
             "처음부터 완벽하게 행동하는 것이 아니라, **결과를 보며 계속 고쳐 간다는 점**에 주목해 보세요."

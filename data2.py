@@ -385,7 +385,7 @@ def run():
             "#bbdefb",
         )
         
-        st.markdown(pretty_title("❔ 문제 제기: 드론 비행 시뮬레이터", "#e3f2fd", "#bbdefb"), unsafe_allow_html=True)
+        st.markdown(pretty_title("❔ 문제 제기: 드론의 비행 궤적과 지면의 관계를 수학적으로 어떻게 표현할 수 있을까?", "#e3f2fd", "#bbdefb"), unsafe_allow_html=True)
         st.write("당신은 자율주행 드론 비행 시스템의 개발자입니다. 드론의 고도 비행 궤적은 이차함수 $y = ax^2 + bx + c$ 의 포물선을 그리며 움직입니다. 여기서 **지면은 x축 ($y = 0$)**을 의미합니다.")
         st.info("""💡 **지면(x축)과 드론 궤적의 3가지 시나리오:**
 1. 드론이 지면에 두 번 부딪히며 추락한다. (서로 다른 두 점에서 만남)
@@ -496,7 +496,7 @@ if num > 0:
 elif
     
 """
-        code_block("q1", "조건문 기초 (문제 1)", starter_q1, prefix="d2_", height=230)
+        code_block("q1", "조건문 기초", starter_q1, prefix="d2_", height=230)
         
 
     # ------------------------------------------
@@ -632,7 +632,7 @@ else:
 # 4. 그래프 출력
 draw_graph(a, b, c)
 """
-        code_block("q3", "드론 충돌 시뮬레이터 (문제 2)", starter_q3, prefix="d2_", height=380)
+        code_block("q3", "드론 충돌 시뮬레이터", starter_q3, prefix="d2_", height=380)
 
     # ------------------------------------------
     # 탭 4: 적용 및 비판적 성찰 [응용적 수학화 1]

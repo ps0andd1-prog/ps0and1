@@ -1,3 +1,4 @@
+import csv
 import datetime
 import os
 import tempfile
@@ -422,6 +423,29 @@ def render_value_cards(items, columns=1):
                 st.empty()
 
 
+def render_summary_table(rows):
+    summary_df = pd.DataFrame(
+        [
+            {
+                "구분": row.get("label", ""),
+                "결과": row.get("value", ""),
+                "설명": row.get("note", ""),
+            }
+            for row in rows
+        ]
+    )
+    st.dataframe(
+        summary_df,
+        use_container_width=True,
+        hide_index=True,
+        column_config={
+            "구분": st.column_config.TextColumn("구분", width="medium"),
+            "결과": st.column_config.TextColumn("결과", width="medium"),
+            "설명": st.column_config.TextColumn("설명", width="large"),
+        },
+    )
+
+
 def format_value(value):
     num = float(value)
     if abs(num - round(num)) < 1e-9:
@@ -440,6 +464,22 @@ def selected_ml_name(degree):
     return "직선 회귀" if int(degree) == 1 else "2차 회귀"
 
 
+def selected_ml_display_name(degree):
+    return f"{int(degree)}차 머신러닝"
+
+
+def selected_ml_view_label(degree):
+    return f"{selected_ml_display_name(degree)} 보기"
+
+
+def display_model_name(model_name):
+    if model_name == "직선 회귀":
+        return "1차 머신러닝"
+    if model_name == "2차 회귀":
+        return "2차 머신러닝"
+    return model_name
+
+
 def selected_ml_latex(model_results, degree):
     return model_results["line_latex"] if int(degree) == 1 else model_results["quad_latex"]
 
@@ -448,6 +488,7 @@ def build_selected_comparison_df(model_results, degree):
     ml_name = selected_ml_name(degree)
     metric_df = model_results["metrics_df"].copy()
     filtered = metric_df[metric_df["모델"].isin([ml_name, "딥러닝"])].reset_index(drop=True)
+    filtered["모델"] = filtered["모델"].map(display_model_name)
     return filtered
 
 
@@ -467,7 +508,7 @@ def make_selected_model_compare_figure(dataset, split, model_results, degree):
     pred_map = predict_models(model_results, x_line)
     ax.scatter(split["x_obs"], split["y_obs"], s=70, color="#1976d2", edgecolors="white", linewidths=1.8, label="입력 데이터")
     ml_color = "#ff9800" if ml_name == "직선 회귀" else "#fb8c00"
-    ax.plot(x_line, pred_map[ml_name], color=ml_color, linewidth=2.6, linestyle="--", label=ml_name)
+    ax.plot(x_line, pred_map[ml_name], color=ml_color, linewidth=2.6, linestyle="--", label=display_model_name(ml_name))
     ax.plot(x_line, pred_map["딥러닝"], color="#43a047", linewidth=2.6, label="딥러닝")
     ax.axvline(split["x_hidden"], color="#90a4ae", linestyle="--", linewidth=1.2)
     ax.set_title(f"{dataset['x_label']}과 {dataset['y_label']}의 관계와 AI 예측")
@@ -503,8 +544,9 @@ def make_selected_prediction_figure(
     ml_pred = float(model_preds[ml_name][0])
     dl_pred = float(model_preds["딥러닝"][0])
     if show_ml:
-        ax.plot(x_line, pred_map[ml_name], color=ml_color, linewidth=2.4, linestyle="--", label=ml_name)
-        ax.scatter([x_hidden], [ml_pred], color="#d32f2f", edgecolors="black", s=110, marker="o", zorder=5, label=f"{ml_name} 예측")
+        ml_display_name = display_model_name(ml_name)
+        ax.plot(x_line, pred_map[ml_name], color=ml_color, linewidth=2.4, linestyle="--", label=ml_display_name)
+        ax.scatter([x_hidden], [ml_pred], color="#d32f2f", edgecolors="black", s=110, marker="o", zorder=5, label=f"{ml_display_name} 예측")
     if show_dl:
         ax.plot(x_line, pred_map["딥러닝"], color="#43a047", linewidth=2.4, label="딥러닝")
         ax.scatter([x_hidden], [dl_pred], color="#f06292", edgecolors="black", s=120, marker="X", zorder=5, label="딥러닝 예측")
@@ -545,6 +587,86 @@ def parse_direct_values(raw_text, label):
         except ValueError as exc:
             raise ValueError(f"입력 오류: {label} 자료에는 숫자만 입력해 주세요. 확인할 값: {token}") from exc
     return values
+
+
+def format_direct_values(values):
+    return ", ".join(f"{value:g}" for value in values)
+
+
+def parse_direct_number_cell(raw_value, row_number, column_label):
+    token = str(raw_value).strip().strip('"').replace("\u00a0", "")
+    if not token:
+        raise ValueError(f"{row_number}행 {column_label}열이 비어 있습니다.")
+    try:
+        return float(token.replace(",", ""))
+    except ValueError as exc:
+        raise ValueError(f"{row_number}행 {column_label}열에는 숫자만 입력해 주세요. 확인할 값: {token}") from exc
+
+
+def can_parse_direct_number(raw_value):
+    token = str(raw_value).strip().strip('"').replace("\u00a0", "")
+    if not token:
+        return False
+    try:
+        float(token.replace(",", ""))
+        return True
+    except ValueError:
+        return False
+
+
+def split_direct_table_row(line):
+    if "\t" in line:
+        return [cell.strip() for cell in line.split("\t")]
+    return next(csv.reader([line], skipinitialspace=True))
+
+
+def parse_direct_table(raw_text):
+    x_values = []
+    y_values = []
+    skipped_header = False
+    for row_number, line in enumerate(str(raw_text).splitlines(), start=1):
+        if not line.strip():
+            continue
+        cells = split_direct_table_row(line)
+        if len(cells) < 2:
+            raise ValueError(f"{row_number}행에는 x와 y 두 열이 필요합니다.")
+        try:
+            x_value = parse_direct_number_cell(cells[0], row_number, "x")
+            y_value = parse_direct_number_cell(cells[1], row_number, "y")
+        except ValueError:
+            if (
+                not x_values
+                and not y_values
+                and not skipped_header
+                and not can_parse_direct_number(cells[0])
+                and not can_parse_direct_number(cells[1])
+            ):
+                skipped_header = True
+                continue
+            raise
+        x_values.append(x_value)
+        y_values.append(y_value)
+    if len(x_values) < 4:
+        raise ValueError("분석하려면 x와 y 자료를 각각 4개 이상 붙여넣어 주세요.")
+    return x_values, y_values
+
+
+def apply_direct_excel_paste():
+    raw_text = st.session_state.get("d5_direct_excel_paste", "")
+    if not str(raw_text).strip():
+        st.session_state["d5_direct_paste_status"] = ""
+        st.session_state["d5_direct_paste_error"] = ""
+        return
+    try:
+        x_values, y_values = parse_direct_table(raw_text)
+    except ValueError as exc:
+        st.session_state["d5_direct_paste_status"] = ""
+        st.session_state["d5_direct_paste_error"] = f"엑셀 붙여넣기 오류: {exc}"
+        return
+    st.session_state["d5_direct_x_values"] = format_direct_values(x_values)
+    st.session_state["d5_direct_y_values"] = format_direct_values(y_values)
+    st.session_state["d5_direct_paste_status"] = f"엑셀 표에서 {len(x_values)}쌍의 x, y 자료를 자동 입력했습니다."
+    st.session_state["d5_direct_paste_error"] = ""
 
 
 def make_dataset(name, info, x_column, y_column):
@@ -902,7 +1024,7 @@ def make_model_compare_figure(dataset, split, model_results):
         "딥러닝": "#d81b60",
     }
     for name, preds in pred_map.items():
-        ax.plot(x_line, preds, color=colors[name], linewidth=2.5, label=name)
+        ax.plot(x_line, preds, color=colors[name], linewidth=2.5, label=display_model_name(name))
     ax.axvline(split["x_hidden"], color="#90a4ae", linestyle="--", linewidth=1.2)
     ax.set_title("세 모델의 예측 곡선 비교")
     ax.set_xlabel(f"{dataset['x_label']} ({dataset['x_unit']})")
@@ -1023,8 +1145,8 @@ def make_prediction_figure(dataset, split, model_results, student_guess=None, re
     x_line = prediction_line_x(split, 220)
     pred_map = predict_models(model_results, x_line)
     ax.scatter(split["x_obs"], split["y_obs"], s=70, color="#263238", label="관찰 데이터")
-    ax.plot(x_line, pred_map["직선 회귀"], color="#1e88e5", linewidth=2.0, alpha=0.9, label="직선 회귀")
-    ax.plot(x_line, pred_map["2차 회귀"], color="#fb8c00", linewidth=2.0, alpha=0.9, label="2차 회귀")
+    ax.plot(x_line, pred_map["직선 회귀"], color="#1e88e5", linewidth=2.0, alpha=0.9, label="1차 머신러닝")
+    ax.plot(x_line, pred_map["2차 회귀"], color="#fb8c00", linewidth=2.0, alpha=0.9, label="2차 머신러닝")
     ax.plot(x_line, pred_map["딥러닝"], color="#d81b60", linewidth=2.3, alpha=0.9, label="딥러닝")
 
     x_hidden = split["x_hidden"]
@@ -1079,8 +1201,8 @@ def build_mission_rows(dataset, split, use_scale, model_results, student_guess, 
         ),
         (
             "문제 3. 모델 비교하기",
-            f"직선 회귀 예측값은 {line_pred:.2f}, 2차 회귀 예측값은 {quad_pred:.2f}, 딥러닝 예측값은 {dl_pred:.2f}이다. "
-            f"손실 기준으로 가장 잘 맞는 모델은 {best_row['모델']}이다.",
+            f"1차 머신러닝 예측값은 {line_pred:.2f}, 2차 머신러닝 예측값은 {quad_pred:.2f}, 딥러닝 예측값은 {dl_pred:.2f}이다. "
+            f"손실 기준으로 가장 잘 맞는 모델은 {display_model_name(best_row['모델'])}이다.",
         ),
         (
             "문제 4. 예측 결과 해석하기",
@@ -1140,11 +1262,12 @@ def create_portfolio_pdf(
     hidden_preds = predict_models(model_results, np.array([prediction_x], dtype=float))
     ml_pred = float(hidden_preds[active_ml_name][0])
     dl_pred = float(hidden_preds["딥러닝"][0])
-    best_model = model_results["metrics_df"].loc[model_results["metrics_df"]["손실"].idxmin(), "모델"]
-    auto_analysis_text, auto_interpretation_text = build_auto_report_texts(
+    active_ml_display_name = selected_ml_display_name(ml_degree)
+    best_model = display_model_name(model_results["metrics_df"].loc[model_results["metrics_df"]["손실"].idxmin(), "모델"])
+    auto_analysis_text, _ = build_auto_report_texts(
         dataset,
         model_results,
-        active_ml_name,
+        active_ml_display_name,
         prediction_x,
         ml_pred,
         dl_pred,
@@ -1153,13 +1276,13 @@ def create_portfolio_pdf(
         research_motivation,
     )
     analysis_text = clean_text(analysis_text, auto_analysis_text)
-    interpretation_text = clean_text(interpretation_text, auto_interpretation_text)
+    interpretation_text = clean_text(interpretation_text, "학생이 직접 작성하지 않았습니다.")
 
     summary_kvs = [
         ("활동 데이터", dataset["name"]),
         ("변수 관계", f"{dataset['x_label']} -> {dataset['y_label']}"),
         ("입력값", f"{prediction_x:.3f}"),
-        ("머신러닝", active_ml_name),
+        ("머신러닝", active_ml_display_name),
         ("머신러닝 예측", f"{ml_pred:.3f}"),
         ("딥러닝 예측", f"{dl_pred:.3f}"),
         ("가장 잘 맞은 모델", best_model),
@@ -1210,6 +1333,9 @@ def run():
         st.session_state["d5_dataset"] = FIELD_DATASETS[st.session_state["d5_field"]][0]
     st.session_state.setdefault("d5_direct_x_values", DIRECT_DEFAULT_X_VALUES)
     st.session_state.setdefault("d5_direct_y_values", DIRECT_DEFAULT_Y_VALUES)
+    st.session_state.setdefault("d5_direct_excel_paste", "")
+    st.session_state.setdefault("d5_direct_paste_status", "")
+    st.session_state.setdefault("d5_direct_paste_error", "")
     st.session_state.setdefault("d5_deep_question", "")
     st.session_state.setdefault("d5_research_motivation", "")
     st.session_state.setdefault("d5_ml_degree", 1)
@@ -1221,7 +1347,7 @@ def run():
         st.session_state["d5_hidden1"] = 8
     if st.session_state.get("d5_hidden2", 4) < 2 or st.session_state.get("d5_hidden2", 4) > 8:
         st.session_state["d5_hidden2"] = 4
-    st.session_state.setdefault("d5_epochs", 30)
+    st.session_state.setdefault("d5_epochs", 15)
     if st.session_state.get("d5_epochs", 30) > 30:
         st.session_state["d5_epochs"] = 30
 
@@ -1263,7 +1389,25 @@ def run():
             if st.session_state["d5_field"] == DIRECT_FIELD:
                 st.session_state["d5_dataset"] = DIRECT_DATASET_NAME
                 with dataset_col:
-                    st.info("쉼표(,)로 구분한 x 자료와 y 자료를 직접 입력해 분석합니다.")
+                    st.info("엑셀에서 x, y 두 열을 복사해 붙여넣거나, 쉼표(,)로 구분한 자료를 직접 입력해 분석합니다.")
+                st.markdown(
+                    "<div style='background:#f1f8e9; border-left:6px solid #43a047; "
+                    "border-radius:8px; padding:8px 12px; font-weight:800; color:#1b5e20; "
+                    "margin-bottom:6px;'>엑셀 표 붙여넣기</div>",
+                    unsafe_allow_html=True,
+                )
+                st.text_area(
+                    "엑셀 표 붙여넣기",
+                    key="d5_direct_excel_paste",
+                    height=92,
+                    label_visibility="collapsed",
+                    placeholder="엑셀에서 x, y 두 열을 복사한 뒤 여기에 붙여넣으세요.\n예:\n1\t2\n2\t4\n3\t6\n4\t8",
+                    on_change=apply_direct_excel_paste,
+                )
+                if st.session_state.get("d5_direct_paste_status"):
+                    st.success(st.session_state["d5_direct_paste_status"])
+                if st.session_state.get("d5_direct_paste_error"):
+                    st.error(st.session_state["d5_direct_paste_error"])
                 x_col, y_col = st.columns(2)
                 with x_col:
                     st.markdown(
@@ -1293,7 +1437,7 @@ def run():
                         label_visibility="collapsed",
                         placeholder="예: 2, 4, 6, 8, 10",
                     )
-                st.caption("직접 자료 수집에서는 독립 변수 x와 종속 변수 y를 쉼표(,)로 구분해 입력합니다. x와 y의 자료 개수가 같아야 분석할 수 있습니다.")
+                st.caption("엑셀 붙여넣기는 첫 번째 열을 x, 두 번째 열을 y로 자동 입력합니다. 제목 행이 있으면 자동으로 건너뜁니다. x와 y의 자료 개수가 같아야 분석할 수 있습니다.")
             else:
                 field_dataset_names = FIELD_DATASETS[st.session_state["d5_field"]]
                 if st.session_state.get("d5_dataset") not in field_dataset_names:
@@ -1463,110 +1607,103 @@ def run():
             "#fff8e1",
             "#ffecb3",
         )
-        st.markdown(pretty_title("자료를 행렬로 보기", "#e3f2fd", "#bbdefb"), unsafe_allow_html=True)
-        left, right = st.columns([1.3, 0.7])
-        with left:
-            matrix_display = matrix_df.reset_index().rename(columns={"index": "행"})
-            show_pretty_table(matrix_display, height=360)
-            st.caption("독립 변수나 종속 변수를 다시 선택하면 표의 값도 함께 바뀝니다.")
-        with right:
-            render_value_cards(
-                [
-                    {
-                        "title": "행렬 크기",
-                        "value": f"{selected_matrix.shape[0]}×{selected_matrix.shape[1]}",
-                        "detail": "열1은 독립 변수, 열2는 종속 변수로 구성된 데이터 행렬입니다.",
-                        "bg": "#fff8e1",
-                        "border": "#ffcc80",
-                    },
-                    {
-                        "title": "상관계수",
-                        "value": "-1부터 1 사이",
-                        "detail": "두 변수가 함께 변하는 정도를 나타내는 숫자입니다. 1에 가까울수록 같은 방향, -1에 가까울수록 반대 방향입니다.",
-                        "bg": "#f1f8e9",
-                        "border": "#aed581",
-                    },
-                ],
-                columns=1,
+        with st.container(border=True):
+            st.markdown(
+                "<div style='font-size:1.05rem; font-weight:800; color:#1565c0; "
+                "margin-bottom:6px;'>3️⃣ 자료를 행렬로 보기</div>",
+                unsafe_allow_html=True,
             )
-
-        st.markdown("##### 자료 요약 정보")
-        render_value_cards(
-            [
-                {
-                    "title": "상관계수",
-                    "value": f"{corr_value:.3f}",
-                    "detail": f"{corr_direction}으로 함께 변하는 {corr_strength}입니다.",
-                    "bg": "#fff8e1",
-                    "border": "#ffb300",
-                    "min_height": "132px",
-                },
-                {
-                    "title": dataset["x_label"],
-                    "value": f"평균 {first_mean:.3f}",
-                    "detail": f"자료 값 범위: {first_min:.3f} ~ {first_max:.3f}",
-                    "bg": "#e3f2fd",
-                    "border": "#64b5f6",
-                    "min_height": "132px",
-                },
-                {
-                    "title": dataset["y_label"],
-                    "value": f"평균 {second_mean:.3f}",
-                    "detail": f"자료 값 범위: {second_min:.3f} ~ {second_max:.3f}",
-                    "bg": "#fce4ec",
-                    "border": "#f48fb1",
-                    "min_height": "132px",
-                },
-            ],
-            columns=3,
-        )
+            left, right = st.columns([1.3, 0.7])
+            with left:
+                matrix_display = matrix_df.reset_index().rename(columns={"index": "행"})
+                show_pretty_table(matrix_display, height=360)
+                st.caption("독립 변수나 종속 변수를 다시 선택하면 표의 값도 함께 바뀝니다.")
+            with right:
+                render_value_cards(
+                    [
+                        {
+                            "title": "상관계수",
+                            "value": f"{corr_value:.3f}",
+                            "detail": f"{corr_direction}으로 함께 변하는 {corr_strength}입니다.",
+                            "bg": "#fff8e1",
+                            "border": "#ffb300",
+                            "min_height": "132px",
+                        },
+                        {
+                            "title": dataset["x_label"],
+                            "value": f"평균 {first_mean:.3f}",
+                            "detail": f"자료 값 범위: {first_min:.3f} ~ {first_max:.3f}",
+                            "bg": "#e3f2fd",
+                            "border": "#64b5f6",
+                            "min_height": "132px",
+                        },
+                        {
+                            "title": dataset["y_label"],
+                            "value": f"평균 {second_mean:.3f}",
+                            "detail": f"자료 값 범위: {second_min:.3f} ~ {second_max:.3f}",
+                            "bg": "#fce4ec",
+                            "border": "#f48fb1",
+                            "min_height": "132px",
+                        },
+                    ],
+                    columns=1,
+                )
         st.info("AI는 이런 숫자 배열(행렬)에서 관계를 읽고, 그 안의 규칙을 바탕으로 예측 모델을 만듭니다.")
 
-        st.markdown(pretty_title("전처리로 이상치 제거하기", "#f1f8e9", "#dcedc8"), unsafe_allow_html=True)
-        preprocess_col, outlier_col = st.columns(2)
-        with preprocess_col:
-            st.info(
-                "**전처리란?**\n\n"
-                "AI가 데이터를 잘 읽도록 분석 전에 자료를 정리하는 과정입니다."
+        with st.container(border=True):
+            st.markdown(
+                "<div style='font-size:1.05rem; font-weight:800; color:#2e7d32; "
+                "margin-bottom:6px;'>4️⃣ 자료 정리하기(전처리로 이상치 제거하기)</div>",
+                unsafe_allow_html=True,
             )
-        with outlier_col:
-            st.warning(
-                "**이상치 처리란?**\n\n"
-                "자료 흐름에서 너무 멀리 떨어진 값을 찾아 확인하는 과정입니다."
-            )
-        st.caption("여기서는 IQR 기준으로 이상치 후보를 찾고, 제거하기 전과 후의 그래프 흐름을 비교합니다.")
-        st.pyplot(preprocess_fig, use_container_width=True)
+            preprocess_col, outlier_col = st.columns(2)
+            with preprocess_col:
+                st.info(
+                    "**전처리란?**\n\n"
+                    "AI가 데이터를 잘 읽도록 분석 전에 자료를 정리하는 과정입니다."
+                )
+            with outlier_col:
+                st.warning(
+                    "**이상치 처리란?**\n\n"
+                    "자료 흐름에서 너무 멀리 떨어진 값을 찾아 확인하는 과정입니다."
+                )
+            st.caption("여기서는 IQR 기준으로 이상치 후보를 찾고, 제거하기 전과 후의 그래프 흐름을 비교합니다.")
+            st.pyplot(preprocess_fig, use_container_width=True)
 
     with tabs[2]:
         stage_intro(
             "머신러닝 vs 딥러닝",
-            "선택한 데이터에 대해 1차/2차 회귀와 딥러닝을 함께 실험하며 어떤 모델이 더 잘 맞는지 비교하는 단계입니다.",
+            "선택한 데이터에 대해 1차/2차 머신러닝과 딥러닝을 함께 실험하며 어떤 모델이 더 잘 맞는지 비교하는 단계입니다.",
             "머신러닝과 딥러닝은 같은 데이터를 보고 어떤 예측값을 만들며, 두 결과는 어떻게 다를까?",
             "#e8f5e9",
             "#c8e6c9",
         )
-        st.markdown(pretty_title("AI 예측 모델 실험하기", "#e8f5e9", "#c8e6c9"), unsafe_allow_html=True)
-        ml_col, dl_col = st.columns(2)
-        with ml_col:
-            st.markdown(pretty_title("머신러닝 회귀 분석", "#e3f2fd", "#bbdefb"), unsafe_allow_html=True)
-            st.info("앞에서 본 행렬 데이터가 이제 회귀와 딥러닝의 입력이 됩니다.")
-            st.info("머신러닝은 자료를 보고 스스로 함수식을 찾아 예측합니다. 1차와 2차 함수까지만 분석합니다.")
-            st.selectbox(
-                "머신러닝 모델 선택",
-                options=[1, 2],
-                format_func=lambda degree: "직선(1차)" if int(degree) == 1 else "곡선(2차)",
-                key="d5_ml_degree",
+        with st.container(border=True):
+            st.markdown(
+                "<div style='font-size:1.05rem; font-weight:800; color:#2e7d32; "
+                "margin-bottom:6px;'>5️⃣ AI 모델 구성 및 학습</div>",
+                unsafe_allow_html=True,
             )
-        with dl_col:
-            st.markdown(pretty_title("딥러닝 모델", "#e3f2fd", "#bbdefb"), unsafe_allow_html=True)
-            st.info("딥러닝은 여러 층을 거치며 패턴을 읽습니다. data7.py처럼 실제 Keras 모델로 가볍게 학습하며, 학습할 때는 이상치 후보를 제거한 자료를 사용합니다.")
-            inner1, inner2, inner3 = st.columns(3)
-            with inner1:
-                st.slider("1층 뉴런 수", 4, 12, key="d5_hidden1")
-            with inner2:
-                st.slider("2층 뉴런 수", 2, 8, key="d5_hidden2")
-            with inner3:
-                st.slider("학습 횟수", 10, 30, step=5, key="d5_epochs")
+            ml_col, dl_col = st.columns(2)
+            with ml_col:
+                st.markdown(pretty_title("머신러닝 분석", "#e3f2fd", "#bbdefb"), unsafe_allow_html=True)
+                st.info("머신러닝은 자료를 보고 스스로 함수식을 찾아 예측합니다. 1차와 2차 함수까지만 분석합니다.")
+                st.selectbox(
+                    "머신러닝 모델 선택",
+                    options=[1, 2],
+                    format_func=lambda degree: "직선(1차)" if int(degree) == 1 else "곡선(2차)",
+                    key="d5_ml_degree",
+                )
+            with dl_col:
+                st.markdown(pretty_title("딥러닝 모델", "#e3f2fd", "#bbdefb"), unsafe_allow_html=True)
+                st.info("딥러닝은 여러 층을 거치며 패턴을 읽습니다. 뉴런 수는 AI가 생각할 때 쓰는 작은 계산 칸의 개수입니다. 학습 횟수는 같은 자료를 몇 번 반복해서 보며 연습할지 정하는 값입니다.")
+                inner1, inner2, inner3 = st.columns(3)
+                with inner1:
+                    st.slider("1층 뉴런 수", 4, 12, key="d5_hidden1")
+                with inner2:
+                    st.slider("2층 뉴런 수", 2, 8, key="d5_hidden2")
+                with inner3:
+                    st.slider("학습 횟수", 10, 30, step=5, key="d5_epochs")
 
         model_results = get_model_results(
             split["x_obs"],
@@ -1594,47 +1731,86 @@ def run():
         with dl_viz2:
             st.pyplot(make_training_loss_figure(model_results), use_container_width=True)
         active_ml_name = selected_ml_name(st.session_state["d5_ml_degree"])
-        comparison_df = build_selected_comparison_df(model_results, st.session_state["d5_ml_degree"])
-        compare_fig = make_selected_model_compare_figure(dataset, split, model_results, st.session_state["d5_ml_degree"])
-        model_cards = []
-        for _, row in comparison_df.iterrows():
-            model_cards.append(
-                {
-                    "title": str(row["모델"]),
-                    "value": f"손실 {float(row['손실']):.3f}",
-                    "detail": f"평균 오차 {float(row['평균 오차']):.3f} / 설명력 {float(row['설명력(R²)']):.3f}",
-                    "bg": "#f4f9ff" if str(row["모델"]) == active_ml_name else "#f1f8e9",
-                    "border": "#90caf9" if str(row["모델"]) == active_ml_name else "#aed581",
-                }
-            )
+        active_ml_display_name = selected_ml_display_name(st.session_state["d5_ml_degree"])
+        metrics_df = model_results["metrics_df"]
+        ml_loss = float(metrics_df.loc[metrics_df["모델"] == active_ml_name, "손실"].iloc[0])
+        dl_loss = float(metrics_df.loc[metrics_df["모델"] == "딥러닝", "손실"].iloc[0])
+        ml_formula_text = selected_ml_latex(model_results, st.session_state["d5_ml_degree"]).replace("{", "").replace("}", "")
+        dl_architecture = model_results["nn_model"]["architecture"]
 
         st.markdown(pretty_title("모델 비교 결과 보기", "#fff8e1", "#ffecb3"), unsafe_allow_html=True)
-        st.info("1차 회귀는 직선 관계를, 2차 회귀는 곡선 관계를 설명합니다. 데이터의 증가·감소 경향이 일정하지 않을 때는 곡선 모델이 더 적합할 수 있습니다.")
-        st.pyplot(compare_fig, use_container_width=True)
-        render_value_cards(model_cards, columns=len(model_cards))
-        formula_col, structure_col = st.columns([1.15, 0.85])
+        formula_col, structure_col = st.columns(2)
         with formula_col:
-            st.markdown("##### 머신러닝 식")
-            st.latex(selected_ml_latex(model_results, st.session_state["d5_ml_degree"]))
+            st.markdown(
+                f"""
+                <div style='
+                    min-height:238px;
+                    display:flex;
+                    flex-direction:column;
+                    justify-content:space-between;
+                    background:#f4f9ff;
+                    border:1px solid #90caf9;
+                    border-left:6px solid #1976d2;
+                    border-radius:12px;
+                    padding:16px 18px;
+                '>
+                    <div>
+                        <div style='font-size:0.92rem; color:#1565c0; font-weight:800; margin-bottom:8px;'>머신러닝</div>
+                        <div style='font-size:1.25rem; color:#263238; font-weight:900; line-height:1.35;'>{ml_formula_text}</div>
+                        <div style='font-size:0.84rem; color:#546e7a; margin-top:8px;'>현재 선택한 모델: {active_ml_display_name}</div>
+                    </div>
+                    <div style='background:#ffffff; border:1px solid #bbdefb; border-radius:10px; padding:10px 12px; margin-top:14px;'>
+                        <div style='font-size:0.86rem; color:#1565c0; font-weight:800; margin-bottom:4px;'>손실</div>
+                        <div style='font-size:1.45rem; color:#263238; font-weight:900;'>{ml_loss:.3f}</div>
+                        <div style='font-size:0.82rem; color:#546e7a; margin-top:4px;'>작을수록 실제 자료에 더 가깝습니다.</div>
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
         with structure_col:
-            st.markdown("##### 딥러닝 구조")
-            st.write(f"현재 구조: `{model_results['nn_model']['architecture']}`")
-            st.caption("은닉층은 데이터의 복잡한 패턴을 찾는 중간 사고 단계입니다.")
+            st.markdown(
+                f"""
+                <div style='
+                    min-height:238px;
+                    display:flex;
+                    flex-direction:column;
+                    justify-content:space-between;
+                    background:#fff8e1;
+                    border:1px solid #ffcc80;
+                    border-left:6px solid #fb8c00;
+                    border-radius:12px;
+                    padding:16px 18px;
+                '>
+                    <div>
+                        <div style='font-size:0.92rem; color:#ef6c00; font-weight:800; margin-bottom:8px;'>딥러닝</div>
+                        <div style='font-size:1.85rem; color:#263238; font-weight:900; line-height:1.2;'>{dl_architecture}</div>
+                        <div style='font-size:0.84rem; color:#546e7a; margin-top:8px;'>입력-1층-2층-출력 순서입니다.</div>
+                    </div>
+                    <div style='background:#ffffff; border:1px solid #ffcc80; border-radius:10px; padding:10px 12px; margin-top:14px;'>
+                        <div style='font-size:0.86rem; color:#ef6c00; font-weight:800; margin-bottom:4px;'>손실</div>
+                        <div style='font-size:1.45rem; color:#263238; font-weight:900;'>{dl_loss:.3f}</div>
+                        <div style='font-size:0.82rem; color:#546e7a; margin-top:4px;'>작을수록 실제 자료에 더 가깝습니다.</div>
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
         st.markdown(pretty_title("실제값과 예측값 오차 비교", "#ede7f6", "#d1c4e9"), unsafe_allow_html=True)
-        actual_label = f"선택한 종속변수({dataset['y_label']})의 실제값"
-        ml_error_col = f"{active_ml_name} 오차"
+        actual_label = f"{dataset['y_label']} 실제값"
+        ml_error_col = "머신러닝 오차"
         dl_error_col = "딥러닝 오차"
         error_df = pd.DataFrame(
             {
                 dataset["x_label"]: np.round(split["x_obs"], 3),
                 actual_label: np.round(split["y_obs"], 3),
-                f"{active_ml_name} 예측값": np.round(model_results["train_preds"][active_ml_name], 3),
+                "머신러닝 예측값": np.round(model_results["train_preds"][active_ml_name], 3),
                 "딥러닝 예측값": np.round(model_results["train_preds"]["딥러닝"], 3),
             }
         )
         error_df[ml_error_col] = np.round(np.abs(split["y_obs"] - model_results["train_preds"][active_ml_name]), 3)
         error_df[dl_error_col] = np.round(np.abs(split["y_obs"] - model_results["train_preds"]["딥러닝"]), 3)
-        st.caption("파란색은 직선/2차 회귀 모델의 오차, 분홍색은 딥러닝 오차입니다. 색이 진할수록 오차가 더 큽니다.")
+        st.caption("파란색은 1차/2차 머신러닝 모델의 오차, 분홍색은 딥러닝 오차입니다. 색이 진할수록 오차가 더 큽니다.")
         equal_width_columns = {
             column: st.column_config.NumberColumn(width="small")
             for column in error_df.columns
@@ -1664,9 +1840,10 @@ def run():
             st.session_state["d5_epochs"],
         )
         active_ml_name = selected_ml_name(st.session_state["d5_ml_degree"])
+        active_ml_display_name = selected_ml_display_name(st.session_state["d5_ml_degree"])
         visibility_col1, visibility_col2 = st.columns(2)
         with visibility_col1:
-            st.checkbox(f"{active_ml_name} 보기", key="d5_show_prediction_ml")
+            st.checkbox(selected_ml_view_label(st.session_state["d5_ml_degree"]), key="d5_show_prediction_ml")
         with visibility_col2:
             st.checkbox("딥러닝 보기", key="d5_show_prediction_dl")
         prediction_min_x = float(np.min(dataset["x"]))
@@ -1691,73 +1868,78 @@ def run():
 
         st.pyplot(prediction_fig, use_container_width=True)
 
-        action_col, result_col = st.columns(2)
-        with action_col:
-            st.markdown(pretty_title("예측 입력값", "#fce4ec", "#f8bbd0"), unsafe_allow_html=True)
+        with st.container(border=True):
             st.markdown(
-                """
-                <style>
-                div[data-testid="stNumberInput"] {
-                    border: 3px solid #d81b60;
-                    border-radius: 14px;
-                    background: #fff5f8;
-                    padding: 12px 14px 14px 14px;
-                    box-shadow: 0 8px 18px rgba(216, 27, 96, 0.14);
-                }
-                div[data-testid="stNumberInput"] label p {
-                    color: #ad1457;
-                    font-size: 1.05rem;
-                    font-weight: 800;
-                }
-                div[data-testid="stNumberInput"] input {
-                    background: #ffffff;
-                    color: #263238;
-                    font-size: 1.18rem;
-                    font-weight: 800;
-                }
-                </style>
-                """,
+                "<div style='font-size:1.05rem; font-weight:800; color:#6a1b9a; "
+                "margin-bottom:6px;'>6️⃣ AI 예측</div>",
                 unsafe_allow_html=True,
             )
-            st.info(
-                f"{dataset['x_label']} 값을 직접 입력하면, 모델이 {dataset['y_label']} 값을 예측합니다."
-            )
-            prediction_x = st.number_input(
-                f"예측할 {dataset['x_label']} 입력",
-                key="d5_prediction_x",
-                min_value=prediction_min_x,
-                max_value=prediction_max_x,
-                value=prediction_x,
-                format="%.3f",
-            )
-            st.caption(
-                f"기본값은 선택한 데이터의 중간값(중앙값)이며, 입력 범위는 "
-                f"{prediction_min_x:.3f} ~ {prediction_max_x:.3f}입니다."
-            )
-        with result_col:
-            st.markdown(pretty_title("머신러닝·딥러닝 예측값", "#e8f5e9", "#c8e6c9"), unsafe_allow_html=True)
-            render_value_cards(
-                [
-                    {
-                        "title": "딥러닝",
-                        "value": f"{dl_pred:.3f}",
-                        "detail": "딥러닝 모델이 입력값으로 계산한 예측 결과입니다.",
-                        "bg": "#f1f8e9",
-                        "border": "#aed581",
-                        "min_height": "128px",
-                    },
-                    {
-                        "title": active_ml_name,
-                        "value": f"{ml_pred:.3f}",
-                        "detail": "비교용 회귀 모델의 예측 결과입니다.",
-                        "bg": "#f4f9ff",
-                        "border": "#90caf9",
-                        "min_height": "128px",
-                    },
-                ],
-                columns=2,
-            )
-            st.info("이 영역은 입력값에 따른 모델의 예측값만 보여 줍니다. 실제값과 오차 비교는 표시하지 않습니다.")
+            action_col, result_col = st.columns(2)
+            with action_col:
+                st.markdown(pretty_title("예측 입력값", "#fce4ec", "#f8bbd0"), unsafe_allow_html=True)
+                st.markdown(
+                    """
+                    <style>
+                    div[data-testid="stNumberInput"] {
+                        border: 3px solid #d81b60;
+                        border-radius: 14px;
+                        background: #fff5f8;
+                        padding: 12px 14px 14px 14px;
+                        box-shadow: 0 8px 18px rgba(216, 27, 96, 0.14);
+                    }
+                    div[data-testid="stNumberInput"] label p {
+                        color: #ad1457;
+                        font-size: 1.05rem;
+                        font-weight: 800;
+                    }
+                    div[data-testid="stNumberInput"] input {
+                        background: #ffffff;
+                        color: #263238;
+                        font-size: 1.18rem;
+                        font-weight: 800;
+                    }
+                    </style>
+                    """,
+                    unsafe_allow_html=True,
+                )
+                st.info(
+                    f"{dataset['x_label']} 값을 직접 입력하면, 모델이 {dataset['y_label']} 값을 예측합니다."
+                )
+                prediction_x = st.number_input(
+                    f"예측할 {dataset['x_label']} 입력",
+                    key="d5_prediction_x",
+                    min_value=prediction_min_x,
+                    max_value=prediction_max_x,
+                    format="%.3f",
+                )
+                st.caption(
+                    f"기본값은 선택한 데이터의 중간값(중앙값)이며, 입력 범위는 "
+                    f"{prediction_min_x:.3f} ~ {prediction_max_x:.3f}입니다."
+                )
+            with result_col:
+                st.markdown(pretty_title("머신러닝·딥러닝 예측값", "#e8f5e9", "#c8e6c9"), unsafe_allow_html=True)
+                render_value_cards(
+                    [
+                        {
+                            "title": "머신러닝",
+                            "value": f"{ml_pred:.3f}",
+                            "detail": f"{active_ml_display_name} 모델이 입력값으로 계산한 예측 결과입니다.",
+                            "bg": "#f4f9ff",
+                            "border": "#90caf9",
+                            "min_height": "128px",
+                        },
+                        {
+                            "title": "딥러닝",
+                            "value": f"{dl_pred:.3f}",
+                            "detail": "딥러닝 모델이 입력값으로 계산한 예측 결과입니다.",
+                            "bg": "#f1f8e9",
+                            "border": "#aed581",
+                            "min_height": "128px",
+                        },
+                    ],
+                    columns=2,
+                )
+                st.info("이 영역은 입력값에 따른 모델의 예측값만 보여 줍니다.")
 
     with tabs[4]:
         stage_intro(
@@ -1776,6 +1958,7 @@ def run():
             st.session_state["d5_epochs"],
         )
         active_ml_name = selected_ml_name(st.session_state["d5_ml_degree"])
+        active_ml_display_name = selected_ml_display_name(st.session_state["d5_ml_degree"])
         report_prediction_x = float(st.session_state.get("d5_prediction_x", default_prediction_x))
         hidden_preds = predict_models(model_results, np.array([report_prediction_x], dtype=float))
         ml_pred = float(hidden_preds[active_ml_name][0])
@@ -1783,94 +1966,82 @@ def run():
         summary_metric_df = build_selected_comparison_df(model_results, st.session_state["d5_ml_degree"])
         best_model = summary_metric_df.loc[summary_metric_df["손실"].idxmin(), "모델"]
         best_loss = float(summary_metric_df.loc[summary_metric_df["손실"].idxmin(), "손실"])
-        summary_card_height = "176px"
         scale_text = "정규화 적용" if st.session_state["d5_use_scale"] else "정규화 미적용"
         deep_question = clean_text(st.session_state.get("d5_deep_question", ""), "아직 작성하지 않았습니다.")
         research_motivation = clean_text(st.session_state.get("d5_research_motivation", ""), "아직 작성하지 않았습니다.")
-
-        st.markdown(pretty_title("분석 결과 요약", "#e3f2fd", "#bbdefb"), unsafe_allow_html=True)
-        render_value_cards(
-            [
-                {
-                    "title": "탐구 설정",
-                    "value": dataset["name"],
-                    "detail": f"{dataset['x_label']} → {dataset['y_label']} 관계를 분석합니다.",
-                    "bg": "#f4f9ff",
-                    "border": "#90caf9",
-                    "min_height": summary_card_height,
-                },
-                {
-                    "title": "깊은 질문",
-                    "value": deep_question,
-                    "detail": "이번 분석으로 답해 보고 싶은 핵심 질문입니다.",
-                    "bg": "#f1f8e9",
-                    "border": "#aed581",
-                    "min_height": summary_card_height,
-                },
-                {
-                    "title": "탐구 동기",
-                    "value": research_motivation,
-                    "detail": "이 데이터를 분석하려는 이유를 정리한 내용입니다.",
-                    "bg": "#fff8e1",
-                    "border": "#ffcc80",
-                    "min_height": summary_card_height,
-                },
-                {
-                    "title": "입력값",
-                    "value": f"{dataset['x_label']} = {report_prediction_x:.3f}",
-                    "detail": "예측 및 시각화 탭에서 직접 입력한 값입니다.",
-                    "bg": "#f3e5f5",
-                    "border": "#ce93d8",
-                    "min_height": summary_card_height,
-                },
-                {
-                    "title": "예측값",
-                    "value": "",
-                    "inner_html": (
-                        "<div style='display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px; min-height:64px;'>"
-                        f"<div style='padding:10px; border-radius:10px; background:#ffffff; border:1px solid #90caf9; display:flex; flex-direction:column; justify-content:center;'>"
-                        f"<div style='font-size:0.78rem; color:#1565c0; font-weight:800;'>{active_ml_name}</div>"
-                        f"<div style='font-size:1.2rem; color:#263238; font-weight:900;'>{ml_pred:.3f}</div>"
-                        "</div>"
-                        "<div style='padding:10px; border-radius:10px; background:#ffffff; border:1px solid #b39ddb; display:flex; flex-direction:column; justify-content:center;'>"
-                        "<div style='font-size:0.78rem; color:#6a1b9a; font-weight:800;'>딥러닝</div>"
-                        f"<div style='font-size:1.2rem; color:#263238; font-weight:900;'>{dl_pred:.3f}</div>"
-                        "</div>"
-                        "</div>"
-                    ),
-                    "detail": f"입력값 {report_prediction_x:.3f} 기준입니다. 딥러닝: {model_results['nn_model']['architecture']} / {scale_text}",
-                    "bg": "#ede7f6",
-                    "border": "#b39ddb",
-                    "min_height": summary_card_height,
-                },
-                {
-                    "title": "모델 선택 기준",
-                    "value": best_model,
-                    "detail": f"학습 데이터 손실이 가장 작았습니다. 손실: {best_loss:.3f}",
-                    "bg": "#e8f5e9",
-                    "border": "#81c784",
-                    "min_height": summary_card_height,
-                },
-            ],
-            columns=3,
-        )
-
-        st.info(
-            "머신러닝과 딥러닝의 예측 결과를 비교한 뒤, 아래 보고서 작성 칸에 분석 결과와 해석을 정리해 보세요."
-        )
 
         st.markdown(pretty_title("모둠 정보 확인", "#f1f8e9", "#dcedc8"), unsafe_allow_html=True)
         group_name = st.session_state.get("d5_group", "")
         info_col, guide_col = st.columns([1.15, 1.0])
         with info_col:
-            st.markdown(f"**모둠명**: {group_name if group_name else '데이터 선택 탭에서 입력해 주세요.'}")
+            group_display = group_name if group_name else "데이터 선택 탭에서 입력해 주세요."
+            st.markdown(
+                f"""
+                <div style='
+                    background:#f4f9ff;
+                    border:1px solid #90caf9;
+                    border-left:6px solid #1976d2;
+                    border-radius:12px;
+                    padding:14px 16px;
+                    min-height:88px;
+                    display:flex;
+                    flex-direction:column;
+                    justify-content:center;
+                '>
+                    <div style='font-size:0.9rem; color:#1565c0; font-weight:800; margin-bottom:6px;'>모둠명</div>
+                    <div style='font-size:1.35rem; color:#263238; font-weight:900;'>{group_display}</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
         with guide_col:
             st.info("이 차시는 모둠당 하나의 앱으로 활동합니다. 모둠명을 확인한 뒤 아래 보고서를 작성하고 PDF를 저장하세요.")
 
-        auto_analysis, auto_interpretation = build_auto_report_texts(
+        st.markdown(pretty_title("분석 결과 요약", "#e3f2fd", "#bbdefb"), unsafe_allow_html=True)
+        render_summary_table(
+            [
+                {
+                    "label": "탐구 설정",
+                    "value": dataset["name"],
+                    "note": f"{dataset['x_label']} → {dataset['y_label']} 관계를 분석합니다.",
+                },
+                {
+                    "label": "깊은 질문",
+                    "value": deep_question,
+                    "note": "이번 분석으로 답해 보고 싶은 핵심 질문입니다.",
+                },
+                {
+                    "label": "탐구 동기",
+                    "value": research_motivation,
+                    "note": "이 데이터를 분석하려는 이유를 정리한 내용입니다.",
+                },
+                {
+                    "label": "입력값",
+                    "value": f"{dataset['x_label']} = {report_prediction_x:.3f}",
+                    "note": "예측 및 시각화 탭에서 직접 입력한 값입니다.",
+                },
+                {
+                    "label": "머신러닝 예측값",
+                    "value": f"{ml_pred:.3f}",
+                    "note": f"{active_ml_display_name} 모델이 입력값 {report_prediction_x:.3f}으로 계산한 예측 결과입니다.",
+                },
+                {
+                    "label": "딥러닝 예측값",
+                    "value": f"{dl_pred:.3f}",
+                    "note": f"딥러닝 모델이 입력값 {report_prediction_x:.3f}으로 계산한 예측 결과입니다. 구조: {model_results['nn_model']['architecture']} / {scale_text}",
+                },
+                {
+                    "label": "모델 선택 기준",
+                    "value": best_model,
+                    "note": f"학습 데이터 손실이 가장 작았습니다. 손실: {best_loss:.3f}",
+                },
+            ]
+        )
+
+        auto_analysis, _ = build_auto_report_texts(
             dataset,
             model_results,
-            active_ml_name,
+            active_ml_display_name,
             report_prediction_x,
             ml_pred,
             dl_pred,
@@ -1879,67 +2050,49 @@ def run():
             st.session_state.get("d5_research_motivation", ""),
         )
         previous_auto_analysis = st.session_state.get("d5_auto_analysis_report", "")
-        previous_auto_interpretation = st.session_state.get("d5_auto_interpretation_report", "")
         if not st.session_state.get("d5_analysis_report") or st.session_state.get("d5_analysis_report") == previous_auto_analysis:
             st.session_state["d5_analysis_report"] = auto_analysis
-        if not st.session_state.get("d5_interpretation_report") or st.session_state.get("d5_interpretation_report") == previous_auto_interpretation:
-            st.session_state["d5_interpretation_report"] = auto_interpretation
         st.session_state["d5_auto_analysis_report"] = auto_analysis
-        st.session_state["d5_auto_interpretation_report"] = auto_interpretation
 
-        st.markdown(pretty_title("보고서 요약 편집", "#fff3e0", "#ffe0b2"), unsafe_allow_html=True)
-        st.caption("자동 요약이 기본으로 들어갑니다. 필요한 표현만 짧게 고치면 PDF에 반영됩니다.")
-        report_col1, report_col2 = st.columns(2)
-        with report_col1:
-            st.text_area(
-                "데이터 분석 및 예측 결과",
-                key="d5_analysis_report",
-                height=135,
-                placeholder=auto_analysis,
+        with st.container(border=True):
+            st.markdown(
+                "<div style='font-size:1.05rem; font-weight:800; color:#ef6c00; "
+                "margin-bottom:6px;'>7️⃣ 연구 결과 및 분석</div>",
+                unsafe_allow_html=True,
             )
-        with report_col2:
-            st.text_area(
-                "연구 결과 및 해석",
-                key="d5_interpretation_report",
-                height=135,
-                placeholder=auto_interpretation,
-            )
-        render_value_cards(
-            [
-                {
-                    "title": "PDF 구성",
-                    "value": "요약 중심",
-                    "detail": "핵심 설정, 질문, 동기, 예측 결과, 해석만 압축해서 저장합니다.",
-                    "bg": "#f4f9ff",
-                    "border": "#90caf9",
-                    "min_height": "126px",
-                },
-                {
-                    "title": "포함 그래프",
-                    "value": "2개",
-                    "detail": "모델 비교 그래프와 입력값 예측 그래프만 PDF에 넣습니다.",
-                    "bg": "#f1f8e9",
-                    "border": "#aed581",
-                    "min_height": "126px",
-                },
-                {
-                    "title": "수정 방식",
-                    "value": "짧게 보완",
-                    "detail": "자동 문장을 바탕으로 모둠의 해석만 추가하면 됩니다.",
-                    "bg": "#fff8e1",
-                    "border": "#ffcc80",
-                    "min_height": "126px",
-                },
-            ],
-            columns=3,
-        )
+            st.caption("데이터 분석 및 예측 결과는 자동으로 들어갑니다. 연구 결과 및 해석은 모둠이 직접 작성하세요.")
+            report_col1, report_col2 = st.columns(2)
+            with report_col1:
+                st.text_area(
+                    "데이터 분석 및 예측 결과",
+                    key="d5_analysis_report",
+                    height=260,
+                    placeholder=auto_analysis,
+                )
+            with report_col2:
+                st.text_area(
+                    "연구 결과 및 해석",
+                    key="d5_interpretation_report",
+                    height=260,
+                    placeholder="예측 결과를 보고 알게 된 점, 어떤 모델이 더 적절하다고 생각하는지, 이 결과를 어떻게 해석할 수 있는지 모둠의 말로 작성하세요.",
+                )
 
         st.markdown(pretty_title("PDF 저장", "#ede7f6", "#d1c4e9"), unsafe_allow_html=True)
         if group_name:
             student_info = {"group": group_name}
+            pdf_prediction_fig = make_selected_prediction_figure(
+                dataset,
+                split,
+                model_results,
+                st.session_state["d5_ml_degree"],
+                student_guess=None,
+                reveal=False,
+                show_ml=True,
+                show_dl=True,
+                prediction_x=float(st.session_state.get("d5_prediction_x", default_prediction_x)),
+            )
             figure_items = [
-                ("모델 비교 그래프", compare_fig),
-                ("예측 결과 그래프", prediction_fig),
+                ("예측 결과 그래프", pdf_prediction_fig),
             ]
             pdf_bytes = create_portfolio_pdf(
                 student_info,

@@ -321,35 +321,6 @@ def page_banner(title, description, question=None):
     )
 
 
-def stage_intro(title, description, question, color1="#fff3e0", color2="#ffe0b2"):
-    st.markdown(
-        f"""
-        <div style="
-            background: linear-gradient(135deg, {color1} 0%, {color2} 100%);
-            border-radius: 18px;
-            padding: 18px 20px;
-            border: 1px solid rgba(0,0,0,0.06);
-            box-shadow: 0 4px 12px rgba(33, 150, 243, 0.06);
-            margin-bottom: 12px;
-        ">
-            <div style="font-size:1.05rem; font-weight:800; color:#1f2937; margin-bottom:8px;">{title}</div>
-            <div style="font-size:0.97rem; line-height:1.7; color:#37474f; margin-bottom:12px;">{description}</div>
-            <div style="
-                background: rgba(255,255,255,0.72);
-                border-radius: 12px;
-                padding: 10px 12px;
-                border: 1px solid rgba(255,255,255,0.85);
-                color:#37474f;
-                line-height:1.6;
-            ">
-                <b>핵심 탐구 질문</b><br>{question}
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-
 def render_link_button(url, label, gradient):
     st.markdown(
         f"""<a href="{url}" target="_blank"
@@ -379,48 +350,6 @@ def render_canva_gallery_links(class_key):
             )
         else:
             st.info("반을 선택하면 갤러리 패들렛 버튼이 나타납니다.")
-
-
-def _render_value_card(item):
-    title = item.get("title", "")
-    value = item.get("value", "")
-    detail = item.get("detail", "")
-    bg = item.get("bg", "#ffffff")
-    border = item.get("border", "#dbe7f3")
-    st.markdown(
-        f"""
-        <div style="
-            height:100%;
-            padding:14px 16px;
-            border-radius:16px;
-            background:{bg};
-            border:1px solid {border};
-            box-shadow:0 2px 8px rgba(33, 150, 243, 0.08);
-            margin-bottom:8px;
-        ">
-            <div style="font-size:0.92rem; color:#546e7a; margin-bottom:6px; font-weight:600;">{title}</div>
-            <div style="font-size:1.25rem; color:#263238; font-weight:700; margin-bottom:4px;">{value}</div>
-            <div style="font-size:0.86rem; color:#607d8b; line-height:1.5;">{detail}</div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-
-def render_value_cards(items, columns=1):
-    if columns <= 1:
-        for item in items:
-            _render_value_card(item)
-        return
-    for start in range(0, len(items), columns):
-        row_items = items[start:start + columns]
-        row_cols = st.columns(columns)
-        for col, item in zip(row_cols, row_items):
-            with col:
-                _render_value_card(item)
-        for col in row_cols[len(row_items):]:
-            with col:
-                st.empty()
 
 
 def apply_output_type_selection(selected):
@@ -495,7 +424,6 @@ def ensure_state():
     d5_class = st.session_state.get("d5_class", CLASS_OPTIONS[0])
     if d5_class not in CLASS_OPTIONS:
         d5_class = CLASS_OPTIONS[0]
-    d5_degree = int(st.session_state.get("d5_ml_degree", 1))
     d5_field = st.session_state.get("d5_field", field_for_dataset(d5_dataset))
     st.session_state.setdefault("d6_group", d5_group)
     st.session_state.setdefault("d6_class", d5_class)
@@ -525,32 +453,17 @@ def ensure_state():
     if st.session_state.get("d6_y_col") not in valid_y:
         st.session_state["d6_y_col"] = default_y if default_y in valid_y else valid_y[0]
 
-    model_default = "직선 회귀 기반 앱" if d5_degree == 1 else "2차 회귀 기반 앱"
     st.session_state.setdefault("d6_target_user", TARGET_USERS[0])
     st.session_state.setdefault("d6_target_reason", "")
-    st.session_state.setdefault("d6_model_type", model_default)
-    st.session_state.setdefault("d6_app_name", "")
-    st.session_state.setdefault("d6_real_problem", "")
-    st.session_state.setdefault("d6_app_goal", "")
-    st.session_state.setdefault("d6_main_output", "")
-    st.session_state.setdefault("d6_ui_style", STYLE_OPTIONS[0])
     st.session_state.setdefault("d6_feature_options", TYPE_FEATURE_OPTIONS[OUTPUT_TYPES[0]][:3])
     st.session_state.setdefault("d6_material_mode", "FUTURE 프로젝트 자료 반영하기")
-    st.session_state.setdefault("d6_social_value", "")
-    st.session_state.setdefault("d6_limit_note", "")
-    st.session_state.setdefault("d6_human_check", "")
     st.session_state.setdefault("d6_ai_ethics", "")
-    st.session_state.setdefault("d6_prompt_reflection", "")
-    inherited_analysis = st.session_state.get("d5_analysis_report", "")
-    inherited_interpretation = st.session_state.get("d5_interpretation_report", "")
     st.session_state.setdefault("d6_output_type", OUTPUT_TYPES[0])
     st.session_state.setdefault("d6_last_output_type", st.session_state["d6_output_type"])
     st.session_state.setdefault("d6_project_title", "")
-    st.session_state.setdefault("d6_problem_situation", inherited_analysis)
-    st.session_state.setdefault("d6_project_goal", "")
     st.session_state.setdefault("d6_visual_style", STYLE_OPTIONS[0])
-    st.session_state.setdefault("d6_data_meaning", inherited_interpretation)
     st.session_state.setdefault("d6_prompt_extra", "")
+    st.session_state.setdefault("d6_generated_prompt", "")
     st.session_state.setdefault("d6_game_story", "")
     st.session_state.setdefault("d6_game_goal", "")
     st.session_state.setdefault("d6_game_rule", "")
@@ -567,13 +480,6 @@ def ensure_state():
     st.session_state.setdefault("d6_poster_number", "")
     st.session_state.setdefault("d6_poster_visual", "")
     st.session_state.setdefault("d6_poster_message", "")
-    st.session_state.setdefault("d6_custom_data_name", "")
-    st.session_state.setdefault("d6_custom_topic", "")
-    st.session_state.setdefault("d6_custom_x", "")
-    st.session_state.setdefault("d6_custom_y", "")
-    st.session_state.setdefault("d6_custom_rows", "")
-    st.session_state.setdefault("d6_custom_analysis", "")
-    st.session_state.setdefault("d6_custom_interpretation", "")
     dataset_label = st.session_state["d6_dataset"].split(":")[0]
     if st.session_state.get("d6_project_title") == f"{dataset_label} 데이터 기반 앱 기획":
         st.session_state["d6_project_title"] = ""
@@ -873,7 +779,7 @@ def app_type_prompt_plan(output_type):
     if output_type == "정보형":
         return f"""[정보형 앱 작성 내용]
 - 첫 화면 질문/문제: {clean_text(st.session_state.get("d6_info_question", ""), "첫 화면에서 던질 질문이나 문제를 적어 주세요.")}
-- 추가로 보여 주고 싶은 내용: {clean_text(st.session_state.get("d6_info_key_data", ""), "data5 자료를 바탕으로 앱에 추가하고 싶은 내용이나 화면 요소를 적어 주세요.")}
+- 추가로 보여 주고 싶은 내용: {clean_text(st.session_state.get("d6_info_key_data", ""), "5DAY 자료를 바탕으로 앱에 추가하고 싶은 내용이나 화면 요소를 적어 주세요.")}
 - 넣고 싶은 상호작용/기능: {clean_text(st.session_state.get("d6_info_action", ""), "정보형 앱에 넣고 싶은 상호작용이나 기능을 자유롭게 적어 주세요.")}"""
     if output_type == "카드뉴스형":
         return f"""[카드뉴스형 앱 작성 내용]
@@ -895,112 +801,7 @@ def app_type_prompt_plan(output_type):
 - 피드백 방식: {clean_text(st.session_state.get("d6_game_feedback", ""), "성공·실패·선택 결과에 따라 어떤 피드백을 줄지 적어 주세요.")}"""
 
 
-def _legacy_build_prompt_text_unused(dataset):
-    group_name = clean_text(st.session_state.get("d6_group", ""), "모둠명 미입력")
-    app_name = clean_text(st.session_state.get("d6_app_name", ""), "앱 이름 미정")
-    target_user = clean_text(st.session_state.get("d6_target_user", ""))
-    real_problem = clean_text(st.session_state.get("d6_real_problem", "실제 문제 상황을 추가로 정리해 주세요."))
-    app_goal = clean_text(st.session_state.get("d6_app_goal", "앱의 목표를 더 구체적으로 정리해 주세요."))
-    main_output = clean_text(st.session_state.get("d6_main_output", "예측 결과를 어떻게 보여 줄지 정해 주세요."))
-    social_value = clean_text(st.session_state.get("d6_social_value", "이 앱이 사회에 주는 가치를 적어 주세요."))
-    limit_note = clean_text(st.session_state.get("d6_limit_note", "예측 결과를 그대로 믿으면 안 되는 이유를 적어 주세요."))
-    human_check = clean_text(st.session_state.get("d6_human_check", "사람이 다시 확인해야 하는 상황을 적어 주세요."))
-    prompt_reflection = clean_text(st.session_state.get("d6_prompt_reflection", "학생이 이해하기 쉬운 설명 방식이 들어가면 좋겠습니다."))
-    feature_lines = "\n".join(f"- {item}" for item in st.session_state.get("d6_feature_options", [])) or "- 예측값 결과 카드"
-    sample_rows = rows_to_text(dataset["selected_table"])
-
-    return f"""다음 조건으로 고등학교 1학년 학생도 사용할 수 있는 Streamlit 앱을 만들어줘.
-
-[앱 기본 정보]
-- 앱 이름: {app_name}
-- 사용 모둠: {group_name}
-- 대상 사용자: {target_user}
-- 앱의 예측 방식: {st.session_state.get('d6_model_type', '')}
-- 화면 스타일: {st.session_state.get('d6_ui_style', '')}
-
-[앱이 해결하려는 실제 문제]
-- 문제 상황: {real_problem}
-- 앱 목표: {app_goal}
-- 사회적 가치: {social_value}
-
-[데이터 설정]
-- 분야 데이터: {dataset['name']}
-- 독립 변수(X): {dataset['x_column']}
-- 종속 변수(Y): {dataset['y_column']}
-- 앱에 포함할 표본 데이터:
-{sample_rows}
-
-[앱에 꼭 들어갈 기능]
-{feature_lines}
-
-[예측 결과 표현 방식]
-- 사용자가 직접 X값을 입력할 수 있어야 한다.
-- 예측값은 카드와 그래프로 함께 보여 준다.
-- 예측 결과를 학생의 말로 쉽게 설명하는 문장이 함께 나온다.
-- 입력값과 결과값이 어떤 관계인지 한눈에 알 수 있게 해 준다.
-- {main_output}
-
-[신뢰와 책임]
-- 한계 안내: {limit_note}
-- 사람이 다시 확인해야 하는 상황: {human_check}
-- 예측 결과를 절대 정답처럼 표현하지 말고, 참고용이라는 점을 분명히 적어 줘.
-
-[개발 요청]
-- 전체 코드는 Streamlit 한 파일로 작성해 줘.
-- 모든 UI 문구는 한국어로 작성해 줘.
-- 학생 활동용이라 복잡한 관리자 기능은 넣지 말아 줘.
-- 그래프와 입력창, 예측 결과 카드, 설명 상자가 균형 있게 배치되게 해 줘.
-- 결과를 PDF나 텍스트로 저장할 수 있는 버튼도 포함해 줘.
-
-[수업 맥락]
-- 이 앱은 FUTURE 프로젝트 자료에서 수행한 AI 데이터 예측 활동을 실제 문제 해결 앱으로 확장하는 수업이다.
-- 학생이 데이터와 예측을 사회와 연결해 생각하도록 도와줘.
-- {prompt_reflection}
-"""
-
-
-def _legacy_create_prompt_pdf_unused(group_name, dataset, prompt_text):
-    pdf = ThemedPDF()
-    pdf.add_font("Nanum", "", font_path, uni=True)
-    pdf.set_font("Nanum", "", 12)
-    pdf._font_family = "Nanum"
-    pdf.footer_left = group_name
-    pdf.add_page()
-
-    pdf.kv_card(
-        "모둠 정보",
-        [
-            ("모둠명", group_name),
-            ("활동 데이터", dataset["name"]),
-            ("독립 변수", dataset["x_column"]),
-            ("종속 변수", dataset["y_column"]),
-            ("작성일", datetime.datetime.now().strftime("%Y-%m-%d")),
-        ],
-    )
-
-    add_text_box_to_pdf(pdf, "앱 이름", st.session_state.get("d6_app_name", ""))
-    add_text_box_to_pdf(pdf, "실제 문제 상황", st.session_state.get("d6_real_problem", ""))
-    add_text_box_to_pdf(pdf, "앱 목표", st.session_state.get("d6_app_goal", ""))
-    add_text_box_to_pdf(pdf, "예측 결과 표현 방식", st.session_state.get("d6_main_output", ""))
-    add_text_box_to_pdf(pdf, "사회적 가치", st.session_state.get("d6_social_value", ""))
-    add_text_box_to_pdf(pdf, "예측의 한계", st.session_state.get("d6_limit_note", ""))
-    add_text_box_to_pdf(pdf, "사람의 재확인 기준", st.session_state.get("d6_human_check", ""))
-    add_text_box_to_pdf(pdf, "최종 앱 제작 프롬프트", prompt_text, fill_color=(250, 250, 250))
-    return normalize_pdf_output(pdf.output(dest="S"))
-
-
-def _legacy_run_unused():
-    apply_local_style()
-    ensure_state()
-    page_banner(
-        "AI 데이터 예측을 앱 제작 프롬프트로 연결하기",
-        "data5에서 분석한 실생활 데이터 예측 활동을 바탕으로, 실제 사회 문제를 해결할 수 있는 앱을 기획하고 "
-        "AI에게 앱 제작을 요청할 프롬프트를 완성해 봅시다.",
-    )
-    st.markdown("<hr style='border: 2px solid #2196F3;'>", unsafe_allow_html=True)
-
-
-def build_prompt_text(dataset):
+def build_prompt_text():
     materials = get_project_materials()
     group_name = clean_text(st.session_state.get("d6_group", ""), "모둠명 미입력")
     output_type = st.session_state.get("d6_output_type", OUTPUT_TYPES[0])
@@ -1122,7 +923,7 @@ def build_prompt_text(dataset):
 """
 
 
-def create_prompt_pdf(group_name, dataset, prompt_text):
+def create_prompt_pdf(group_name, prompt_text):
     materials = get_project_materials()
     output_type = st.session_state.get("d6_output_type", OUTPUT_TYPES[0])
 
@@ -1138,7 +939,7 @@ def create_prompt_pdf(group_name, dataset, prompt_text):
         (
             [
             ("모둠명", group_name),
-            ("결과물 유형", output_type),
+            ("앱 유형", output_type),
             ("자료 출처 방식", materials["source_label"]),
             ("활동 데이터", materials["name"]),
             ("자료 주제", materials["topic"]),
@@ -1166,190 +967,12 @@ def create_prompt_pdf(group_name, dataset, prompt_text):
     add_text_box_to_pdf(pdf, "최종 Canva 구현 프롬프트", prompt_text, fill_color=(250, 250, 250))
     return normalize_pdf_output(pdf.output(dest="S"))
 
-    tabs = st.tabs(["5️⃣ [E] 세상과 연결"])
-    with tabs[0]:
-        stage_intro(
-            "세상과 연결: 앱 제작 프롬프트 만들기",
-            "데이터 예측 결과를 실제 사회 문제 해결과 연결하고, 앱 제작을 위한 구체적인 프롬프트로 바꾸는 단계입니다.",
-            "data5에서 만든 예측을 실제로 도움이 되는 앱으로 바꾸려면 어떤 목적과 기능을 담아야 할까?",
-        )
-
-        dataset = current_dataset()
-        st.markdown(pretty_title("data5에서 이어 온 탐구 정보", "#e3f2fd", "#bbdefb"), unsafe_allow_html=True)
-        render_value_cards(
-            [
-                {
-                    "title": "모둠명",
-                    "value": st.session_state.get("d6_group", "") or "미입력",
-                    "detail": "data5에서 입력한 모둠명을 그대로 이어받습니다.",
-                    "bg": "#f4f9ff",
-                    "border": "#90caf9",
-                },
-                {
-                    "title": "활동 데이터",
-                    "value": dataset["name"],
-                    "detail": "선택한 분야 안에서 실제 데이터셋 2개 중 하나를 기준으로 앱을 설계합니다.",
-                    "bg": "#f1f8e9",
-                    "border": "#aed581",
-                },
-                {
-                    "title": "활동 분야",
-                    "value": st.session_state.get("d6_field", ""),
-                    "detail": "경제, 의학, 공학, 환경, 스포츠, 사회 중 하나를 고릅니다.",
-                    "bg": "#ede7f6",
-                    "border": "#b39ddb",
-                },
-                {
-                    "title": "X / Y 변수",
-                    "value": f"{dataset['x_column']} / {dataset['y_column']}",
-                    "detail": "앱에서 입력값과 예측 결과로 이어질 핵심 변수입니다.",
-                    "bg": "#fff8e1",
-                    "border": "#ffcc80",
-                },
-                {
-                    "title": "추천 예측 방식",
-                    "value": st.session_state.get("d6_model_type", ""),
-                    "detail": "data5에서 다룬 머신러닝·딥러닝 흐름을 앱에 어떻게 반영할지 정합니다.",
-                    "bg": "#fce4ec",
-                    "border": "#f48fb1",
-                },
-            ],
-            columns=3,
-        )
-
-        st.markdown(pretty_title("앱이 다룰 데이터와 사용자 정하기", "#e8f5e9", "#c8e6c9"), unsafe_allow_html=True)
-        top_left, top_mid, top_right = st.columns([0.8, 1.0, 1.0])
-        with top_left:
-            st.text_input("모둠명", key="d6_group", placeholder="예: 1모둠")
-            st.selectbox("활동 분야", FIELD_ORDER, key="d6_field")
-        field_dataset_names = FIELD_DATASETS[st.session_state["d6_field"]]
-        if st.session_state.get("d6_dataset") not in field_dataset_names:
-            st.session_state["d6_dataset"] = field_dataset_names[0]
-        with top_mid:
-            st.selectbox("활동 데이터셋", field_dataset_names, key="d6_dataset")
-        with top_right:
-            info = DATASETS[st.session_state["d6_dataset"]]
-            all_columns = list(info["table"].columns)
-            if st.session_state.get("d6_x_col") not in all_columns:
-                st.session_state["d6_x_col"] = info["default_x"]
-            st.selectbox("독립 변수(X)", all_columns, key="d6_x_col")
-            valid_y = [col for col in all_columns if col != st.session_state["d6_x_col"]]
-            if st.session_state.get("d6_y_col") not in valid_y:
-                st.session_state["d6_y_col"] = info["default_y"] if info["default_y"] in valid_y else valid_y[0]
-            st.selectbox("종속 변수(Y)", valid_y, key="d6_y_col")
-
-        dataset = current_dataset()
-        preview_col, story_col = st.columns([1.1, 0.9])
-        with preview_col:
-            preview_df = dataset["selected_table"].copy()
-            preview_df.insert(0, "행 번호", range(1, len(preview_df) + 1))
-            st.dataframe(preview_df, use_container_width=True, hide_index=True, height=260)
-        with story_col:
-            st.info(dataset["story"])
-            st.markdown(f"**앱 아이디어 예시**: {DATASETS[st.session_state['d6_dataset']]['app_examples']}")
-            st.selectbox("주요 사용자", TARGET_USERS, key="d6_target_user")
-            st.selectbox("앱에 넣을 예측 방식", MODEL_OPTIONS, key="d6_model_type")
-
-        st.markdown(pretty_title("실제 문제와 앱 목표 정하기", "#fff8e1", "#ffecb3"), unsafe_allow_html=True)
-        issue_col, goal_col = st.columns(2)
-        with issue_col:
-            st.text_input("앱 이름", key="d6_app_name", placeholder="예: 우리 동네 매출 예측 도우미")
-            st.text_area(
-                "이 앱이 해결하려는 실제 문제",
-                key="d6_real_problem",
-                height=140,
-                placeholder="예: 소상공인이 광고를 얼마나 해야 매출이 늘어날지 감으로만 판단하기 어렵다.",
-            )
-        with goal_col:
-            st.text_area(
-                "앱의 목표",
-                key="d6_app_goal",
-                height=140,
-                placeholder="예: 사용자가 광고 횟수를 입력하면 예상 매출과 그래프를 보여 주어 계획을 세우도록 돕는다.",
-            )
-            st.text_area(
-                "예측 결과를 어떻게 보여 주고 싶은가",
-                key="d6_main_output",
-                height=110,
-                placeholder="예: 예측값 카드, 그래프, 한 줄 해석, 주의 문구를 함께 보여 주고 싶다.",
-            )
-
-        st.markdown(pretty_title("앱 기능과 화면 요소 정하기", "#ede7f6", "#d1c4e9"), unsafe_allow_html=True)
-        feature_col, style_col = st.columns([1.15, 0.85])
-        with feature_col:
-            st.multiselect(
-                "앱 유형에 맞는 상호작용 기능",
-                FEATURE_OPTIONS,
-                key="d6_feature_options",
-            )
-        with style_col:
-            st.selectbox("원하는 화면 분위기", STYLE_OPTIONS, key="d6_ui_style")
-            st.info("복잡한 기능보다 입력-예측-해석-주의 안내 흐름이 분명한 교육용 앱이 되도록 정해 보세요.")
-
-        st.markdown(pretty_title("신뢰와 책임까지 생각하기", "#fce4ec", "#f8bbd0"), unsafe_allow_html=True)
-        trust_col1, trust_col2, trust_col3 = st.columns(3)
-        with trust_col1:
-            st.text_area(
-                "이 앱이 사회에 주는 가치",
-                key="d6_social_value",
-                height=120,
-                placeholder="예: 데이터를 바탕으로 합리적인 판단을 돕고, 학생이 AI 예측의 쓰임을 이해하게 한다.",
-            )
-        with trust_col2:
-            st.text_area(
-                "예측의 한계와 주의점",
-                key="d6_limit_note",
-                height=120,
-                placeholder="예: 데이터가 적으면 예측이 빗나갈 수 있고, 실제 상황을 모두 반영하지 못할 수 있다.",
-            )
-        with trust_col3:
-            st.text_area(
-                "사람이 다시 확인해야 하는 순간",
-                key="d6_human_check",
-                height=120,
-                placeholder="예: 중요한 결정에 영향을 줄 때는 사람이 결과를 다시 확인해야 한다.",
-            )
-
-        st.markdown(pretty_title("AI에게 요청할 앱 제작 프롬프트", "#e3f2fd", "#bbdefb"), unsafe_allow_html=True)
-        st.text_area(
-            "프롬프트에 꼭 반영하고 싶은 추가 요청",
-            key="d6_prompt_reflection",
-            height=100,
-            placeholder="예: 학생이 이해하기 쉬운 설명 문장과 예측 결과 해석 안내를 꼭 넣어 달라고 요청하고 싶다.",
-        )
-        prompt_text = build_prompt_text(dataset)
-        st.code(prompt_text, language="markdown")
-
-        download_col1, download_col2 = st.columns(2)
-        with download_col1:
-            st.download_button(
-                "프롬프트 TXT 저장하기",
-                data=prompt_text.encode("utf-8"),
-                file_name=f"{clean_text(st.session_state.get('d6_group', ''), '모둠')}_앱제작프롬프트.txt",
-                mime="text/plain",
-                use_container_width=True,
-            )
-        with download_col2:
-            if st.session_state.get("d6_group", "").strip():
-                pdf_bytes = create_prompt_pdf(st.session_state["d6_group"], dataset, prompt_text)
-                st.download_button(
-                    "앱 기획 PDF 저장하기",
-                    data=pdf_bytes,
-                    file_name=f"{st.session_state['d6_group']}_앱기획프롬프트.pdf",
-                    mime="application/pdf",
-                    use_container_width=True,
-                )
-                st.warning("⚠️ 모둠원들이 동시에 PDF 다운로드 버튼을 누르면 오류가 날 수 있습니다. 한 명씩 차례대로 눌러 주세요.")
-            else:
-                st.info("모둠명을 입력하면 앱 기획 PDF를 저장할 수 있습니다.")
-
-    st.markdown("<hr style='border: 2px solid #2196F3;'>", unsafe_allow_html=True)
 def run():
     apply_local_style()
     ensure_state()
     page_banner(
         "AI 바이브 코딩으로 앱 제작",
-        "앞 차시에서 분석한 데이터 예측 결과를 실제 사람들에게 도움이 되는 결과물로 바꾸는 단계입니다. "
+        "앞 차시에서 분석한 데이터 예측 결과를 실제 사람들에게 도움이 되는 앱으로 바꾸는 단계입니다. "
         "6DAY에서는 FUTURE 프로젝트 자료의 해석을 그대로 이어받아, Canva AI에서 만들 앱의 종류를 정하고 그에 맞는 최종 프롬프트를 완성합니다.",
         "AI 예측 결과를 어떻게 사회적 실천으로 확장할까?",
     )
@@ -1378,7 +1001,7 @@ def run():
         with group_col:
             st.text_input("모둠명", key="d6_group", placeholder="예: 1모둠")
 
-        material_label = "FUTURE 프로젝트 자료" if using_future_materials() else "직접 설계한 프로젝트 자료"
+        material_label = "FUTURE 프로젝트 자료" if using_future_materials() else "직접 설계한 앱 방향"
 
         st.info(
             "앱 유형 선택은 프롬프트를 쓰는 출발점입니다. 정보형은 설명 구조, 카드뉴스형은 전달 순서, "
@@ -1414,7 +1037,7 @@ def run():
                     type="secondary" if future_selected else "primary",
                     use_container_width=True,
                 ):
-                    st.session_state["d6_material_mode"] = "학생이 직접 프로젝트 자료 설계하기"
+                    st.session_state["d6_material_mode"] = "학생이 직접 앱 설계하기"
                     st.rerun()
             if using_future_materials():
                 st.success("FUTURE 프로젝트 자료를 앱 기획에 반영합니다.")
@@ -1487,8 +1110,8 @@ def run():
             )
 
     with subtabs[3]:
-            st.markdown(pretty_title("4. 최종 프롬프트 확인", "#e3f2fd", "#bbdefb"), unsafe_allow_html=True)
-            st.info("앞에서 고른 앱 유형, 프로젝트 자료, 핵심 의미, 주의점이 아래 프롬프트에 자동으로 연결됩니다. 마지막으로 꼭 넣고 싶은 요청만 짧게 덧붙이면 됩니다.")
+            st.markdown(pretty_title("5. 최종 프롬프트 확인", "#e3f2fd", "#bbdefb"), unsafe_allow_html=True)
+            st.info("앞에서 고른 앱 유형, 프로젝트 설정, 앱 설계 내용, AI 윤리 안내가 아래 프롬프트에 자동으로 연결됩니다. 마지막으로 꼭 넣고 싶은 요청만 짧게 덧붙이면 됩니다.")
             st.text_area(
                 "추가 요청 또는 꼭 반영하고 싶은 점",
                 key="d6_prompt_extra",
@@ -1496,22 +1119,29 @@ def run():
                 placeholder="예: 학생 눈높이에 맞는 문장으로, 색감은 밝고 친근하게, 그래프 설명은 짧고 분명하게 넣어 달라.",
             )
 
-            prompt_text = build_prompt_text(dataset)
-            st.code(prompt_text, language="markdown")
-            render_canva_gallery_links(st.session_state.get("d6_class", CLASS_OPTIONS[0]))
+            if st.button("프롬프트 생성", key="d6_generate_prompt_btn", use_container_width=True):
+                st.session_state["d6_generated_prompt"] = build_prompt_text()
 
-            if st.session_state.get("d6_group", "").strip():
-                pdf_bytes = create_prompt_pdf(st.session_state["d6_group"], dataset, prompt_text)
-                st.download_button(
-                    "Canva 기획 PDF 저장",
-                    data=pdf_bytes,
-                    file_name=f"{st.session_state['d6_group']}_6차시_앱기획프롬프트.pdf",
-                    mime="application/pdf",
-                    use_container_width=True,
-                )
-                st.warning("⚠️ 모둠원들이 동시에 PDF 다운로드 버튼을 누르면 오류가 날 수 있습니다. 한 명씩 차례대로 눌러 주세요.")
+            prompt_text = st.session_state.get("d6_generated_prompt", "")
+            if prompt_text:
+                st.success("프롬프트가 생성되었습니다. 입력 내용을 바꾸었다면 버튼을 다시 눌러 새 프롬프트를 만들어 주세요.")
+                st.code(prompt_text, language="markdown")
+                render_canva_gallery_links(st.session_state.get("d6_class", CLASS_OPTIONS[0]))
+
+                if st.session_state.get("d6_group", "").strip():
+                    pdf_bytes = create_prompt_pdf(st.session_state["d6_group"], prompt_text)
+                    st.download_button(
+                        "Canva 기획 PDF 저장",
+                        data=pdf_bytes,
+                        file_name=f"{st.session_state['d6_group']}_6차시_앱기획프롬프트.pdf",
+                        mime="application/pdf",
+                        use_container_width=True,
+                    )
+                    st.warning("⚠️ 모둠원들이 동시에 PDF 다운로드 버튼을 누르면 오류가 날 수 있습니다. 한 명씩 차례대로 눌러 주세요.")
+                else:
+                    st.info("모둠명을 입력하면 앱 기획 PDF를 저장할 수 있습니다.")
             else:
-                st.info("모둠명을 입력하면 앱 기획 PDF를 저장할 수 있습니다.")
+                st.info("프롬프트 생성 버튼을 누르면 완성된 프롬프트를 확인할 수 있습니다.")
 
     st.markdown("<hr style='border: 2px solid #2196F3;'>", unsafe_allow_html=True)
 
