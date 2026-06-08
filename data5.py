@@ -492,9 +492,21 @@ def build_selected_comparison_df(model_results, degree):
     return filtered
 
 
-def prediction_line_x(split, points=220):
+def prediction_input_bounds(x_values):
+    x = np.asarray(x_values, dtype=float)
+    x_min = float(np.min(x))
+    x_max = float(np.max(x))
+    x_span = x_max - x_min
+    padding = x_span * 0.2 if abs(x_span) > 1e-12 else 1.0
+    return x_min - padding, x_max + padding
+
+
+def prediction_line_x(split, points=220, extra_x=None):
     x_min = float(np.min(split["x_all"]))
     x_max = float(np.max(split["x_all"]))
+    if extra_x is not None:
+        x_min = min(x_min, float(extra_x))
+        x_max = max(x_max, float(extra_x))
     if abs(x_max - x_min) < 1e-12:
         return np.array([x_min], dtype=float)
     return np.linspace(x_min, x_max, int(points))
@@ -535,7 +547,7 @@ def make_selected_prediction_figure(
     ml_name = selected_ml_name(degree)
     fig = Figure(figsize=(7.2, 4.4))
     ax = fig.subplots()
-    x_line = prediction_line_x(split, 220)
+    x_line = prediction_line_x(split, 220, extra_x=prediction_x)
     pred_map = predict_models(model_results, x_line)
     ax.scatter(split["x_obs"], split["y_obs"], s=70, color="#1976d2", edgecolors="white", linewidths=1.8, label="입력 데이터")
     ml_color = "#ff9800" if ml_name == "직선 회귀" else "#fb8c00"
@@ -1846,8 +1858,7 @@ def run():
             st.checkbox(selected_ml_view_label(st.session_state["d5_ml_degree"]), key="d5_show_prediction_ml")
         with visibility_col2:
             st.checkbox("딥러닝 보기", key="d5_show_prediction_dl")
-        prediction_min_x = float(np.min(dataset["x"]))
-        prediction_max_x = float(np.max(dataset["x"]))
+        prediction_min_x, prediction_max_x = prediction_input_bounds(dataset["x"])
         prediction_x = float(st.session_state.get("d5_prediction_x", default_prediction_x))
         prediction_x = min(max(prediction_x, prediction_min_x), prediction_max_x)
         st.session_state["d5_prediction_x"] = prediction_x
