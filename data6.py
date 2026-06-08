@@ -420,19 +420,11 @@ def ensure_state():
     d5_dataset = normalize_dataset_name(st.session_state.get("d5_dataset", dataset_names[0]))
     if d5_dataset not in DATASETS:
         d5_dataset = FIELD_DATASETS[FIELD_ORDER[0]][0]
-    d5_group = st.session_state.get("d5_group", "")
-    d5_class = st.session_state.get("d5_class", CLASS_OPTIONS[0])
-    if d5_class not in CLASS_OPTIONS:
-        d5_class = CLASS_OPTIONS[0]
     d5_field = st.session_state.get("d5_field", field_for_dataset(d5_dataset))
-    st.session_state.setdefault("d6_group", d5_group)
-    st.session_state.setdefault("d6_class", d5_class)
-    if d5_group:
-        st.session_state["d6_group"] = d5_group
-    if d5_class in CLASS_OPTIONS:
-        st.session_state["d6_class"] = d5_class
+    st.session_state.setdefault("d6_group", "")
+    st.session_state.setdefault("d6_class", CLASS_OPTIONS[0])
     if st.session_state.get("d6_class") not in CLASS_OPTIONS:
-        st.session_state["d6_class"] = d5_class
+        st.session_state["d6_class"] = CLASS_OPTIONS[0]
     st.session_state.setdefault("d6_field", d5_field if d5_field in FIELD_ORDER else field_for_dataset(d5_dataset))
     st.session_state.setdefault("d6_dataset", d5_dataset if d5_dataset in DATASETS else dataset_names[0])
     st.session_state["d6_dataset"] = normalize_dataset_name(st.session_state.get("d6_dataset", d5_dataset))
