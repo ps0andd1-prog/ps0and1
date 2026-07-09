@@ -48,7 +48,8 @@ days = [
     "3DAY - 🖼️ 세상의 데이터는 행렬이다",
     "4DAY - 📉 오차를 줄이는 AI의 학습",
     "5DAY - 🔮 AI를 이용한 데이터 예측",
-    "6DAY - 📱AI 바이브 코딩으로 앱 제작"
+    "6DAY - 📱AI 바이브 코딩으로 앱 제작",
+    "7DAY - 📈 함수 그래프로 데이터 예측"
 ]
 
 modules = {
@@ -57,7 +58,8 @@ modules = {
     days[2]: "data3",
     days[3]: "data4",
     days[4]: "data5",
-    days[5]: "data6"}
+    days[5]: "data6",
+    days[6]: "data7"}
 
 # 💡 수정된 부분: 복잡한 콜백 함수를 지우고 key 하나로 상태를 동기화합니다.
 if 'current_day' not in st.session_state:
@@ -70,7 +72,11 @@ selected_day = st.selectbox(
     key="current_day"  # key를 지정하면 자동으로 session_state에 저장 및 동기화됩니다.
 )
 
-st.divider()
+if st.session_state.current_day == days[6]:
+    st.markdown(
+        "<hr style='border: 4px solid #1976d2; border-radius: 999px; margin: 18px 0 24px 0;'>",
+        unsafe_allow_html=True,
+    )
 
 # 선택된 모듈 동적 실행
 current_module_name = modules[st.session_state.current_day]
