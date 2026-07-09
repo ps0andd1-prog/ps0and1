@@ -72,12 +72,6 @@ selected_day = st.selectbox(
     key="current_day"  # key를 지정하면 자동으로 session_state에 저장 및 동기화됩니다.
 )
 
-if st.session_state.current_day == days[6]:
-    st.markdown(
-        "<hr style='border: 4px solid #1976d2; border-radius: 999px; margin: 18px 0 24px 0;'>",
-        unsafe_allow_html=True,
-    )
-
 # 선택된 모듈 동적 실행
 current_module_name = modules[st.session_state.current_day]
 
