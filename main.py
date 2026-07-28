@@ -77,7 +77,6 @@ current_module_name = modules[st.session_state.current_day]
 
 try:
     module = importlib.import_module(current_module_name)
-    importlib.reload(module)
     if hasattr(module, 'run'):
         module.run()
 except ModuleNotFoundError:

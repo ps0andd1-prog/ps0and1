@@ -49,28 +49,6 @@ DATASETS = {
         "default_y": "5세 미만 사망률(%) (예시)",
         "source": "World Bank, UN IGME, Our World in Data",
     },
-    "인간: 교육과 기초 역량": {
-        "table": make_yearly_table(
-            [1990, 1995, 2000, 2005, 2010, 2015, 2020, 2023, 2024],
-            {
-                "성인 문해율(%)": [75.0, 78.0, 81.120, 82.570, 84.370, 85.960, 86.980, 87.580, 87.740],
-                "DTP3 접종률(%)": [75.0, 70.0, 72.0, 77.0, 83.0, 85.0, 83.0, 84.0, 85.0],
-            },
-        ),
-        "default_y": "성인 문해율(%)",
-        "source": "UNESCO, WHO/UNICEF, Our World in Data",
-    },
-    "인간: 빈곤과 모성 건강": {
-        "table": make_yearly_table(
-            [1994, 2000, 2005, 2010, 2015, 2020, 2023],
-            {
-                "극빈곤 인구 비율(%)": [37.200, 36.200, 28.300, 21.000, 13.400, 11.400, 10.600],
-                "모성 사망비": [378.000, 327.629, 282.962, 253.344, 227.737, 210.501, 197.305],
-            },
-        ),
-        "default_y": "극빈곤 인구 비율(%)",
-        "source": "UN SDG Global Database 2026.Q2.G.01 (SI_POV_DAY1, SH_STA_MORT)",
-    },
     "번영: 디지털 접근과 도시 변화": {
         "table": make_yearly_table(
             [1994, 2000, 2005, 2010, 2015, 2020, 2023],
@@ -82,52 +60,6 @@ DATASETS = {
         ),
         "default_y": "인터넷 이용률(%)",
         "source": "World Bank, Our World in Data",
-    },
-    "번영: 한국 인구와 노동": {
-        "table": make_yearly_table(
-            [1990, 1995, 2000, 2005, 2010, 2015, 2020, 2023, 2024],
-            {
-                "합계출산율(명)": [1.57, 1.65, 1.480, 1.085, 1.226, 1.239, 0.837, 0.721, 0.748],
-                "65세 이상 인구 비율(%)": [5.1, 5.9, 7.091, 9.000, 10.992, 12.955, 15.822, 18.335, 19.274],
-                "청년실업률(%)": [7.5, 8.5, 10.002, 9.321, 8.540, 9.899, 10.143, 5.405, 6.434],
-            },
-        ),
-        "default_y": "65세 이상 인구 비율(%)",
-        "source": "World Bank WDI / FRED",
-    },
-    "번영: 연구개발과 산업 고도화": {
-        "table": make_yearly_table(
-            [1994, 2000, 2005, 2010, 2015, 2020, 2023],
-            {
-                "R&D 지출 비중(%)": [1.450, 1.533, 1.534, 1.609, 1.711, 1.931, 1.924],
-                "중고위기술 제조업 비중(%)": [46.200, 45.860, 44.670, 44.590, 44.950, 46.560, 47.290],
-                "제조업 부가가치 비중(%)": [14.000, 14.260, 14.940, 15.250, 15.640, 15.600, 15.560],
-            },
-        ),
-        "default_y": "R&D 지출 비중(%)",
-        "source": "UN SDG Global Database 2026.Q2.G.01 (GB_XPD_RSDV, NV_IND_TECH, NV_IND_MANF)",
-    },
-    "환경: 에너지 전환과 탄소": {
-        "table": make_yearly_table(
-            [1990, 1995, 2000, 2005, 2010, 2015, 2020],
-            {
-                "재생에너지 비중(%)": [7.0, 7.1, 7.426, 7.192, 8.370, 10.000, 12.781],
-                "1인당 CO2 배출량": [5.8, 7.9, 9.408, 10.422, 12.187, 12.439, 11.524],
-            },
-        ),
-        "default_y": "재생에너지 비중(%)",
-        "source": "Our World in Data",
-    },
-    "환경: 대기질과 도시 생활": {
-        "table": make_yearly_table(
-            [1990, 1995, 2000, 2005, 2010, 2015, 2020],
-            {
-                "PM2.5 평균 노출": [30.0, 27.5, 25.438, 24.474, 21.791, 26.290, 25.944],
-                "1인당 CO2 배출량": [5.8, 7.9, 9.408, 10.422, 12.187, 12.439, 11.524],
-            },
-        ),
-        "default_y": "PM2.5 평균 노출",
-        "source": "Our World in Data / World Bank",
     },
     "환경: 산림과 생물다양성 보호": {
         "table": make_yearly_table(
@@ -141,17 +73,6 @@ DATASETS = {
         "default_y": "육상 KBA 보호 비율(%)",
         "source": "UN SDG Global Database 2026.Q2.G.01 (AG_LND_FRST, ER_PTD_TERR, ER_MRN_MPA)",
     },
-    "평화: 안전과 폭력 감소": {
-        "table": make_yearly_table(
-            [1990, 1995, 2000, 2005, 2010, 2015, 2019, 2020, 2021, 2022, 2023],
-            {
-                "고의살인율": [7.4, 7.1, 6.9, 6.4, 6.1, 5.7, 5.6, 5.8, 5.8, 5.6, 5.5],
-                "분쟁 관련 사망률": [3.3, 2.8, 2.1, 1.4, 1.2, 2.3, 1.0, 0.9, 1.5, 2.1, 2.4],
-            },
-        ),
-        "default_y": "고의살인율",
-        "source": "UNODC, UN SDG Global Database, Our World in Data",
-    },
     "평화: 난민과 강제이주": {
         "table": make_yearly_table(
             [1990, 1995, 2000, 2005, 2010, 2015, 2019, 2020, 2021, 2022, 2023],
@@ -162,17 +83,6 @@ DATASETS = {
         ),
         "default_y": "강제이주민 수(백만 명)",
         "source": "UNHCR Global Trends",
-    },
-    "평화: 사법 접근과 폭력 지표": {
-        "table": make_yearly_table(
-            [1995, 2000, 2003, 2005, 2010, 2015, 2020, 2023, 2024],
-            {
-                "미결구금 비율(%)": [31.000, 30.800, 30.593, 29.970, 27.947, 28.647, 29.803, 31.033, 30.813],
-                "고의살인율": [7.100, 6.900, 6.767, 6.343, 6.093, 5.903, 5.293, 5.217, 5.133],
-            },
-        ),
-        "default_y": "미결구금 비율(%)",
-        "source": "UN SDG Global Database 2026.Q2.G.01 (VC_PRS_UNSNT, VC_IHR_PSRC)",
     },
 }
 
@@ -185,8 +95,6 @@ PUBLIC_DATASET_OPTIONS = [
     "평화: 난민과 강제이주",
 ]
 
-FUNCTION_OPTIONS = ["일차함수", "이차함수", "유리함수", "무리함수"]
-TARGET_FUNCTION = "무리함수"
 U_MAX_ATTEMPTS = 4
 CLASS_OPTIONS = ["1", "2", "5", "6"]
 GALLERY_URLS = {
@@ -198,13 +106,20 @@ GALLERY_URLS = {
 PORTFOLIO_URLS = GALLERY_URLS.copy()
 GPT_URL = "https://chatgpt.com/"
 
-PARAM_COLORS = {
-    "a": "#d32f2f",
-    "b": "#388e3c",
-    "p": "#1976d2",
-    "q": "#7b1fa2",
+FACTFULNESS_LENS_GUIDES = {
+    "직선 본능 점검": {
+        "guide": "최근 흐름이 앞으로도 같은 속도로 계속된다고 단정하지 않고, 변화 속도와 꺾이는 구간을 확인합니다.",
+        "placeholder": "직선 본능 점검 관점으로 직접 작성해 보세요.",
+    },
+    "일반화 본능 점검": {
+        "guide": "전체 흐름이나 평균이 모든 구간의 상황을 똑같이 대표한다고 단정하지 않습니다.",
+        "placeholder": "일반화 본능 점검 관점으로 직접 작성해 보세요.",
+    },
+    "격차 본능 점검": {
+        "guide": "잘 맞음과 맞지 않음을 둘로만 나누지 않고, 중간 정도의 차이와 구간별 차이를 함께 봅니다.",
+        "placeholder": "격차 본능 점검 관점으로 직접 작성해 보세요.",
+    },
 }
-
 
 def clean_text(value, default="아직 작성하지 않았습니다."):
     text = str(value).strip() if value is not None else ""
@@ -329,18 +244,41 @@ def apply_local_style():
             border: 1px solid #ce93d8;
             border-left: 1px solid #ce93d8;
             border-radius: 8px;
+            color: #000000;
             margin: 2px 0 12px 0;
             overflow-x: auto;
             padding: 10px 14px;
             white-space: nowrap;
         }
         [data-testid="stMarkdownContainer"] blockquote p {
+            color: #000000;
             margin: 0;
+        }
+        [data-testid="stMarkdownContainer"] blockquote .katex {
+            color: #000000;
         }
         .fit-eval-box ~ div [role="radiogroup"] label:first-child,
         .fit-eval-box ~ div [data-testid="stWidgetLabel"] p {
             font-weight: 900;
             color: #263238;
+        }
+        .fit-eval-box ~ div [role="radiogroup"] {
+            flex-wrap: nowrap;
+            gap: 0.8rem;
+        }
+        .fit-eval-box ~ div [role="radiogroup"] label,
+        .fit-eval-box ~ div [role="radiogroup"] label p {
+            white-space: nowrap;
+        }
+        details:has(.fit-eval-box) summary {
+            background: #fff3e0;
+            border: 1px solid #ffcc80;
+            border-radius: 8px;
+            padding: 0.55rem 0.75rem;
+        }
+        details:has(.fit-eval-box) summary p {
+            color: #e65100;
+            font-weight: 900;
         }
         .radical-formula-box {
             background: #f8fbff;
@@ -499,12 +437,6 @@ def apply_local_style():
             font-size: 0.94rem;
             line-height: 1.6;
         }
-        .param-meaning-card {
-            min-height: 96px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-        }
         </style>
         """,
         unsafe_allow_html=True,
@@ -630,29 +562,14 @@ def variable_meaning(column_name):
         "기대수명(년)": "해당 해에 태어난 사람이 현재 사망률이 유지된다고 가정할 때 평균적으로 살 것으로 예상되는 햇수입니다.",
         "5세 미만 사망률(%) (예시)": "태어난 아이 100명 중 5세가 되기 전에 사망하는 아이의 수를 나타낸 비율 지표입니다.",
         "극빈곤 인구 비율(%)": "국제 빈곤선보다 낮은 소득으로 생활하는 인구가 전체 인구에서 차지하는 비율입니다.",
-        "성인 문해율(%)": "성인 인구 중 간단한 글을 읽고 쓸 수 있는 사람의 비율입니다.",
-        "DTP3 접종률(%)": "디프테리아, 파상풍, 백일해 예방접종을 3회까지 마친 아동의 비율입니다.",
         "인터넷 이용률(%)": "최근 일정 기간 동안 인터넷을 사용한 사람이 전체 인구에서 차지하는 비율입니다.",
         "전기 접근률(%)": "가정이나 생활 공간에서 전기를 사용할 수 있는 인구가 전체 인구에서 차지하는 비율입니다.",
         "도시화율(%)": "전체 인구 중 도시 지역에 거주하는 인구의 비율입니다.",
-        "합계출산율(명)": "여성 한 명이 평생 낳을 것으로 예상되는 평균 자녀 수입니다.",
-        "65세 이상 인구 비율(%)": "전체 인구 중 65세 이상 인구가 차지하는 비율입니다.",
-        "청년실업률(%)": "일할 의사와 능력이 있지만 일자리를 구하지 못한 청년층의 비율입니다.",
-        "재생에너지 비중(%)": "전체 최종 에너지 소비 중 재생에너지에서 얻은 에너지가 차지하는 비율입니다.",
-        "1인당 CO2 배출량": "한 사람이 1년 동안 평균적으로 배출한 이산화탄소의 양입니다.",
-        "PM2.5 평균 노출": "사람들이 평균적으로 노출되는 초미세먼지 PM2.5 농도를 나타내는 지표입니다.",
-        "고의살인율": "인구 10만 명당 고의살인 피해자 수를 나타내는 안전 지표입니다.",
-        "분쟁 관련 사망률": "인구 10만 명당 무력 분쟁과 관련해 사망한 사람의 수를 나타내는 지표입니다.",
         "강제이주민 수(백만 명)": "분쟁, 박해, 폭력, 인권 침해 등으로 살던 곳을 떠나야 했던 사람의 수입니다.",
         "난민 수(백만 명)": "국경을 넘어 다른 나라에서 보호를 필요로 하는 난민의 수입니다.",
-        "모성 사망비": "임신, 출산 또는 산후 기간과 관련해 사망한 여성 수를 출생아 10만 명당으로 나타낸 지표입니다.",
-        "R&D 지출 비중(%)": "국내총생산(GDP) 중 연구개발 활동에 사용된 지출의 비율입니다.",
-        "중고위기술 제조업 비중(%)": "전체 제조업 부가가치 중 중기술 및 고기술 제조업이 차지하는 비율입니다.",
-        "제조업 부가가치 비중(%)": "국내총생산(GDP) 중 제조업이 만들어 낸 부가가치의 비율입니다.",
         "산림 면적 비율(%)": "전체 육지 면적 중 산림이 차지하는 비율입니다.",
         "육상 KBA 보호 비율(%)": "육상 핵심생물다양성지역(KBA) 중 보호구역으로 지정되어 관리되는 면적의 비율입니다.",
         "해양 KBA 보호 비율(%)": "해양 핵심생물다양성지역(KBA) 중 보호구역으로 지정되어 관리되는 면적의 비율입니다.",
-        "미결구금 비율(%)": "전체 수감자 중 아직 형이 확정되지 않은 미결구금자가 차지하는 비율입니다.",
     }
     return meanings.get(column_name, f"{column_name}의 값을 나타내는 수치형 변수입니다.")
 
@@ -671,18 +588,6 @@ def life_change_placeholders(y_label):
             "예: 기본적인 식사, 주거, 의료를 감당하기 어려운 사람이 늘어난다.",
             "예: 더 많은 사람이 안정적인 생활을 할 수 있다.",
         ),
-        "성인 문해율(%)": (
-            "예: 글을 읽고 정보를 활용할 수 있는 사람이 늘어난다.",
-            "예: 교육과 정보 접근에서 어려움을 겪는 사람이 늘어날 수 있다.",
-        ),
-        "DTP3 접종률(%)": (
-            "예: 예방 가능한 질병으로부터 보호받는 아이들이 늘어난다.",
-            "예: 감염병에 취약한 아이들이 늘어날 수 있다.",
-        ),
-        "모성 사망비": (
-            "예: 임신과 출산 과정에서 생명을 잃는 여성이 늘어난다.",
-            "예: 더 많은 여성이 안전하게 임신과 출산을 할 수 있다.",
-        ),
         "인터넷 이용률(%)": (
             "예: 더 많은 사람이 온라인 정보와 교육 기회를 얻는다.",
             "예: 정보 접근이 어려운 사람이 늘어날 수 있다.",
@@ -694,42 +599,6 @@ def life_change_placeholders(y_label):
         "도시화율(%)": (
             "예: 도시의 일자리와 교육·의료 서비스를 이용하는 사람이 늘어난다.",
             "예: 지역에 따라 일자리와 공공서비스 기회가 부족할 수 있다.",
-        ),
-        "65세 이상 인구 비율(%)": (
-            "예: 돌봄, 의료, 연금에 대한 필요가 커진다.",
-            "예: 노년층 돌봄 부담은 줄 수 있지만 세대 구성이 달라진다.",
-        ),
-        "합계출산율(명)": (
-            "예: 태어나는 아이 수가 늘어나 교육과 돌봄 수요가 커진다.",
-            "예: 미래 세대 규모가 줄어 지역과 일자리 구조가 달라질 수 있다.",
-        ),
-        "청년실업률(%)": (
-            "예: 일자리를 찾지 못해 미래를 준비하기 어려운 청년이 늘어난다.",
-            "예: 더 많은 청년이 일 경험과 소득을 얻을 수 있다.",
-        ),
-        "R&D 지출 비중(%)": (
-            "예: 새로운 기술과 산업을 준비하는 투자가 늘어난다.",
-            "예: 미래 산업을 위한 연구 기반이 약해질 수 있다.",
-        ),
-        "중고위기술 제조업 비중(%)": (
-            "예: 기술 수준이 높은 제조업의 역할이 커진다.",
-            "예: 고부가가치 산업의 성장 기반이 약해질 수 있다.",
-        ),
-        "제조업 부가가치 비중(%)": (
-            "예: 제조업이 경제에서 만들어 내는 가치가 커진다.",
-            "예: 제조업 일자리와 산업 기반의 비중이 줄어들 수 있다.",
-        ),
-        "재생에너지 비중(%)": (
-            "예: 깨끗한 에너지를 사용하는 비중이 늘어난다.",
-            "예: 화석연료 의존을 줄이는 속도가 느려질 수 있다.",
-        ),
-        "1인당 CO2 배출량": (
-            "예: 한 사람이 배출하는 온실가스 부담이 커진다.",
-            "예: 기후에 주는 부담이 줄어들 수 있다.",
-        ),
-        "PM2.5 평균 노출": (
-            "예: 초미세먼지에 노출되는 정도가 커져 건강 위험이 늘어난다.",
-            "예: 더 깨끗한 공기를 마실 가능성이 커진다.",
         ),
         "강제이주민 수(백만 명)": (
             "예: 집을 떠나야 하는 사람이 늘어난다.",
@@ -751,18 +620,6 @@ def life_change_placeholders(y_label):
             "예: 숲이 늘어나 공기 질과 생물 서식지에 도움이 된다.",
             "예: 숲이 줄어들어 생물 서식지와 기후에 문제가 생길 수 있다.",
         ),
-        "고의살인율": (
-            "예: 폭력으로 생명을 잃는 사람이 늘어나 사회의 안전이 약해진다.",
-            "예: 더 많은 사람이 안전한 환경에서 살아갈 수 있다.",
-        ),
-        "분쟁 관련 사망률": (
-            "예: 분쟁으로 생명을 잃는 사람이 늘어나 평화로운 삶이 위협받는다.",
-            "예: 분쟁 피해가 줄어 더 안정적인 삶을 기대할 수 있다.",
-        ),
-        "미결구금 비율(%)": (
-            "예: 재판이 끝나기 전 구금되는 사람의 비중이 커진다.",
-            "예: 형사 절차에서 오래 기다리는 사람이 줄어들 수 있다.",
-        ),
     }
     return examples.get(
         y_label,
@@ -775,6 +632,22 @@ def life_change_placeholders(y_label):
 
 def strip_example_prefix(text):
     return str(text).removeprefix("예: ").strip()
+
+
+def selected_life_change(y_label):
+    direction = st.session_state.get("d8_life_direction")
+    if direction == "커질 때":
+        direction = "증가한다"
+    elif direction == "작아질 때":
+        direction = "감소한다"
+    if direction not in ["증가한다", "감소한다"]:
+        if clean_text(st.session_state.get("d8_y_decrease_life", "")):
+            direction = "감소한다"
+        else:
+            direction = "증가한다"
+    life_phrase = "커질 때" if direction == "증가한다" else "작아질 때"
+    key = "d8_y_increase_life" if direction == "증가한다" else "d8_y_decrease_life"
+    return direction, f"{y_label} 값이 {life_phrase}", clean_text(st.session_state.get(key, ""))
 
 
 def trend_based_life_example(y_label, trend_text):
@@ -820,24 +693,8 @@ def selected_xy_data(dataset_name):
     return clean_table[x_label].to_numpy(float), clean_table[y_label].to_numpy(float), x_label, y_label
 
 
-def calculate_function(function_type, x_values, params):
+def calculate_function(x_values, params):
     x_arr = np.asarray(x_values, dtype=float)
-    if function_type == "일차함수":
-        return params["a"] * x_arr + params["b"], np.ones_like(x_arr, dtype=bool)
-    if function_type == "이차함수":
-        return params["a"] * (x_arr - params["p"]) ** 2 + params["q"], np.ones_like(x_arr, dtype=bool)
-    if function_type == "유리함수":
-        denom = x_arr - params["p"]
-        mask = np.abs(denom) > 1e-8
-        y_arr = np.full_like(x_arr, np.nan, dtype=float)
-        y_arr[mask] = params["a"] / denom[mask] + params["q"]
-        return y_arr, mask
-    if "sign" not in params:
-        radicand = x_arr - params["p"]
-        mask = radicand >= 0
-        y_arr = np.full_like(x_arr, np.nan, dtype=float)
-        y_arr[mask] = params["a"] * np.sqrt(radicand[mask]) + params["q"]
-        return y_arr, mask
     radicand = float(params["a"]) * (x_arr - params["p"])
     mask = radicand >= 0
     y_arr = np.full_like(x_arr, np.nan, dtype=float)
@@ -846,38 +703,9 @@ def calculate_function(function_type, x_values, params):
     return y_arr, mask
 
 
-def fit_default_params(function_type, x_data, y_data):
+def fit_default_params(x_data, y_data):
     x = np.asarray(x_data, dtype=float)
     y = np.asarray(y_data, dtype=float)
-    if function_type == "일차함수":
-        a, b = np.polyfit(x, y, 1)
-        return {"a": float(a), "b": float(b)}
-    if function_type == "이차함수":
-        coef = np.polyfit(x, y, 2)
-        a = float(coef[0]) if abs(coef[0]) > 1e-8 else 0.01
-        p = float(-coef[1] / (2 * a))
-        q = float(np.polyval(coef, p))
-        return {"a": a, "p": p, "q": q}
-    if function_type == "유리함수":
-        x_span = max(float(np.max(x) - np.min(x)), 1.0)
-        candidates = np.concatenate(
-            [
-                np.linspace(float(np.min(x) - x_span), float(np.min(x) - x_span * 0.05), 20),
-                np.linspace(float(np.max(x) + x_span * 0.05), float(np.max(x) + x_span), 20),
-            ]
-        )
-        best_params, best_loss = None, float("inf")
-        for p in candidates:
-            basis = 1 / (x - p)
-            if not np.all(np.isfinite(basis)):
-                continue
-            a, q = np.linalg.lstsq(np.column_stack([basis, np.ones_like(x)]), y, rcond=None)[0]
-            pred = a * basis + q
-            loss = float(np.mean((y - pred) ** 2))
-            if loss < best_loss:
-                best_loss = loss
-                best_params = {"a": float(a), "p": float(p), "q": float(q)}
-        return best_params or {"a": float((max(y) - min(y)) * max(max(x) - min(x), 1)), "p": float(min(x) - 1), "q": float(np.mean(y))}
     x_span = max(float(np.max(x) - np.min(x)), 1.0)
     candidates = np.linspace(float(np.min(x) - x_span), float(np.min(x) - 1e-6), 40)
     best_params, best_loss = None, float("inf")
@@ -892,179 +720,76 @@ def fit_default_params(function_type, x_data, y_data):
     return best_params or {"sign": 1.0, "a": 1.0, "p": float(min(x) - 1), "q": float(min(y))}
 
 
-def shifted_initial(center, half_width, direction=1.0):
-    return float(center + direction * half_width * 0.45)
-
-
-def render_parameter_slider(function_type, name, label, min_value, max_value, value, step, key):
-    selected_value = st.slider(label, min_value, max_value, value, step, key=key)
-    color = PARAM_COLORS.get(name, "#1565c0")
-    st.markdown(
-        f"""
-        <div class="param-meaning-card" style="background:#f8fbff;border:1px solid {color};border-radius:10px;
-            padding:10px 12px;margin:10px 0 4px 0;">
-            <div style="font-size:0.84rem;font-weight:900;color:{color};margin-bottom:3px;">변수의 의미</div>
-            <div style="font-size:0.94rem;line-height:1.5;color:#37474f;">
-                <b style="color:{color};font-size:1.05rem;">{html.escape(name)}</b>: {html.escape(param_role_text(function_type, name))}
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-    return selected_value
-
-
-def get_parameters(function_type, x_data, y_data):
-    defaults = fit_default_params(function_type, x_data, y_data)
-    st.session_state["d8_optimal_params"] = defaults
-    x_span = max(float(max(x_data) - min(x_data)), 1.0)
-    y_span = max(float(max(y_data) - min(y_data)), 1.0)
+def get_parameters(x_data, y_data):
+    defaults = fit_default_params(x_data, y_data)
     slider_context = (
-        function_type,
         round(float(min(x_data)), 6),
         round(float(max(x_data)), 6),
         round(float(min(y_data)), 6),
         round(float(max(y_data)), 6),
     )
     if st.session_state.get("d8_slider_context") != slider_context:
-        slider_keys = ["d8_linear_a", "d8_linear_b", "d8_u_radical_sign"]
-        for option in FUNCTION_OPTIONS:
-            slider_keys.extend([f"d8_{option}_a", f"d8_{option}_p", f"d8_{option}_q"])
+        slider_keys = ["d8_u_radical_sign", "d8_무리함수_a"]
         for key in slider_keys:
             st.session_state.pop(key, None)
         st.session_state["d8_slider_context"] = slider_context
     params = {}
-    if function_type == "일차함수":
-        a_half = max(abs(defaults["a"]) * 0.25, y_span / x_span * 0.12)
-        b_half = max(abs(defaults["b"]) * 0.05, y_span * 0.12)
-        slider_specs = [
-            (
-                "a",
-                "a: 기울기",
-                float(defaults["a"] - a_half),
-                float(defaults["a"] + a_half),
-                shifted_initial(defaults["a"], a_half, 1),
-                float(max(a_half / 50, 1e-4)),
-                "d8_linear_a",
-            ),
-            (
-                "b",
-                "b: y절편",
-                float(defaults["b"] - b_half),
-                float(defaults["b"] + b_half),
-                shifted_initial(defaults["b"], b_half, -1),
-                float(max(b_half / 50, 1e-4)),
-                "d8_linear_b",
-            ),
-        ]
-    elif function_type == "무리함수":
-        default_sign = "+" if float(defaults.get("sign", 1.0)) >= 0 else "-"
-        st.session_state.setdefault("d8_u_radical_sign", default_sign)
-        if st.session_state["d8_u_radical_sign"] not in ["+", "-"]:
-            st.session_state["d8_u_radical_sign"] = default_sign
+    default_sign = "+" if float(defaults.get("sign", 1.0)) >= 0 else "-"
+    st.session_state.setdefault("d8_u_radical_sign", default_sign)
+    if st.session_state["d8_u_radical_sign"] not in ["+", "-"]:
+        st.session_state["d8_u_radical_sign"] = default_sign
 
-        formula_col, sign_col, a_col = st.columns([1.2, 0.8, 1.5], gap="small")
-        with formula_col:
-            render_radical_shifted_formula_html(
-                sign_text="±",
-                a_text="a",
-                p_text="- p",
-                q_text="+ q",
-                title="일반화된 함수",
-                extra_class="u-radical-formula",
-            )
-        with sign_col:
-            render_radical_control_label("sign", "±", "근호 앞의 부호")
-            sign_button_cols = st.columns(2, gap="small")
-            with sign_button_cols[0]:
-                if st.button(
-                    r"\+",
-                    key="d8_u_radical_sign_plus",
-                    type="primary" if st.session_state["d8_u_radical_sign"] == "+" else "secondary",
-                    use_container_width=True,
-                ):
-                    st.session_state["d8_u_radical_sign"] = "+"
-            with sign_button_cols[1]:
-                if st.button(
-                    r"\-",
-                    key="d8_u_radical_sign_minus",
-                    type="primary" if st.session_state["d8_u_radical_sign"] == "-" else "secondary",
-                    use_container_width=True,
-                ):
-                    st.session_state["d8_u_radical_sign"] = "-"
-        with a_col:
-            a_default = float(max(defaults["a"], 1e-6))
-            a_half = max(a_default * 0.45, 0.01)
-            a_min = float(max(a_default - a_half, 1e-6))
-            a_max = float(a_default + a_half)
-            initial_a = float(min(max(a_default * 0.85, a_min), a_max))
-            current_a = float(st.session_state.get("d8_무리함수_a", initial_a))
-            if not (a_min <= current_a <= a_max):
-                st.session_state.pop("d8_무리함수_a", None)
-            render_radical_control_label("a", "a", "근호 안 x의 계수")
-            params["a"] = st.slider(
-                "a: x의 계수 (a>0)",
-                a_min,
-                a_max,
-                initial_a,
-                float(max(a_half / 50, 1e-4)),
-                key="d8_무리함수_a",
-                label_visibility="collapsed",
-            )
-        params["sign"] = 1.0 if st.session_state["d8_u_radical_sign"] == "+" else -1.0
-        params["p"] = float(defaults["p"])
-        params["q"] = float(defaults["q"])
-        return params
-    else:
-        if function_type == "이차함수":
-            a_half = max(abs(defaults["a"]) * 0.35, y_span / (x_span**2) * 0.08)
-        else:
-            a_half = max(abs(defaults["a"]) * 0.30, y_span * x_span * 0.08)
-        p_half = x_span * 0.12
-        q_half = y_span * 0.12
-        slider_specs = [
-            (
-                "a",
-                "a: 변화 방향과 세기",
-                float(defaults["a"] - a_half),
-                float(defaults["a"] + a_half),
-                shifted_initial(defaults["a"], a_half, 1),
-                float(max(a_half / 50, 1e-4)),
-                f"d8_{function_type}_a",
-            ),
-            (
-                "p",
-                "p: 좌우 이동",
-                float(defaults["p"] - p_half),
-                float(defaults["p"] + p_half),
-                shifted_initial(defaults["p"], p_half, -1),
-                float(max(p_half / 50, 1e-4)),
-                f"d8_{function_type}_p",
-            ),
-            (
-                "q",
-                "q: 위아래 이동",
-                float(defaults["q"] - q_half),
-                float(defaults["q"] + q_half),
-                shifted_initial(defaults["q"], q_half, 1),
-                float(max(q_half / 50, 1e-4)),
-                f"d8_{function_type}_q",
-            ),
-        ]
-
-    slider_cols = st.columns(len(slider_specs))
-    for col, (name, label, min_value, max_value, value, step, key) in zip(slider_cols, slider_specs):
-        with col:
-            params[name] = render_parameter_slider(
-                function_type,
-                name,
-                label,
-                min_value,
-                max_value,
-                value,
-                step,
-                key,
-            )
+    formula_col, sign_col, a_col = st.columns([1.2, 0.8, 1.5], gap="small")
+    with formula_col:
+        render_radical_shifted_formula_html(
+            sign_text="±",
+            a_text="a",
+            p_text="- p",
+            q_text="+ q",
+            title="일반화된 함수",
+            extra_class="u-radical-formula",
+        )
+    with sign_col:
+        render_radical_control_label("sign", "±", "근호 앞의 부호")
+        sign_button_cols = st.columns(2, gap="small")
+        with sign_button_cols[0]:
+            if st.button(
+                r"\+",
+                key="d8_u_radical_sign_plus",
+                type="primary" if st.session_state["d8_u_radical_sign"] == "+" else "secondary",
+                use_container_width=True,
+            ):
+                st.session_state["d8_u_radical_sign"] = "+"
+        with sign_button_cols[1]:
+            if st.button(
+                r"\-",
+                key="d8_u_radical_sign_minus",
+                type="primary" if st.session_state["d8_u_radical_sign"] == "-" else "secondary",
+                use_container_width=True,
+            ):
+                st.session_state["d8_u_radical_sign"] = "-"
+    with a_col:
+        a_default = float(max(defaults["a"], 1e-6))
+        a_half = max(a_default * 0.45, 0.01)
+        a_min = float(max(a_default - a_half, 1e-6))
+        a_max = float(a_default + a_half)
+        initial_a = float(min(max(a_default * 0.85, a_min), a_max))
+        current_a = float(st.session_state.get("d8_무리함수_a", initial_a))
+        if not (a_min <= current_a <= a_max):
+            st.session_state.pop("d8_무리함수_a", None)
+        render_radical_control_label("a", "a", "근호 안 x의 계수")
+        params["a"] = st.slider(
+            "a: x의 계수 (a>0)",
+            a_min,
+            a_max,
+            initial_a,
+            float(max(a_half / 50, 1e-4)),
+            key="d8_무리함수_a",
+            label_visibility="collapsed",
+        )
+    params["sign"] = 1.0 if st.session_state["d8_u_radical_sign"] == "+" else -1.0
+    params["p"] = float(defaults["p"])
+    params["q"] = float(defaults["q"])
     return params
 
 
@@ -1077,23 +802,15 @@ def calculate_loss(actual_y, predicted_y, valid_mask):
     return float(np.mean((actual[mask] - pred[mask]) ** 2)), int(np.sum(mask))
 
 
-def build_function_text(function_type, params):
-    if function_type == "일차함수":
-        return f"f(x) = {params['a']:.2f}x + {params['b']:.2f}"
-    if function_type == "이차함수":
-        return f"f(x) = {params['a']:.2f}(x - {params['p']:.2f})^2 + {params['q']:.2f}"
-    if function_type == "유리함수":
-        return f"f(x) = {params['a']:.2f} / (x - {params['p']:.2f}) + {params['q']:.2f}"
-    if "sign" not in params:
-        return f"f(x) = {params['a']:.2f}sqrt(x - {params['p']:.2f}) + {params['q']:.2f}"
+def build_function_text(params):
     sign_text = "+" if float(params.get("sign", 1.0)) >= 0 else "-"
     return f"f(x) = {sign_text}sqrt({params['a']:.2f}(x - {params['p']:.2f})) + {params['q']:.2f}"
 
 
-def render_estimated_function_strip(function_type, params):
+def render_estimated_function_strip(params):
     st.markdown(
         rf"""
-> **추세선** &nbsp;&nbsp; $\large {function_latex(function_type, params)}$
+> **추세선(무리함수)** &nbsp;&nbsp; $\large {function_latex(params)}$
 """
     )
 
@@ -1102,19 +819,10 @@ def signed_latex_number(value):
     return f"+ {abs(value):.2f}" if value >= 0 else f"- {abs(value):.2f}"
 
 
-def function_latex(function_type, params):
+def function_latex(params):
     a = float(params["a"])
-    if function_type == "일차함수":
-        b = float(params["b"])
-        return rf"f(x)={a:.2f}x {signed_latex_number(b)}"
     p = float(params["p"])
     q = float(params["q"])
-    if function_type == "이차함수":
-        return rf"f(x)={a:.2f}(x {signed_latex_number(-p)})^2 {signed_latex_number(q)}"
-    if function_type == "유리함수":
-        return rf"f(x)=\frac{{{a:.2f}}}{{x {signed_latex_number(-p)}}} {signed_latex_number(q)}"
-    if "sign" not in params:
-        return rf"f(x)={a:.2f}\sqrt{{x {signed_latex_number(-p)}}} {signed_latex_number(q)}"
     sign_text = "+" if float(params.get("sign", 1.0)) >= 0 else "-"
     return rf"f(x)={sign_text}\sqrt{{{a:.2f}(x {signed_latex_number(-p)})}} {signed_latex_number(q)}"
 
@@ -1282,8 +990,8 @@ def render_function_graph_practice():
     with function_col:
         render_radical_formula_html(title="일반화된 함수")
     radical_check_options = [
-        "항상 같은 만큼 변한다.",
-        "같은 만큼 변하지 않는다.",
+        "일정하다.",
+        "일정하지 않다.",
     ]
     if st.session_state.get("d8_radical_understanding") not in radical_check_options:
         st.session_state["d8_radical_understanding"] = None
@@ -1360,7 +1068,7 @@ def render_function_graph_practice():
         )
 
     with st.expander("[예시] 오개념 확인", expanded=False):
-        st.markdown("**x가 같은 만큼 증가하면 y의 변화량도 항상 같을까요?**")
+        st.markdown("**x가 같은 간격으로 증가할때 y의 변화량?**")
         radical_answer = st.radio(
             "x가 같은 만큼 증가하면 함숫값도 항상 같은 만큼 변할까요?",
             radical_check_options,
@@ -1368,39 +1076,22 @@ def render_function_graph_practice():
             index=None,
             label_visibility="collapsed",
         )
-        if radical_answer == "같은 만큼 변하지 않는다.":
+        if radical_answer == "일정하지 않다.":
             st.success("정답입니다. 무리함수는 곡선이므로 x가 같은 간격으로 증가해도 y의 변화량은 일정하지 않습니다.")
-        elif radical_answer == "항상 같은 만큼 변한다.":
+        elif radical_answer == "일정하다.":
             st.error("다시 생각해 봅시다. 그래프가 직선이 아니기 때문에 같은 x 간격에서도 y의 변화량은 달라집니다.")
 
-def param_role_text(function_type, name):
-    roles = {
-        "일차함수": {
-            "a": "그래프의 방향과 기울기를 정합니다.",
-            "b": "그래프를 위아래로 움직입니다.",
-        },
-        "이차함수": {
-            "a": "그래프의 방향과 폭을 정합니다.",
-            "p": "꼭짓점을 좌우로 움직입니다.",
-            "q": "꼭짓점을 위아래로 움직입니다.",
-        },
-        "유리함수": {
-            "a": "그래프의 방향과 벌어진 정도를 정합니다.",
-            "p": "세로 점근선을 좌우로 움직입니다.",
-            "q": "가로 점근선을 위아래로 움직입니다.",
-        },
-        "무리함수": {
-            "sign": "+는 증가, -는 감소 방향입니다.",
-            "a": "a>0, 클수록 더 빠르게 변합니다.",
-            "p": "좌우 이동값입니다. 여기서는 고정합니다.",
-            "q": "위아래 이동값입니다. 여기서는 고정합니다.",
-        },
-    }
-    return roles.get(function_type, {}).get(name, "그래프의 모양을 조정하는 값입니다.")
+
+def radical_understanding_result(answer):
+    if answer == "일정하지 않다.":
+        return "정답"
+    if answer == "일정하다.":
+        return "오답"
+    return "아직 확인하지 않았습니다."
 
 
-def predict_value(function_type, x_value, params):
-    y, mask = calculate_function(function_type, [x_value], params)
+def predict_value(x_value, params):
+    y, mask = calculate_function([x_value], params)
     return None if not mask[0] or not np.isfinite(y[0]) else float(y[0])
 
 
@@ -1447,7 +1138,6 @@ def prediction_trend_sentence(params):
 def make_plot(
     x_data,
     y_data,
-    function_type,
     params,
     new_x=None,
     predicted_y=None,
@@ -1465,20 +1155,14 @@ def make_plot(
     plot_min = min(float(np.min(x_arr)), float(new_x) if new_x is not None else float(np.min(x_arr))) - x_span * 0.15
     plot_max = max(float(np.max(x_arr)), float(new_x) if new_x is not None else float(np.max(x_arr))) + x_span * 0.15
     x_line = np.linspace(plot_min, plot_max, 500)
-    y_line, valid_line = calculate_function(function_type, x_line, params)
+    y_line, valid_line = calculate_function(x_line, params)
 
     fig, ax = plt.subplots(figsize=figsize)
     if show_data:
         ax.scatter(x_arr, y_arr, color="#1f77b4", s=80, label="실제 데이터", zorder=3)
         add_trend_ellipse(ax, x_arr, y_arr)
-    if function_type == "유리함수":
-        p_value = float(params.get("p", 0.0))
-        q_value = float(params.get("q", 0.0))
-        if plot_min <= p_value <= plot_max:
-            ax.axvline(p_value, color="#ef6c00", linestyle="--", linewidth=1.5, label=f"세로 점근선 x={p_value:.2f}")
-        ax.axhline(q_value, color="#7b1fa2", linestyle="--", linewidth=1.5, label=f"가로 점근선 y={q_value:.2f}")
     if show_function:
-        ax.plot(x_line[valid_line], y_line[valid_line], color="#d62728", linewidth=2.4, label="함수 그래프")
+        ax.plot(x_line[valid_line], y_line[valid_line], color="#000000", linewidth=3.6, label="함수 그래프")
     if show_prediction and predicted_y is not None:
         ax.scatter([new_x], [predicted_y], color="#2ca02c", marker="*", s=420, label="예측점", zorder=4)
         ax.annotate(
@@ -1570,6 +1254,7 @@ def render_u_attempt_tracker(current_params, current_loss):
                 rows.append(
                     {
                         "시도": idx + 1,
+                        "a 값": format_optional_number(attempt["params"].get("a")),
                         "손실": f"{format_optional_number(attempt['loss'])}{' ⭐' if is_best else ''}",
                         "_best": is_best,
                     }
@@ -1578,10 +1263,10 @@ def render_u_attempt_tracker(current_params, current_loss):
 
             def highlight_best(row):
                 if row["_best"]:
-                    return ["background-color: #fff8e1; color: #ef6c00; font-weight: 900"] * 2
-                return [""] * 2
+                    return ["background-color: #fff8e1; color: #ef6c00; font-weight: 900"] * 3
+                return [""] * 3
 
-            styled_df = display_df[["시도", "손실"]].style.apply(
+            styled_df = display_df[["시도", "a 값", "손실"]].style.apply(
                 lambda row: highlight_best(display_df.loc[row.name]),
                 axis=1,
             )
@@ -1702,26 +1387,21 @@ def build_cardnews_prompt(topic, life_view, future_text, future_question):
         trend_visual = "아래 방향 화살표 1개"
     else:
         trend_visual = "부드러운 방향 화살표 1개"
-    return f"""GPT 이미지 생성으로 카드뉴스 3장을 만들어 주세요.
+    return f"""GPT 이미지 생성으로 카드뉴스 2장을 만들어 주세요.
 
-- 1080×1080px 정사각형 이미지 3장
+- 1080×1080px 정사각형 이미지 2장
 - 각 장은 별도 이미지 파일
 - 1~2분 안에 생성될 정도로 아주 단순하게 구성
 - 단색 파스텔 배경, 큰 한글 글씨, 단순 일러스트 1개
 - 복잡한 그래프, 많은 숫자, 긴 설명, 세밀한 배경 금지
 - 아래 문구 외의 설명 문구는 추가하지 않기
 
-### 1/3
+### 1/2
 제목: 숫자가 들려준 삶의 이야기
-문구: {topic} 데이터
-그림: 주제를 상징하는 단순 일러스트 1개
+문구: {topic} 데이터 - {life_view}
+그림: 주제와 삶의 모습을 함께 나타내는 단순 일러스트 1개
 
-### 2/3
-제목: 데이터가 보여 준 삶
-문구: {life_view}
-그림: 삶의 모습을 나타내는 단순 일러스트 1개
-
-### 3/3
+### 2/2
 제목: 더 나은 미래 질문
 문구: {future_question}
 작은 문구: {future_text}
@@ -1753,7 +1433,7 @@ def render_gpt_gallery_links(class_key):
 def run():
     apply_local_style()
     page_banner(
-        "질문으로 깨우고 함수로 예측하는 데이터 탐구",
+        "데이터에서 삶을 읽고 무리함수로 미래 예측하기",
         "",
         "",
     )
@@ -1761,7 +1441,6 @@ def run():
     st.session_state.setdefault("d8_group", "우리 모둠")
     st.session_state.setdefault("d8_class", CLASS_OPTIONS[0])
     st.session_state.setdefault("d8_dataset", TEACHER_DEMO_DATASET)
-    st.session_state.setdefault("d8_function", TARGET_FUNCTION)
     ensure_xy_columns(st.session_state["d8_dataset"])
     x_data, y_data, x_label, y_label = selected_xy_data(st.session_state["d8_dataset"])
     st.session_state.setdefault("d8_new_x", float(max(x_data) + (x_data[1] - x_data[0] if len(x_data) > 1 else 1)))
@@ -1779,9 +1458,9 @@ def run():
 
     with tabs[0]:
         stage_intro(
-            "F.U 문제 발견: 숫자 속 삶의 모습 발견하기",
+            "F.U 숫자 속 삶의 모습 발견하기",
             "UN이 제시한 모두가 더 나은 삶을 살아갈 수 있는 지속가능한 미래를 만들기 위한 공동목표(SDG) 중 관심있는 지표를 선택하고, 지표의 숫자가 커지거나 작아질 때 사람들의 삶에서 어떤 모습이 나타나는지 생각합니다.",
-            "이 지표의 숫자 뒤에는 어떤 삶의 모습이 담겨 있을까",
+            "이 데이터셋의 숫자 뒤에는 어떤 삶의 모습이 담겨 있을까?",
             "#ffebee",
             "#ffcdd2",
         )
@@ -1885,41 +1564,50 @@ Quick, Draw! AI가 그림을 어떻게 예측하는지 봅시다.
                 x_data, y_data, x_label, y_label = selected_xy_data(dataset_name)
 
             with question_col:
-                st.markdown(pretty_title("2. 문제제기 질문 만들기", "#ffebee", "#ffcdd2"), unsafe_allow_html=True)
+                st.markdown(pretty_title("2. 지표 속 삶의 모습 발견하기", "#ffebee", "#ffcdd2"), unsafe_allow_html=True)
                 render_stage_card(
-                    "지표 속 삶의 모습 발견하기",
+                    "변화 경향과 삶의 모습 예상하기",
                     "지표의 값이 직접 나타내는 삶의 모습을 중심으로 작성하세요.",
                     "red",
                     "문제제기",
                 )
-                example_y_label = "5세 미만 사망률(%) (예시)"
-                increase_placeholder, decrease_placeholder = life_change_placeholders(example_y_label)
-                st.text_area(
-                    f"{y_label} 값이 커질 때 사람들의 삶에서는 어떤 모습이 나타날까요?",
-                    key="d8_y_increase_life",
-                    height=82,
-                    placeholder=increase_placeholder,
+                life_direction_options = ["증가한다", "감소한다"]
+                if st.session_state.get("d8_life_direction") == "커질 때":
+                    st.session_state["d8_life_direction"] = "증가한다"
+                elif st.session_state.get("d8_life_direction") == "작아질 때":
+                    st.session_state["d8_life_direction"] = "감소한다"
+                if st.session_state.get("d8_life_direction") not in life_direction_options:
+                    st.session_state["d8_life_direction"] = "증가한다"
+                selected_life_direction = st.radio(
+                    f"시간에 따라 출력 변수 y({y_label})가 어떻게 변할 것으로 예상하나요?",
+                    life_direction_options,
+                    key="d8_life_direction",
+                    horizontal=True,
                 )
+                increase_placeholder, decrease_placeholder = life_change_placeholders("5세 미만 사망률(%) (예시)")
+                selected_life_phrase = "커질 때" if selected_life_direction == "증가한다" else "작아질 때"
+                selected_life_key = "d8_y_increase_life" if selected_life_direction == "증가한다" else "d8_y_decrease_life"
+                selected_placeholder = increase_placeholder if selected_life_direction == "증가한다" else decrease_placeholder
                 st.text_area(
-                    f"{y_label} 값이 작아질 때 사람들의 삶에서는 어떤 모습이 나타날까요?",
-                    key="d8_y_decrease_life",
-                    height=82,
-                    placeholder=decrease_placeholder,
+                    f"예상대로 {y_label} 값이 {selected_life_phrase} 사람들의 삶에서는 어떤 모습이 나타날까요?",
+                    key=selected_life_key,
+                    height=120,
+                    placeholder=selected_placeholder,
                 )
-                st.caption("예시 자료: 5세 미만 사망률(%) (예시)를 기준으로 작성된 예시입니다.")
             default_new_x = float(max(x_data) + (x_data[1] - x_data[0] if len(x_data) > 1 else 1))
             if st.session_state.get("d8_new_x_dataset") != dataset_name:
                 st.session_state["d8_new_x"] = default_new_x
                 st.session_state["d8_new_x_dataset"] = dataset_name
             if st.button("F.U 단계 저장", use_container_width=True):
+                selected_direction, _, selected_life_text = selected_life_change(y_label)
                 save_stage_snapshot(
                     1,
                     "F.U 단계: 실생활 문제와 주요 변수 발견하기",
                     [
                         ("자료 묶음", dataset_name),
                         ("선택한 두 변수", f"{x_label}, {y_label}"),
-                        (f"{y_label} 값이 커질 때 삶의 모습", st.session_state.get("d8_y_increase_life", "")),
-                        (f"{y_label} 값이 작아질 때 삶의 모습", st.session_state.get("d8_y_decrease_life", "")),
+                        ("예상한 y 변화", f"시간에 따라 {y_label} 값이 {selected_direction}"),
+                        ("작성한 삶의 모습", selected_life_text or "아직 작성하지 않았습니다."),
                     ],
                 )
             saved_stage_caption(1)
@@ -1930,51 +1618,63 @@ Quick, Draw! AI가 그림을 어떻게 예측하는지 봅시다.
         stage_intro(
             "T 무리함수 그래프 특징 탐구하기",
             "근호 앞의 부호와 a를 조절하며 그래프의 증가·감소와 변화 정도를 살펴봅니다.",
-            "데이터의 변화 경향을 무리함수의 그래프로 어떻게 나타낼 수 있을까?",
+            "무리함수의 그래프를 관찰하면 어떤 특징을 발견할 수 있을까?",
             "#e8f5e9",
             "#c8e6c9",
         )
         with st.container(border=True):
             render_function_graph_practice()
+            radical_answer = st.session_state.get("d8_radical_understanding")
+            if st.button("T 단계 저장", use_container_width=True):
+                save_stage_snapshot(
+                    2,
+                    "T 단계: 무리함수 그래프 특징 탐구하기",
+                    [
+                        ("탐구한 함수", r"y=±√(ax)"),
+                        ("근호 앞의 부호", st.session_state.get("d8_practice_radical_sign", "")),
+                        ("a 값", str(st.session_state.get("d8_practice_radical_a_positive", ""))),
+                        ("오개념 확인 문제", "x가 같은 만큼 증가하면 함숫값도 항상 같은 만큼 변할까요?"),
+                        ("체크한 답", radical_answer or "아직 체크하지 않았습니다."),
+                        ("정답 여부", radical_understanding_result(radical_answer)),
+                    ],
+                )
+            saved_stage_caption(2)
 
     with tabs[2]:
         dataset_name = st.session_state["d8_dataset"]
         x_data, y_data, x_label, y_label = selected_xy_data(dataset_name)
         stage_intro(
-            "U 무리함수로 예측하기",
+            "U 무리함수로 미래를 예측하기",
             "무리함수 y=±√(a(x-p))+q에서 근호 앞의 부호와 양수 a를 조절하며 손실값을 줄이고, 선택한 x값에서 y값을 예측합니다.",
-            "데이터의 변화 경향을 가장 잘 설명하는 무리함수는 무엇일까?",
+            "데이터의 경향을 가장 잘 설명하는 무리함수는 무엇이며, 그 한계는 무엇일까?",
             "#f3e5f5",
             "#e1bee7",
         )
         with st.container(border=True):
             render_stage_card(
                 "추세선을 조절해 예측합니다",
-                "",
+                "근호 앞의 부호와 양수 a 값을 조절해 그래프가 데이터에 가까워지도록 만들고, 손실값을 비교한 뒤 선택한 x값의 y값을 예측합니다. 마지막에는 데이터 분석의 한계를 생각하며 무리함수가 데이터를 얼마나 잘 나타내는지 판단하고, 팩트풀니스 본능 관점으로 그 이유를 정리합니다.",
                 "purple",
                 "AI 이해",
             )
-            function_type = TARGET_FUNCTION
-            st.session_state["d8_function"] = function_type
             attempt_context = (dataset_name, x_label, y_label)
             if st.session_state.get("d8_u_attempt_context") != attempt_context:
                 st.session_state["d8_u_attempts"] = []
                 st.session_state["d8_u_attempt_context"] = attempt_context
-            params = get_parameters(function_type, x_data, y_data)
-            predicted_data_y, valid_data_mask = calculate_function(function_type, x_data, params)
+            params = get_parameters(x_data, y_data)
+            predicted_data_y, valid_data_mask = calculate_function(x_data, params)
             loss, _ = calculate_loss(y_data, predicted_data_y, valid_data_mask)
             params = render_u_attempt_tracker(params, loss)
-            predicted_data_y, valid_data_mask = calculate_function(function_type, x_data, params)
+            predicted_data_y, valid_data_mask = calculate_function(x_data, params)
             loss, _ = calculate_loss(y_data, predicted_data_y, valid_data_mask)
             st.session_state["d8_params"] = params
-            st.session_state["d8_function_type"] = function_type
             default_new_x = float(max(x_data) + (x_data[1] - x_data[0] if len(x_data) > 1 else 1))
             if "d8_new_x" not in st.session_state:
                 st.session_state["d8_new_x"] = default_new_x
             st.session_state["d8_new_x"] = float(round(st.session_state["d8_new_x"]))
             new_x = float(st.session_state.get("d8_new_x", default_new_x))
-            predicted_y = predict_value(function_type, float(new_x), params)
-            render_estimated_function_strip(function_type, params)
+            predicted_y = predict_value(float(new_x), params)
+            render_estimated_function_strip(params)
             toggle_cols = st.columns(3, gap="small")
             with toggle_cols[0]:
                 show_data = st.checkbox("데이터", value=True, key="d8_show_graph_data")
@@ -1986,7 +1686,6 @@ Quick, Draw! AI가 그림을 어떻게 예측하는지 봅시다.
                 make_plot(
                     x_data,
                     y_data,
-                    function_type,
                     params,
                     float(new_x),
                     predicted_y,
@@ -2017,7 +1716,7 @@ Quick, Draw! AI가 그림을 어떻게 예측하는지 봅시다.
                     format="%.0f",
                     help=f"그래프에서 예측하고 싶은 독립 변수 {x_label} 값을 입력합니다.",
             )
-            predicted_y = predict_value(function_type, float(new_x), params)
+            predicted_y = predict_value(float(new_x), params)
             with value_col:
                 if predicted_y is not None:
                     trend_sentence = prediction_trend_sentence(params)
@@ -2045,7 +1744,7 @@ Quick, Draw! AI가 그림을 어떻게 예측하는지 봅시다.
                 else:
                     st.warning("선택한 함수의 정의역 때문에 예측값을 계산할 수 없습니다.")
 
-            with st.expander("[평가] 최적화", expanded=False):
+            with st.expander("데이터 분석의 한계", expanded=False):
                 st.markdown(
                     """
                     <div class="fit-eval-box" style="background:#f8fbff;border:1px solid #dbe7f3;border-radius:8px;
@@ -2064,30 +1763,42 @@ Quick, Draw! AI가 그림을 어떻게 예측하는지 봅시다.
                     ],
                     key="d8_fit_judgement",
                     index=None,
+                    horizontal=True,
                 )
                 fit_reason = ""
-                if fit_judgement in ["일부 구간에서 차이가 난다.", "무리함수로 나타내기 어렵다."]:
-                    fit_reason = st.text_area(
-                        "**2. 그렇게 판단한 이유를 간단히 작성하세요.**",
-                        key="d8_fit_reason_text",
-                        height=90,
-                        placeholder="예: 증가와 감소가 동시에 나타나기 때문이다.",
-                    )
-                elif fit_judgement == "비교적 잘 나타낸다.":
-                    fit_reason = "손실값과 그래프 모양을 볼 때 데이터의 흐름을 비교적 잘 나타낸다."
+                fit_lens = ""
+                if fit_judgement:
+                    lens_col, reason_col = st.columns(2)
+                    with lens_col:
+                        fit_lens = st.selectbox(
+                            "**2. 이유를 쓸 때 참고할 팩트풀니스 본능 관점을 선택하세요.**",
+                            list(FACTFULNESS_LENS_GUIDES.keys()),
+                            key="d8_fit_factfulness_lens",
+                            index=list(FACTFULNESS_LENS_GUIDES.keys()).index("직선 본능 점검"),
+                        )
+                        lens_info = FACTFULNESS_LENS_GUIDES[fit_lens]
+                        st.info(f"{fit_lens}: {lens_info['guide']}")
+                    with reason_col:
+                        fit_reason = st.text_area(
+                            f"**3. {fit_lens} 관점으로 그렇게 판단한 이유를 작성하세요.**",
+                            key="d8_fit_reason_text",
+                            height=145,
+                            placeholder=lens_info["placeholder"],
+                        )
     
-            function_text = build_function_text(function_type, params)
+            function_text = build_function_text(params)
     
             if st.button("U 단계 저장", use_container_width=True):
                 save_stage_snapshot(
                     3,
                     "U 단계: 무리함수 그래프로 예측값 찾기",
                     [
-                        ("사용한 함수", function_type),
+                        ("사용한 함수", "무리함수"),
                         ("함수식", function_text),
                         ("손실값", format_optional_number(loss)),
                         (f"예측할 x값({x_label}) / 예측값 y({y_label})", f"x={float(new_x):g}, y={predicted_y:.2f}" if predicted_y is not None else "계산 불가"),
                         ("적합성 평가", st.session_state.get("d8_fit_judgement", "")),
+                        ("참고한 팩트풀니스 관점", st.session_state.get("d8_fit_factfulness_lens", "")),
                         ("평가 이유", fit_reason.strip() if fit_reason.strip() else "아직 작성하지 않았습니다."),
                     ],
                 )
@@ -2096,29 +1807,29 @@ Quick, Draw! AI가 그림을 어떻게 예측하는지 봅시다.
     with tabs[3]:
         dataset_name = st.session_state["d8_dataset"]
         x_data, y_data, x_label, y_label = selected_xy_data(dataset_name)
-        function_type = st.session_state.get("d8_function", TARGET_FUNCTION)
-        params = st.session_state.get("d8_params") or fit_default_params(function_type, x_data, y_data)
-        predicted_data_y, valid_data_mask = calculate_function(function_type, x_data, params)
+        params = st.session_state.get("d8_params") or fit_default_params(x_data, y_data)
+        predicted_data_y, valid_data_mask = calculate_function(x_data, params)
         loss, _ = calculate_loss(y_data, predicted_data_y, valid_data_mask)
-        predicted_y = predict_value(function_type, float(st.session_state.get("d8_new_x", max(x_data))), params)
+        predicted_y = predict_value(float(st.session_state.get("d8_new_x", max(x_data))), params)
 
         stage_intro(
-            "R.E 데이터 속 삶의 모습을 이해하고 더 나은 미래를 함께 고민하기",
+            "R.E 데이터 속 삶과 미래 고민하기",
             "무리함수로 예측한 데이터의 변화 경향을 바탕으로 숫자가 들려주는 삶의 모습을 이해하고, 더 나은 미래를 함께 고민하는 카드뉴스를 만들어 봅시다.",
-            "숫자 속 삶의 모습을 이해하고 더 나은 미래를 함께 고민하려면 어떤 질문을 던져야 할까?",
+            "예측 결과를 보고 미래의 삶의 모습에 대해 어떤 질문을 할 수 있을까?",
             "#e3f2fd",
             "#bbdefb",
         )
         with st.container(border=True):
+            selected_direction, _, selected_life_text = selected_life_change(y_label)
             reference_rows = [
                 ("탐구 데이터", dataset_name),
                 ("살펴본 변화", f"{x_label}이/가 달라질 때 {y_label}의 변화"),
-                (f"{y_label} 값이 커질 때 삶의 모습", clean_text(st.session_state.get("d8_y_increase_life", ""))),
-                (f"{y_label} 값이 작아질 때 삶의 모습", clean_text(st.session_state.get("d8_y_decrease_life", ""))),
+                ("F.U에서 예상한 y 변화", f"시간에 따라 {y_label} 값이 {selected_direction}"),
+                ("F.U에서 작성한 삶의 모습", selected_life_text or "아직 작성하지 않았습니다."),
                 ("예측한 변화 경향", prediction_trend_sentence(params)),
                 ("앞에서 판단한 흐름", clean_text(st.session_state.get("d8_fit_judgement", ""))),
             ]
-            st.markdown(pretty_title("앞 단계 활동 자료 요약", "#f8fbff", "#dbe7f3"), unsafe_allow_html=True)
+            st.markdown(pretty_title("앞 단계 활동 자료 요약", "#e3f2fd", "#bbdefb"), unsafe_allow_html=True)
             st.dataframe(
                 pd.DataFrame(reference_rows, columns=["활동 자료", "내용"]),
                 use_container_width=True,
@@ -2144,11 +1855,11 @@ Quick, Draw! AI가 그림을 어떻게 예측하는지 봅시다.
                 ).strip()
 
             with future_col:
-                st.markdown(pretty_title("2. 깊은 질문 만들기", "#e8f5e9", "#c8e6c9"), unsafe_allow_html=True)
+                st.markdown(pretty_title("2. 깊은 질문 만들기", "#e3f2fd", "#bbdefb"), unsafe_allow_html=True)
                 render_stage_card(
                     "깊은 질문 만들기",
                     "데이터가 보여 주는 삶의 모습을 바탕으로 더 나은 미래를 함께 고민하는 질문을 만들어 봅시다.",
-                    "green",
+                    "blue",
                     "더 나은 미래 고민하기",
                 )
                 future_question = st.text_area(
@@ -2163,16 +1874,16 @@ Quick, Draw! AI가 그림을 어떻게 예측하는지 봅시다.
             default_life_view = trend_based_life_example(y_label, future_text)
             canva_prompt = build_cardnews_prompt(
                 cardnews_topic,
-                life_view or default_life_view,
+                life_view or "아직 작성하지 않았습니다.",
                 future_text,
-                future_question.strip() or "모든 아이들이 건강하게 성장하는 세상을 만들 수 있을까?",
+                future_question.strip() or "아직 작성하지 않았습니다.",
             )
 
-            st.markdown(pretty_title("3. GPT 프롬프트", "#f3e5f5", "#e1bee7"), unsafe_allow_html=True)
+            st.markdown(pretty_title("3. GPT 프롬프트", "#e3f2fd", "#bbdefb"), unsafe_allow_html=True)
             render_stage_card(
                 "앞에서 작성한 내용을 자동으로 조합합니다",
                 "학생이 추가로 입력하지 않아도 GPT에 넣을 카드뉴스 제작 프롬프트가 완성됩니다.",
-                "purple",
+                "blue",
                 "자동 생성",
             )
             if st.button("프롬프트 생성", key="d8_generate_cardnews_prompt", use_container_width=True):
@@ -2180,7 +1891,7 @@ Quick, Draw! AI가 그림을 어떻게 예측하는지 봅시다.
             if st.session_state.get("d8_show_cardnews_prompt", False):
                 st.code(canva_prompt, language="markdown")
 
-            st.markdown(pretty_title("4. 우리 모둠의 카드뉴스 공유", "#fff3e0", "#ffe0b2"), unsafe_allow_html=True)
+            st.markdown(pretty_title("4. 우리 모둠의 카드뉴스 공유", "#e3f2fd", "#bbdefb"), unsafe_allow_html=True)
             render_gpt_gallery_links(st.session_state.get("d8_class", CLASS_OPTIONS[0]))
 
             if st.button("R.E 단계 저장", use_container_width=True):
@@ -2203,7 +1914,7 @@ Quick, Draw! AI가 그림을 어떻게 예측하는지 봅시다.
             pdf_col, portfolio_col = st.columns(2)
             with pdf_col:
                 if stage_rows:
-                    final_fig = make_plot(x_data, y_data, function_type, params, float(st.session_state.get("d8_new_x", max(x_data))), predicted_y, x_label, y_label)
+                    final_fig = make_plot(x_data, y_data, params, float(st.session_state.get("d8_new_x", max(x_data))), predicted_y, x_label, y_label)
                     pdf_bytes = create_portfolio_pdf(
                         {
                             "class": st.session_state.get("d8_class", ""),

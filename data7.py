@@ -1,9 +1,9 @@
 ﻿# 실행 명령: streamlit run data7.py
 
 import html
+from functools import lru_cache
 import os
 import tempfile
-import time
 
 import matplotlib as mpl
 import matplotlib.font_manager as fm
@@ -16,15 +16,23 @@ from fpdf import FPDF
 
 
 # matplotlib 한글 표시 설정: 프로젝트의 NanumGothic 글꼴을 우선 사용합니다.
-try:
-    font_path = os.path.join(os.path.dirname(__file__), "font", "NanumGothic.ttf")
-    if os.path.exists(font_path):
-        fm.fontManager.addfont(font_path)
-        font_name = fm.FontProperties(fname=font_path).get_name()
+BASE_DIR = os.path.dirname(__file__)
+FONT_PATH = os.path.join(BASE_DIR, "font", "NanumGothic.ttf")
+
+
+@lru_cache(maxsize=1)
+def configure_matplotlib_font():
+    if os.path.exists(FONT_PATH):
+        fm.fontManager.addfont(FONT_PATH)
+        font_name = fm.FontProperties(fname=FONT_PATH).get_name()
         mpl.rc("font", family=font_name)
     else:
         mpl.rc("font", family="Malgun Gothic")
     mpl.rc("axes", unicode_minus=False)
+
+
+try:
+    configure_matplotlib_font()
 except Exception:
     plt.rcParams["axes.unicode_minus"] = False
 
@@ -105,6 +113,21 @@ GALLERY_URLS = {
 }
 PORTFOLIO_URLS = GALLERY_URLS.copy()
 GPT_URL = "https://chatgpt.com/"
+
+FACTFULNESS_LENS_GUIDES = {
+    "직선 본능 점검": {
+        "guide": "최근 흐름이 앞으로도 같은 속도로 계속된다고 단정하지 않고, 변화 속도와 꺾이는 구간을 확인합니다.",
+        "placeholder": "직선 본능 점검 관점으로 직접 작성해 보세요.",
+    },
+    "일반화 본능 점검": {
+        "guide": "전체 흐름이나 평균이 모든 구간의 상황을 똑같이 대표한다고 단정하지 않습니다.",
+        "placeholder": "일반화 본능 점검 관점으로 직접 작성해 보세요.",
+    },
+    "격차 본능 점검": {
+        "guide": "잘 맞음과 맞지 않음을 둘로만 나누지 않고, 중간 정도의 차이와 구간별 차이를 함께 봅니다.",
+        "placeholder": "격차 본능 점검 관점으로 직접 작성해 보세요.",
+    },
+}
 
 def clean_text(value, default="아직 작성하지 않았습니다."):
     text = str(value).strip() if value is not None else ""
@@ -229,18 +252,41 @@ def apply_local_style():
             border: 1px solid #ce93d8;
             border-left: 1px solid #ce93d8;
             border-radius: 8px;
+            color: #000000;
             margin: 2px 0 12px 0;
             overflow-x: auto;
             padding: 10px 14px;
             white-space: nowrap;
         }
         [data-testid="stMarkdownContainer"] blockquote p {
+            color: #000000;
             margin: 0;
+        }
+        [data-testid="stMarkdownContainer"] blockquote .katex {
+            color: #000000;
         }
         .fit-eval-box ~ div [role="radiogroup"] label:first-child,
         .fit-eval-box ~ div [data-testid="stWidgetLabel"] p {
             font-weight: 900;
             color: #263238;
+        }
+        .fit-eval-box ~ div [role="radiogroup"] {
+            flex-wrap: nowrap;
+            gap: 0.8rem;
+        }
+        .fit-eval-box ~ div [role="radiogroup"] label,
+        .fit-eval-box ~ div [role="radiogroup"] label p {
+            white-space: nowrap;
+        }
+        details:has(.fit-eval-box) summary {
+            background: #fff3e0;
+            border: 1px solid #ffcc80;
+            border-radius: 8px;
+            padding: 0.55rem 0.75rem;
+        }
+        details:has(.fit-eval-box) summary p {
+            color: #e65100;
+            font-weight: 900;
         }
         .radical-formula-box {
             background: #f8fbff;
@@ -596,6 +642,22 @@ def strip_example_prefix(text):
     return str(text).removeprefix("예: ").strip()
 
 
+def selected_life_change(y_label):
+    direction = st.session_state.get("d8_life_direction")
+    if direction == "커질 때":
+        direction = "증가한다"
+    elif direction == "작아질 때":
+        direction = "감소한다"
+    if direction not in ["증가한다", "감소한다"]:
+        if clean_text(st.session_state.get("d8_y_decrease_life", "")):
+            direction = "감소한다"
+        else:
+            direction = "증가한다"
+    life_phrase = "커질 때" if direction == "증가한다" else "작아질 때"
+    key = "d8_y_increase_life" if direction == "증가한다" else "d8_y_decrease_life"
+    return direction, f"{y_label} 값이 {life_phrase}", clean_text(st.session_state.get(key, ""))
+
+
 def trend_based_life_example(y_label, trend_text):
     increase_example, decrease_example = life_change_placeholders(y_label)
     if "감소" in trend_text:
@@ -650,8 +712,13 @@ def calculate_function(x_values, params):
 
 
 def fit_default_params(x_data, y_data):
-    x = np.asarray(x_data, dtype=float)
-    y = np.asarray(y_data, dtype=float)
+    return _fit_default_params_cached(tuple(map(float, x_data)), tuple(map(float, y_data))).copy()
+
+
+@st.cache_data(show_spinner=False, max_entries=32)
+def _fit_default_params_cached(x_values, y_values):
+    x = np.asarray(x_values, dtype=float)
+    y = np.asarray(y_values, dtype=float)
     x_span = max(float(np.max(x) - np.min(x)), 1.0)
     candidates = np.linspace(float(np.min(x) - x_span), float(np.min(x) - 1e-6), 40)
     best_params, best_loss = None, float("inf")
@@ -756,7 +823,7 @@ def build_function_text(params):
 def render_estimated_function_strip(params):
     st.markdown(
         rf"""
-> **추세선** &nbsp;&nbsp; $\large {function_latex(params)}$
+> **추세선(무리함수)** &nbsp;&nbsp; $\large {function_latex(params)}$
 """
     )
 
@@ -810,7 +877,7 @@ def emphasize_xy_axes(ax):
 
 def draw_radical_practice_graph(sign_symbol, a_value, point_x=0.0, step_size=2.0, show_point=True):
     sign = 1 if sign_symbol == "+" else -1
-    x_values = np.linspace(0.0, 10.0, 400)
+    x_values = np.linspace(0.0, 10.0, 260)
     y_values = sign * np.sqrt(a_value * x_values)
     point_y = sign * np.sqrt(a_value * max(point_x, 0.0))
 
@@ -936,8 +1003,8 @@ def render_function_graph_practice():
     with function_col:
         render_radical_formula_html(title="일반화된 함수")
     radical_check_options = [
-        "항상 같은 만큼 변한다.",
-        "같은 만큼 변하지 않는다.",
+        "일정하다.",
+        "일정하지 않다.",
     ]
     if st.session_state.get("d8_radical_understanding") not in radical_check_options:
         st.session_state["d8_radical_understanding"] = None
@@ -987,17 +1054,10 @@ def render_function_graph_practice():
         graph_area = st.container()
         with graph_area:
             if animate_point:
-                graph_placeholder = st.empty()
-                for point_x in range(0, 11, 2):
-                    fig = draw_radical_practice_graph(
-                        sign_symbol,
-                        a_value,
-                        point_x=float(point_x),
-                        step_size=2.0,
-                    )
-                    graph_placeholder.pyplot(fig, use_container_width=True)
-                    plt.close(fig)
-                    time.sleep(0.5)
+                fig = draw_radical_practice_graph(sign_symbol, a_value, point_x=10.0, step_size=2.0)
+                st.pyplot(fig, use_container_width=True)
+                plt.close(fig)
+                st.caption("x가 같은 간격으로 증가해도 y의 변화량이 점점 달라지는 모습을 한 번에 표시했습니다.")
                 st.session_state["d8_practice_radical_point_animate"] = False
             else:
                 fig = draw_radical_practice_graph(sign_symbol, a_value, point_x=0.0)
@@ -1014,7 +1074,7 @@ def render_function_graph_practice():
         )
 
     with st.expander("[예시] 오개념 확인", expanded=False):
-        st.markdown("**x가 같은 만큼 증가하면 y의 변화량도 항상 같을까요?**")
+        st.markdown("**x가 같은 간격으로 증가할때 y의 변화량?**")
         radical_answer = st.radio(
             "x가 같은 만큼 증가하면 함숫값도 항상 같은 만큼 변할까요?",
             radical_check_options,
@@ -1022,10 +1082,19 @@ def render_function_graph_practice():
             index=None,
             label_visibility="collapsed",
         )
-        if radical_answer == "같은 만큼 변하지 않는다.":
+        if radical_answer == "일정하지 않다.":
             st.success("정답입니다. 무리함수는 곡선이므로 x가 같은 간격으로 증가해도 y의 변화량은 일정하지 않습니다.")
-        elif radical_answer == "항상 같은 만큼 변한다.":
+        elif radical_answer == "일정하다.":
             st.error("다시 생각해 봅시다. 그래프가 직선이 아니기 때문에 같은 x 간격에서도 y의 변화량은 달라집니다.")
+
+
+def radical_understanding_result(answer):
+    if answer == "일정하지 않다.":
+        return "정답"
+    if answer == "일정하다.":
+        return "오답"
+    return "아직 확인하지 않았습니다."
+
 
 def predict_value(x_value, params):
     y, mask = calculate_function([x_value], params)
@@ -1091,7 +1160,7 @@ def make_plot(
     x_span = max(float(np.max(x_arr) - np.min(x_arr)), 1.0)
     plot_min = min(float(np.min(x_arr)), float(new_x) if new_x is not None else float(np.min(x_arr))) - x_span * 0.15
     plot_max = max(float(np.max(x_arr)), float(new_x) if new_x is not None else float(np.max(x_arr))) + x_span * 0.15
-    x_line = np.linspace(plot_min, plot_max, 500)
+    x_line = np.linspace(plot_min, plot_max, 320)
     y_line, valid_line = calculate_function(x_line, params)
 
     fig, ax = plt.subplots(figsize=figsize)
@@ -1099,7 +1168,7 @@ def make_plot(
         ax.scatter(x_arr, y_arr, color="#1f77b4", s=80, label="실제 데이터", zorder=3)
         add_trend_ellipse(ax, x_arr, y_arr)
     if show_function:
-        ax.plot(x_line[valid_line], y_line[valid_line], color="#d62728", linewidth=2.4, label="함수 그래프")
+        ax.plot(x_line[valid_line], y_line[valid_line], color="#000000", linewidth=3.6, label="함수 그래프")
     if show_prediction and predicted_y is not None:
         ax.scatter([new_x], [predicted_y], color="#2ca02c", marker="*", s=420, label="예측점", zorder=4)
         ax.annotate(
@@ -1191,6 +1260,7 @@ def render_u_attempt_tracker(current_params, current_loss):
                 rows.append(
                     {
                         "시도": idx + 1,
+                        "a 값": format_optional_number(attempt["params"].get("a")),
                         "손실": f"{format_optional_number(attempt['loss'])}{' ⭐' if is_best else ''}",
                         "_best": is_best,
                     }
@@ -1199,10 +1269,10 @@ def render_u_attempt_tracker(current_params, current_loss):
 
             def highlight_best(row):
                 if row["_best"]:
-                    return ["background-color: #fff8e1; color: #ef6c00; font-weight: 900"] * 2
-                return [""] * 2
+                    return ["background-color: #fff8e1; color: #ef6c00; font-weight: 900"] * 3
+                return [""] * 3
 
-            styled_df = display_df[["시도", "손실"]].style.apply(
+            styled_df = display_df[["시도", "a 값", "손실"]].style.apply(
                 lambda row: highlight_best(display_df.loc[row.name]),
                 axis=1,
             )
@@ -1295,8 +1365,8 @@ def add_figure_to_pdf(pdf, title, fig):
 
 def create_portfolio_pdf(student_info, stage_rows, fig):
     pdf = PortfolioPDF()
-    if os.path.exists(font_path):
-        pdf.add_font("Nanum", "", font_path, uni=True)
+    if os.path.exists(FONT_PATH):
+        pdf.add_font("Nanum", "", FONT_PATH, uni=True)
         pdf._font_family = "Nanum"
     else:
         pdf._font_family = "Arial"
@@ -1323,26 +1393,21 @@ def build_cardnews_prompt(topic, life_view, future_text, future_question):
         trend_visual = "아래 방향 화살표 1개"
     else:
         trend_visual = "부드러운 방향 화살표 1개"
-    return f"""GPT 이미지 생성으로 카드뉴스 3장을 만들어 주세요.
+    return f"""GPT 이미지 생성으로 카드뉴스 2장을 만들어 주세요.
 
-- 1080×1080px 정사각형 이미지 3장
+- 1080×1080px 정사각형 이미지 2장
 - 각 장은 별도 이미지 파일
 - 1~2분 안에 생성될 정도로 아주 단순하게 구성
 - 단색 파스텔 배경, 큰 한글 글씨, 단순 일러스트 1개
 - 복잡한 그래프, 많은 숫자, 긴 설명, 세밀한 배경 금지
 - 아래 문구 외의 설명 문구는 추가하지 않기
 
-### 1/3
+### 1/2
 제목: 숫자가 들려준 삶의 이야기
-문구: {topic} 데이터
-그림: 주제를 상징하는 단순 일러스트 1개
+문구: {topic} 데이터 - {life_view}
+그림: 주제와 삶의 모습을 함께 나타내는 단순 일러스트 1개
 
-### 2/3
-제목: 데이터가 보여 준 삶
-문구: {life_view}
-그림: 삶의 모습을 나타내는 단순 일러스트 1개
-
-### 3/3
+### 2/2
 제목: 더 나은 미래 질문
 문구: {future_question}
 작은 문구: {future_text}
@@ -1374,7 +1439,7 @@ def render_gpt_gallery_links(class_key):
 def run():
     apply_local_style()
     page_banner(
-        "질문으로 깨우고 함수로 예측하는 데이터 탐구",
+        "데이터에서 삶을 읽고 무리함수로 미래 예측하기",
         "",
         "",
     )
@@ -1399,9 +1464,9 @@ def run():
 
     with tabs[0]:
         stage_intro(
-            "F.U 문제 발견: 숫자 속 삶의 모습 발견하기",
+            "F.U 숫자 속 삶의 모습 발견하기",
             "UN이 제시한 모두가 더 나은 삶을 살아갈 수 있는 지속가능한 미래를 만들기 위한 공동목표(SDG) 중 관심있는 지표를 선택하고, 지표의 숫자가 커지거나 작아질 때 사람들의 삶에서 어떤 모습이 나타나는지 생각합니다.",
-            "이 지표의 숫자 뒤에는 어떤 삶의 모습이 담겨 있을까",
+            "이 데이터셋의 숫자 뒤에는 어떤 삶의 모습이 담겨 있을까?",
             "#ffebee",
             "#ffcdd2",
         )
@@ -1505,41 +1570,50 @@ Quick, Draw! AI가 그림을 어떻게 예측하는지 봅시다.
                 x_data, y_data, x_label, y_label = selected_xy_data(dataset_name)
 
             with question_col:
-                st.markdown(pretty_title("2. 문제제기 질문 만들기", "#ffebee", "#ffcdd2"), unsafe_allow_html=True)
+                st.markdown(pretty_title("2. 지표 속 삶의 모습 발견하기", "#ffebee", "#ffcdd2"), unsafe_allow_html=True)
                 render_stage_card(
-                    "지표 속 삶의 모습 발견하기",
+                    "변화 경향과 삶의 모습 예상하기",
                     "지표의 값이 직접 나타내는 삶의 모습을 중심으로 작성하세요.",
                     "red",
                     "문제제기",
                 )
-                example_y_label = "5세 미만 사망률(%) (예시)"
-                increase_placeholder, decrease_placeholder = life_change_placeholders(example_y_label)
-                st.text_area(
-                    f"{y_label} 값이 커질 때 사람들의 삶에서는 어떤 모습이 나타날까요?",
-                    key="d8_y_increase_life",
-                    height=82,
-                    placeholder=increase_placeholder,
+                life_direction_options = ["증가한다", "감소한다"]
+                if st.session_state.get("d8_life_direction") == "커질 때":
+                    st.session_state["d8_life_direction"] = "증가한다"
+                elif st.session_state.get("d8_life_direction") == "작아질 때":
+                    st.session_state["d8_life_direction"] = "감소한다"
+                if st.session_state.get("d8_life_direction") not in life_direction_options:
+                    st.session_state["d8_life_direction"] = "증가한다"
+                selected_life_direction = st.radio(
+                    f"시간에 따라 출력 변수 y({y_label})가 어떻게 변할 것으로 예상하나요?",
+                    life_direction_options,
+                    key="d8_life_direction",
+                    horizontal=True,
                 )
+                increase_placeholder, decrease_placeholder = life_change_placeholders("5세 미만 사망률(%) (예시)")
+                selected_life_phrase = "커질 때" if selected_life_direction == "증가한다" else "작아질 때"
+                selected_life_key = "d8_y_increase_life" if selected_life_direction == "증가한다" else "d8_y_decrease_life"
+                selected_placeholder = increase_placeholder if selected_life_direction == "증가한다" else decrease_placeholder
                 st.text_area(
-                    f"{y_label} 값이 작아질 때 사람들의 삶에서는 어떤 모습이 나타날까요?",
-                    key="d8_y_decrease_life",
-                    height=82,
-                    placeholder=decrease_placeholder,
+                    f"예상대로 {y_label} 값이 {selected_life_phrase} 사람들의 삶에서는 어떤 모습이 나타날까요?",
+                    key=selected_life_key,
+                    height=120,
+                    placeholder=selected_placeholder,
                 )
-                st.caption("예시 자료: 5세 미만 사망률(%) (예시)를 기준으로 작성된 예시입니다.")
             default_new_x = float(max(x_data) + (x_data[1] - x_data[0] if len(x_data) > 1 else 1))
             if st.session_state.get("d8_new_x_dataset") != dataset_name:
                 st.session_state["d8_new_x"] = default_new_x
                 st.session_state["d8_new_x_dataset"] = dataset_name
             if st.button("F.U 단계 저장", use_container_width=True):
+                selected_direction, _, selected_life_text = selected_life_change(y_label)
                 save_stage_snapshot(
                     1,
                     "F.U 단계: 실생활 문제와 주요 변수 발견하기",
                     [
                         ("자료 묶음", dataset_name),
                         ("선택한 두 변수", f"{x_label}, {y_label}"),
-                        (f"{y_label} 값이 커질 때 삶의 모습", st.session_state.get("d8_y_increase_life", "")),
-                        (f"{y_label} 값이 작아질 때 삶의 모습", st.session_state.get("d8_y_decrease_life", "")),
+                        ("예상한 y 변화", f"시간에 따라 {y_label} 값이 {selected_direction}"),
+                        ("작성한 삶의 모습", selected_life_text or "아직 작성하지 않았습니다."),
                     ],
                 )
             saved_stage_caption(1)
@@ -1550,27 +1624,42 @@ Quick, Draw! AI가 그림을 어떻게 예측하는지 봅시다.
         stage_intro(
             "T 무리함수 그래프 특징 탐구하기",
             "근호 앞의 부호와 a를 조절하며 그래프의 증가·감소와 변화 정도를 살펴봅니다.",
-            "데이터의 변화 경향을 무리함수의 그래프로 어떻게 나타낼 수 있을까?",
+            "무리함수의 그래프를 관찰하면 어떤 특징을 발견할 수 있을까?",
             "#e8f5e9",
             "#c8e6c9",
         )
         with st.container(border=True):
             render_function_graph_practice()
+            radical_answer = st.session_state.get("d8_radical_understanding")
+            if st.button("T 단계 저장", use_container_width=True):
+                save_stage_snapshot(
+                    2,
+                    "T 단계: 무리함수 그래프 특징 탐구하기",
+                    [
+                        ("탐구한 함수", r"y=±√(ax)"),
+                        ("근호 앞의 부호", st.session_state.get("d8_practice_radical_sign", "")),
+                        ("a 값", str(st.session_state.get("d8_practice_radical_a_positive", ""))),
+                        ("오개념 확인 문제", "x가 같은 만큼 증가하면 함숫값도 항상 같은 만큼 변할까요?"),
+                        ("체크한 답", radical_answer or "아직 체크하지 않았습니다."),
+                        ("정답 여부", radical_understanding_result(radical_answer)),
+                    ],
+                )
+            saved_stage_caption(2)
 
     with tabs[2]:
         dataset_name = st.session_state["d8_dataset"]
         x_data, y_data, x_label, y_label = selected_xy_data(dataset_name)
         stage_intro(
-            "U 무리함수로 예측하기",
+            "U 무리함수로 미래를 예측하기",
             "무리함수 y=±√(a(x-p))+q에서 근호 앞의 부호와 양수 a를 조절하며 손실값을 줄이고, 선택한 x값에서 y값을 예측합니다.",
-            "데이터의 변화 경향을 가장 잘 설명하는 무리함수는 무엇일까?",
+            "데이터의 경향을 가장 잘 설명하는 무리함수는 무엇이며, 그 한계는 무엇일까?",
             "#f3e5f5",
             "#e1bee7",
         )
         with st.container(border=True):
             render_stage_card(
                 "추세선을 조절해 예측합니다",
-                "",
+                "근호 앞의 부호와 양수 a 값을 조절해 그래프가 데이터에 가까워지도록 만들고, 손실값을 비교한 뒤 선택한 x값의 y값을 예측합니다. 마지막에는 데이터 분석의 한계를 생각하며 무리함수가 데이터를 얼마나 잘 나타내는지 판단하고, 팩트풀니스 본능 관점으로 그 이유를 정리합니다.",
                 "purple",
                 "AI 이해",
             )
@@ -1599,23 +1688,22 @@ Quick, Draw! AI가 그림을 어떻게 예측하는지 봅시다.
                 show_function = st.checkbox("함수 그래프", value=True, key="d8_show_graph_function")
             with toggle_cols[2]:
                 show_prediction = st.checkbox("예측점", value=True, key="d8_show_graph_prediction")
-            st.pyplot(
-                make_plot(
-                    x_data,
-                    y_data,
-                    params,
-                    float(new_x),
-                    predicted_y,
-                    x_label,
-                    y_label,
-                    figsize=(9.2, 5.1),
-                    show_data=show_data,
-                    show_function=show_function,
-                    show_prediction=show_prediction,
-                    loss=loss,
-                ),
-                use_container_width=True,
+            trend_fig = make_plot(
+                x_data,
+                y_data,
+                params,
+                float(new_x),
+                predicted_y,
+                x_label,
+                y_label,
+                figsize=(9.2, 5.1),
+                show_data=show_data,
+                show_function=show_function,
+                show_prediction=show_prediction,
+                loss=loss,
             )
+            st.pyplot(trend_fig, use_container_width=True)
+            plt.close(trend_fig)
             input_col, value_col = st.columns([1, 1])
             with input_col:
                 st.markdown(
@@ -1661,7 +1749,7 @@ Quick, Draw! AI가 그림을 어떻게 예측하는지 봅시다.
                 else:
                     st.warning("선택한 함수의 정의역 때문에 예측값을 계산할 수 없습니다.")
 
-            with st.expander("[평가] 최적화", expanded=False):
+            with st.expander("데이터 분석의 한계", expanded=False):
                 st.markdown(
                     """
                     <div class="fit-eval-box" style="background:#f8fbff;border:1px solid #dbe7f3;border-radius:8px;
@@ -1680,17 +1768,28 @@ Quick, Draw! AI가 그림을 어떻게 예측하는지 봅시다.
                     ],
                     key="d8_fit_judgement",
                     index=None,
+                    horizontal=True,
                 )
                 fit_reason = ""
-                if fit_judgement in ["일부 구간에서 차이가 난다.", "무리함수로 나타내기 어렵다."]:
-                    fit_reason = st.text_area(
-                        "**2. 그렇게 판단한 이유를 간단히 작성하세요.**",
-                        key="d8_fit_reason_text",
-                        height=90,
-                        placeholder="예: 증가와 감소가 동시에 나타나기 때문이다.",
-                    )
-                elif fit_judgement == "비교적 잘 나타낸다.":
-                    fit_reason = "손실값과 그래프 모양을 볼 때 데이터의 흐름을 비교적 잘 나타낸다."
+                fit_lens = ""
+                if fit_judgement:
+                    lens_col, reason_col = st.columns(2)
+                    with lens_col:
+                        fit_lens = st.selectbox(
+                            "**2. 이유를 쓸 때 참고할 팩트풀니스 본능 관점을 선택하세요.**",
+                            list(FACTFULNESS_LENS_GUIDES.keys()),
+                            key="d8_fit_factfulness_lens",
+                            index=list(FACTFULNESS_LENS_GUIDES.keys()).index("직선 본능 점검"),
+                        )
+                        lens_info = FACTFULNESS_LENS_GUIDES[fit_lens]
+                        st.info(f"{fit_lens}: {lens_info['guide']}")
+                    with reason_col:
+                        fit_reason = st.text_area(
+                            f"**3. {fit_lens} 관점으로 그렇게 판단한 이유를 작성하세요.**",
+                            key="d8_fit_reason_text",
+                            height=145,
+                            placeholder=lens_info["placeholder"],
+                        )
     
             function_text = build_function_text(params)
     
@@ -1704,6 +1803,7 @@ Quick, Draw! AI가 그림을 어떻게 예측하는지 봅시다.
                         ("손실값", format_optional_number(loss)),
                         (f"예측할 x값({x_label}) / 예측값 y({y_label})", f"x={float(new_x):g}, y={predicted_y:.2f}" if predicted_y is not None else "계산 불가"),
                         ("적합성 평가", st.session_state.get("d8_fit_judgement", "")),
+                        ("참고한 팩트풀니스 관점", st.session_state.get("d8_fit_factfulness_lens", "")),
                         ("평가 이유", fit_reason.strip() if fit_reason.strip() else "아직 작성하지 않았습니다."),
                     ],
                 )
@@ -1718,22 +1818,23 @@ Quick, Draw! AI가 그림을 어떻게 예측하는지 봅시다.
         predicted_y = predict_value(float(st.session_state.get("d8_new_x", max(x_data))), params)
 
         stage_intro(
-            "R.E 데이터 속 삶의 모습을 이해하고 더 나은 미래를 함께 고민하기",
+            "R.E 데이터 속 삶과 미래 고민하기",
             "무리함수로 예측한 데이터의 변화 경향을 바탕으로 숫자가 들려주는 삶의 모습을 이해하고, 더 나은 미래를 함께 고민하는 카드뉴스를 만들어 봅시다.",
-            "숫자 속 삶의 모습을 이해하고 더 나은 미래를 함께 고민하려면 어떤 질문을 던져야 할까?",
+            "예측 결과를 보고 미래의 삶의 모습에 대해 어떤 질문을 할 수 있을까?",
             "#e3f2fd",
             "#bbdefb",
         )
         with st.container(border=True):
+            selected_direction, _, selected_life_text = selected_life_change(y_label)
             reference_rows = [
                 ("탐구 데이터", dataset_name),
                 ("살펴본 변화", f"{x_label}이/가 달라질 때 {y_label}의 변화"),
-                (f"{y_label} 값이 커질 때 삶의 모습", clean_text(st.session_state.get("d8_y_increase_life", ""))),
-                (f"{y_label} 값이 작아질 때 삶의 모습", clean_text(st.session_state.get("d8_y_decrease_life", ""))),
+                ("F.U에서 예상한 y 변화", f"시간에 따라 {y_label} 값이 {selected_direction}"),
+                ("F.U에서 작성한 삶의 모습", selected_life_text or "아직 작성하지 않았습니다."),
                 ("예측한 변화 경향", prediction_trend_sentence(params)),
                 ("앞에서 판단한 흐름", clean_text(st.session_state.get("d8_fit_judgement", ""))),
             ]
-            st.markdown(pretty_title("앞 단계 활동 자료 요약", "#f8fbff", "#dbe7f3"), unsafe_allow_html=True)
+            st.markdown(pretty_title("앞 단계 활동 자료 요약", "#e3f2fd", "#bbdefb"), unsafe_allow_html=True)
             st.dataframe(
                 pd.DataFrame(reference_rows, columns=["활동 자료", "내용"]),
                 use_container_width=True,
@@ -1759,11 +1860,11 @@ Quick, Draw! AI가 그림을 어떻게 예측하는지 봅시다.
                 ).strip()
 
             with future_col:
-                st.markdown(pretty_title("2. 깊은 질문 만들기", "#e8f5e9", "#c8e6c9"), unsafe_allow_html=True)
+                st.markdown(pretty_title("2. 깊은 질문 만들기", "#e3f2fd", "#bbdefb"), unsafe_allow_html=True)
                 render_stage_card(
                     "깊은 질문 만들기",
                     "데이터가 보여 주는 삶의 모습을 바탕으로 더 나은 미래를 함께 고민하는 질문을 만들어 봅시다.",
-                    "green",
+                    "blue",
                     "더 나은 미래 고민하기",
                 )
                 future_question = st.text_area(
@@ -1778,16 +1879,16 @@ Quick, Draw! AI가 그림을 어떻게 예측하는지 봅시다.
             default_life_view = trend_based_life_example(y_label, future_text)
             canva_prompt = build_cardnews_prompt(
                 cardnews_topic,
-                life_view or default_life_view,
+                life_view or "아직 작성하지 않았습니다.",
                 future_text,
-                future_question.strip() or "모든 아이들이 건강하게 성장하는 세상을 만들 수 있을까?",
+                future_question.strip() or "아직 작성하지 않았습니다.",
             )
 
-            st.markdown(pretty_title("3. GPT 프롬프트", "#f3e5f5", "#e1bee7"), unsafe_allow_html=True)
+            st.markdown(pretty_title("3. GPT 프롬프트", "#e3f2fd", "#bbdefb"), unsafe_allow_html=True)
             render_stage_card(
                 "앞에서 작성한 내용을 자동으로 조합합니다",
                 "학생이 추가로 입력하지 않아도 GPT에 넣을 카드뉴스 제작 프롬프트가 완성됩니다.",
-                "purple",
+                "blue",
                 "자동 생성",
             )
             if st.button("프롬프트 생성", key="d8_generate_cardnews_prompt", use_container_width=True):
@@ -1795,7 +1896,7 @@ Quick, Draw! AI가 그림을 어떻게 예측하는지 봅시다.
             if st.session_state.get("d8_show_cardnews_prompt", False):
                 st.code(canva_prompt, language="markdown")
 
-            st.markdown(pretty_title("4. 우리 모둠의 카드뉴스 공유", "#fff3e0", "#ffe0b2"), unsafe_allow_html=True)
+            st.markdown(pretty_title("4. 우리 모둠의 카드뉴스 공유", "#e3f2fd", "#bbdefb"), unsafe_allow_html=True)
             render_gpt_gallery_links(st.session_state.get("d8_class", CLASS_OPTIONS[0]))
 
             if st.button("R.E 단계 저장", use_container_width=True):
@@ -1818,18 +1919,48 @@ Quick, Draw! AI가 그림을 어떻게 예측하는지 봅시다.
             pdf_col, portfolio_col = st.columns(2)
             with pdf_col:
                 if stage_rows:
-                    final_fig = make_plot(x_data, y_data, params, float(st.session_state.get("d8_new_x", max(x_data))), predicted_y, x_label, y_label)
-                    pdf_bytes = create_portfolio_pdf(
-                        {
-                            "class": st.session_state.get("d8_class", ""),
-                            "group": st.session_state.get("d8_group", ""),
-                            "student_id": "",
-                            "dataset": dataset_name,
-                        },
-                        stage_rows,
-                        final_fig,
+                    pdf_context = (
+                        dataset_name,
+                        x_label,
+                        y_label,
+                        float(st.session_state.get("d8_new_x", max(x_data))),
+                        tuple((row["title"], tuple(row["fields"])) for row in stage_rows),
                     )
-                    st.download_button("PDF 저장", data=pdf_bytes, file_name=f"{st.session_state.get('d8_group', '우리모둠')}_함수추세선탐구.pdf", mime="application/pdf", use_container_width=True)
+                    if st.session_state.get("d8_pdf_context") != pdf_context:
+                        st.session_state.pop("d8_pdf_bytes", None)
+                        st.session_state["d8_pdf_context"] = pdf_context
+                    if st.button("PDF 만들기", key="d8_create_pdf", use_container_width=True):
+                        final_fig = make_plot(
+                            x_data,
+                            y_data,
+                            params,
+                            float(st.session_state.get("d8_new_x", max(x_data))),
+                            predicted_y,
+                            x_label,
+                            y_label,
+                        )
+                        try:
+                            st.session_state["d8_pdf_bytes"] = create_portfolio_pdf(
+                                {
+                                    "class": st.session_state.get("d8_class", ""),
+                                    "group": st.session_state.get("d8_group", ""),
+                                    "student_id": "",
+                                    "dataset": dataset_name,
+                                },
+                                stage_rows,
+                                final_fig,
+                            )
+                        finally:
+                            plt.close(final_fig)
+                    pdf_bytes = st.session_state.get("d8_pdf_bytes")
+                    if pdf_bytes:
+                        st.download_button(
+                            "PDF 저장",
+                            data=pdf_bytes,
+                            file_name=f"{st.session_state.get('d8_group', '우리모둠')}_함수추세선탐구.pdf",
+                            mime="application/pdf",
+                            use_container_width=True,
+                        )
                 else:
                     st.caption("각 단계 저장 후 PDF를 만들 수 있습니다.")
             with portfolio_col:
