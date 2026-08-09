@@ -1,9 +1,9 @@
 ﻿# 실행 명령: streamlit run data7.py
 
 import html
+from functools import lru_cache
 import os
 import tempfile
-import time
 
 import matplotlib as mpl
 import matplotlib.font_manager as fm
@@ -16,15 +16,23 @@ from fpdf import FPDF
 
 
 # matplotlib 한글 표시 설정: 프로젝트의 NanumGothic 글꼴을 우선 사용합니다.
-try:
-    font_path = os.path.join(os.path.dirname(__file__), "font", "NanumGothic.ttf")
-    if os.path.exists(font_path):
-        fm.fontManager.addfont(font_path)
-        font_name = fm.FontProperties(fname=font_path).get_name()
+BASE_DIR = os.path.dirname(__file__)
+FONT_PATH = os.path.join(BASE_DIR, "font", "NanumGothic.ttf")
+
+
+@lru_cache(maxsize=1)
+def configure_matplotlib_font():
+    if os.path.exists(FONT_PATH):
+        fm.fontManager.addfont(FONT_PATH)
+        font_name = fm.FontProperties(fname=FONT_PATH).get_name()
         mpl.rc("font", family=font_name)
     else:
         mpl.rc("font", family="Malgun Gothic")
     mpl.rc("axes", unicode_minus=False)
+
+
+try:
+    configure_matplotlib_font()
 except Exception:
     plt.rcParams["axes.unicode_minus"] = False
 
@@ -704,8 +712,13 @@ def calculate_function(x_values, params):
 
 
 def fit_default_params(x_data, y_data):
-    x = np.asarray(x_data, dtype=float)
-    y = np.asarray(y_data, dtype=float)
+    return _fit_default_params_cached(tuple(map(float, x_data)), tuple(map(float, y_data))).copy()
+
+
+@st.cache_data(show_spinner=False, max_entries=32)
+def _fit_default_params_cached(x_values, y_values):
+    x = np.asarray(x_values, dtype=float)
+    y = np.asarray(y_values, dtype=float)
     x_span = max(float(np.max(x) - np.min(x)), 1.0)
     candidates = np.linspace(float(np.min(x) - x_span), float(np.min(x) - 1e-6), 40)
     best_params, best_loss = None, float("inf")
@@ -864,7 +877,7 @@ def emphasize_xy_axes(ax):
 
 def draw_radical_practice_graph(sign_symbol, a_value, point_x=0.0, step_size=2.0, show_point=True):
     sign = 1 if sign_symbol == "+" else -1
-    x_values = np.linspace(0.0, 10.0, 400)
+    x_values = np.linspace(0.0, 10.0, 260)
     y_values = sign * np.sqrt(a_value * x_values)
     point_y = sign * np.sqrt(a_value * max(point_x, 0.0))
 
@@ -1041,17 +1054,10 @@ def render_function_graph_practice():
         graph_area = st.container()
         with graph_area:
             if animate_point:
-                graph_placeholder = st.empty()
-                for point_x in range(0, 11, 2):
-                    fig = draw_radical_practice_graph(
-                        sign_symbol,
-                        a_value,
-                        point_x=float(point_x),
-                        step_size=2.0,
-                    )
-                    graph_placeholder.pyplot(fig, use_container_width=True)
-                    plt.close(fig)
-                    time.sleep(0.5)
+                fig = draw_radical_practice_graph(sign_symbol, a_value, point_x=10.0, step_size=2.0)
+                st.pyplot(fig, use_container_width=True)
+                plt.close(fig)
+                st.caption("x가 같은 간격으로 증가해도 y의 변화량이 점점 달라지는 모습을 한 번에 표시했습니다.")
                 st.session_state["d8_practice_radical_point_animate"] = False
             else:
                 fig = draw_radical_practice_graph(sign_symbol, a_value, point_x=0.0)
@@ -1154,7 +1160,7 @@ def make_plot(
     x_span = max(float(np.max(x_arr) - np.min(x_arr)), 1.0)
     plot_min = min(float(np.min(x_arr)), float(new_x) if new_x is not None else float(np.min(x_arr))) - x_span * 0.15
     plot_max = max(float(np.max(x_arr)), float(new_x) if new_x is not None else float(np.max(x_arr))) + x_span * 0.15
-    x_line = np.linspace(plot_min, plot_max, 500)
+    x_line = np.linspace(plot_min, plot_max, 320)
     y_line, valid_line = calculate_function(x_line, params)
 
     fig, ax = plt.subplots(figsize=figsize)
@@ -1359,8 +1365,8 @@ def add_figure_to_pdf(pdf, title, fig):
 
 def create_portfolio_pdf(student_info, stage_rows, fig):
     pdf = PortfolioPDF()
-    if os.path.exists(font_path):
-        pdf.add_font("Nanum", "", font_path, uni=True)
+    if os.path.exists(FONT_PATH):
+        pdf.add_font("Nanum", "", FONT_PATH, uni=True)
         pdf._font_family = "Nanum"
     else:
         pdf._font_family = "Arial"
@@ -1682,23 +1688,22 @@ Quick, Draw! AI가 그림을 어떻게 예측하는지 봅시다.
                 show_function = st.checkbox("함수 그래프", value=True, key="d8_show_graph_function")
             with toggle_cols[2]:
                 show_prediction = st.checkbox("예측점", value=True, key="d8_show_graph_prediction")
-            st.pyplot(
-                make_plot(
-                    x_data,
-                    y_data,
-                    params,
-                    float(new_x),
-                    predicted_y,
-                    x_label,
-                    y_label,
-                    figsize=(9.2, 5.1),
-                    show_data=show_data,
-                    show_function=show_function,
-                    show_prediction=show_prediction,
-                    loss=loss,
-                ),
-                use_container_width=True,
+            trend_fig = make_plot(
+                x_data,
+                y_data,
+                params,
+                float(new_x),
+                predicted_y,
+                x_label,
+                y_label,
+                figsize=(9.2, 5.1),
+                show_data=show_data,
+                show_function=show_function,
+                show_prediction=show_prediction,
+                loss=loss,
             )
+            st.pyplot(trend_fig, use_container_width=True)
+            plt.close(trend_fig)
             input_col, value_col = st.columns([1, 1])
             with input_col:
                 st.markdown(
@@ -1914,18 +1919,48 @@ Quick, Draw! AI가 그림을 어떻게 예측하는지 봅시다.
             pdf_col, portfolio_col = st.columns(2)
             with pdf_col:
                 if stage_rows:
-                    final_fig = make_plot(x_data, y_data, params, float(st.session_state.get("d8_new_x", max(x_data))), predicted_y, x_label, y_label)
-                    pdf_bytes = create_portfolio_pdf(
-                        {
-                            "class": st.session_state.get("d8_class", ""),
-                            "group": st.session_state.get("d8_group", ""),
-                            "student_id": "",
-                            "dataset": dataset_name,
-                        },
-                        stage_rows,
-                        final_fig,
+                    pdf_context = (
+                        dataset_name,
+                        x_label,
+                        y_label,
+                        float(st.session_state.get("d8_new_x", max(x_data))),
+                        tuple((row["title"], tuple(row["fields"])) for row in stage_rows),
                     )
-                    st.download_button("PDF 저장", data=pdf_bytes, file_name=f"{st.session_state.get('d8_group', '우리모둠')}_함수추세선탐구.pdf", mime="application/pdf", use_container_width=True)
+                    if st.session_state.get("d8_pdf_context") != pdf_context:
+                        st.session_state.pop("d8_pdf_bytes", None)
+                        st.session_state["d8_pdf_context"] = pdf_context
+                    if st.button("PDF 만들기", key="d8_create_pdf", use_container_width=True):
+                        final_fig = make_plot(
+                            x_data,
+                            y_data,
+                            params,
+                            float(st.session_state.get("d8_new_x", max(x_data))),
+                            predicted_y,
+                            x_label,
+                            y_label,
+                        )
+                        try:
+                            st.session_state["d8_pdf_bytes"] = create_portfolio_pdf(
+                                {
+                                    "class": st.session_state.get("d8_class", ""),
+                                    "group": st.session_state.get("d8_group", ""),
+                                    "student_id": "",
+                                    "dataset": dataset_name,
+                                },
+                                stage_rows,
+                                final_fig,
+                            )
+                        finally:
+                            plt.close(final_fig)
+                    pdf_bytes = st.session_state.get("d8_pdf_bytes")
+                    if pdf_bytes:
+                        st.download_button(
+                            "PDF 저장",
+                            data=pdf_bytes,
+                            file_name=f"{st.session_state.get('d8_group', '우리모둠')}_함수추세선탐구.pdf",
+                            mime="application/pdf",
+                            use_container_width=True,
+                        )
                 else:
                     st.caption("각 단계 저장 후 PDF를 만들 수 있습니다.")
             with portfolio_col:

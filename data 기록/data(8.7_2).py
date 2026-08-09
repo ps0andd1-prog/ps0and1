@@ -5,6 +5,8 @@ import io
 from functools import lru_cache
 import os
 import time
+import tempfile
+import zipfile
 
 import matplotlib as mpl
 import matplotlib.font_manager as fm
@@ -13,6 +15,7 @@ from matplotlib.patches import Ellipse
 import numpy as np
 import pandas as pd
 import streamlit as st
+from fpdf import FPDF
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 
@@ -104,7 +107,7 @@ PUBLIC_DATASET_OPTIONS = [
     "평화: 난민과 강제이주",
 ]
 
-U_MAX_ATTEMPTS = 3
+U_MAX_ATTEMPTS = 4
 CLASS_OPTIONS = ["1", "2", "5", "6"]
 GALLERY_URLS = {
     "1": "https://padlet.com/ps0andd/g_1",
@@ -112,6 +115,8 @@ GALLERY_URLS = {
     "5": "https://padlet.com/ps0andd/g_5",
     "6": "https://padlet.com/ps0andd/g_6",
 }
+PORTFOLIO_URLS = GALLERY_URLS.copy()
+GPT_URL = "https://chatgpt.com/"
 
 FACTFULNESS_LENS_GUIDES = {
     "직선 본능 점검": {
@@ -287,67 +292,44 @@ def apply_local_style():
             color: #e65100;
             font-weight: 900;
         }
-        .translation-general-formula {
-            background: #ffffff;
+        .radical-formula-box {
+            background: #f8fbff;
             border: 1px solid #dbe7f3;
-            border-radius: 10px;
-            font-family: "Times New Roman", "NanumGothic", serif;
-            font-size: clamp(1.55rem, 2.7vw, 2.2rem);
+            border-radius: 8px;
+            color: #263238;
             font-weight: 800;
-            line-height: 1.4;
-            padding: 12px 14px;
+            padding: 10px 12px;
             text-align: center;
             white-space: nowrap;
         }
-        .translation-token-coefficient {
+        .radical-formula-title {
+            color: #455a64;
+            font-family: "NanumGothic", sans-serif;
+            font-size: 0.88rem;
+            font-weight: 900;
+            margin-bottom: 5px;
+        }
+        .radical-formula-expression {
+            font-family: "Times New Roman", "NanumGothic", serif;
+            font-size: clamp(1.9rem, 3.6vw, 2.75rem);
+            font-weight: 800;
+            line-height: 1.5;
+        }
+        .u-radical-formula .radical-formula-expression {
+            font-size: clamp(1.4rem, 2.05vw, 1.8rem);
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: clip;
+        }
+        .radical-sign-token {
+            color: #1565c0;
+            font-weight: 950;
+            margin: 0 0.06em;
+        }
+        .radical-a-token {
             color: #ef6c00;
             font-weight: 950;
-        }
-        .translation-token-p {
-            color: #7b1fa2;
-            font-weight: 950;
-        }
-        .translation-token-q {
-            color: #2e7d32;
-            font-weight: 950;
-        }
-        .graph-choice-wrap {
-            background: #ffffff;
-            border: 1px solid #c8e6c9;
-            border-radius: 10px;
-            padding: 10px 12px;
-            margin-bottom: 8px;
-        }
-        .graph-choice-title {
-            color: #2e7d32;
-            font-size: 0.86rem;
-            font-weight: 950;
-            margin-bottom: 4px;
-        }
-        .graph-choice-help {
-            color: #455a64;
-            font-size: 0.84rem;
-            font-weight: 800;
-            line-height: 1.45;
-        }
-        .trend-choice-wrap {
-            background: #ffffff;
-            border: 1px solid #e1bee7;
-            border-radius: 10px;
-            padding: 10px 12px;
-            margin-bottom: 8px;
-        }
-        .trend-choice-title {
-            color: #7b1fa2;
-            font-size: 0.86rem;
-            font-weight: 950;
-            margin-bottom: 4px;
-        }
-        .trend-choice-help {
-            color: #455a64;
-            font-size: 0.84rem;
-            font-weight: 800;
-            line-height: 1.45;
+            margin: 0 0.04em;
         }
         .radical-root {
             border-top: 2px solid currentColor;
@@ -508,8 +490,8 @@ def page_banner(title, description, question):
 def render_activity_flow():
     steps = [
         ("1", "F.U", "문제 발견", "데이터를 고르고 삶의 문제를 찾기", "#ffebee", "#ffcdd2", "#c62828"),
-        ("2", "T", "수학의 언어", "평행이동으로 직선의 변화 관찰하기", "#e8f5e9", "#c8e6c9", "#2e7d32"),
-        ("3", "U", "AI 이해·활용", "AI가 오차를 줄이며 모델을 조정하는 원리를 직선 추세선으로 단순화하여 탐구합니다.", "#f3e5f5", "#e1bee7", "#7b1fa2"),
+        ("2", "T", "수학의 언어", "도형의 평행이동 다시 익히기", "#e8f5e9", "#c8e6c9", "#2e7d32"),
+        ("3", "U", "AI 이해", "추세선을 조절해 예측값 구하기", "#f3e5f5", "#e1bee7", "#7b1fa2"),
         ("4", "R.E", "세상과 연결", "예측 결과를 삶의 의미로 정리하기", "#e3f2fd", "#bbdefb", "#1565c0"),
     ]
     step_html = "".join(
@@ -653,6 +635,22 @@ def strip_example_prefix(text):
     return str(text).removeprefix("예: ").strip()
 
 
+def selected_life_change(y_label):
+    direction = st.session_state.get("d8_life_direction")
+    if direction == "커질 때":
+        direction = "증가한다"
+    elif direction == "작아질 때":
+        direction = "감소한다"
+    if direction not in ["증가한다", "감소한다"]:
+        if clean_text(st.session_state.get("d8_y_decrease_life", "")):
+            direction = "감소한다"
+        else:
+            direction = "증가한다"
+    life_phrase = "커질 때" if direction == "증가한다" else "작아질 때"
+    key = "d8_y_increase_life" if direction == "증가한다" else "d8_y_decrease_life"
+    return direction, f"{y_label} 값이 {life_phrase}", clean_text(st.session_state.get(key, ""))
+
+
 def trend_based_life_example(y_label, trend_text):
     increase_example, decrease_example = life_change_placeholders(y_label)
     if "감소" in trend_text:
@@ -696,32 +694,35 @@ def selected_xy_data(dataset_name):
     return clean_table[x_label].to_numpy(float), clean_table[y_label].to_numpy(float), x_label, y_label
 
 
-def default_prediction_x(x_data, x_label):
-    if str(x_label) == "연도":
-        return 2027.0
-    return float(max(x_data) + (x_data[1] - x_data[0] if len(x_data) > 1 else 1))
-
-
 def calculate_function(x_values, params):
     x_arr = np.asarray(x_values, dtype=float)
+    model = params.get("model", "직선")
     coefficient = float(params.get("coefficient", params.get("a", 1.0)))
     p = float(params.get("p", 0.0))
     q = float(params.get("q", 0.0))
-    y_arr = coefficient * (x_arr - p) + q
+    if model == "곡선":
+        y_arr = coefficient * (x_arr - p) ** 2 + q
+    else:
+        y_arr = coefficient * (x_arr - p) + q
     mask = np.isfinite(y_arr)
     return y_arr, mask
 
 
 def fit_default_params(x_data, y_data, model_type=None):
-    return _fit_default_params_cached(tuple(map(float, x_data)), tuple(map(float, y_data))).copy()
+    selected_model = model_type or st.session_state.get("d8_u_function_type", "직선")
+    return _fit_default_params_cached(tuple(map(float, x_data)), tuple(map(float, y_data)), selected_model).copy()
 
 
 @st.cache_data(show_spinner=False, max_entries=32)
-def _fit_default_params_cached(x_values, y_values):
+def _fit_default_params_cached(x_values, y_values, model_type):
     x = np.asarray(x_values, dtype=float)
     y = np.asarray(y_values, dtype=float)
-    if len(x) < 2:
-        return {"model": "직선", "coefficient": 1.0, "p": float(x[0]) if len(x) else 0.0, "q": float(y[0]) if len(y) else 0.0}
+    if model_type == "곡선" and len(x) >= 3:
+        a2, b2, c2 = np.polyfit(x, y, 2)
+        if abs(a2) >= 1e-12:
+            p = -b2 / (2 * a2)
+            q = c2 - (a2 * p ** 2)
+            return {"model": "곡선", "coefficient": float(a2), "p": float(p), "q": float(q)}
     m, b = np.polyfit(x, y, 1)
     p = float(np.min(x))
     q = float(m * p + b)
@@ -729,27 +730,20 @@ def _fit_default_params_cached(x_values, y_values):
 
 
 def get_parameters(x_data, y_data):
-    st.session_state["d8_u_function_type"] = "직선"
+    st.session_state.setdefault("d8_u_function_type", "직선")
     type_col, formula_preview_col = st.columns([1.1, 1.0], gap="small")
     with type_col:
-        function_type = "직선"
-        st.markdown(
-            """
-            <div class="trend-choice-wrap">
-                <div class="trend-choice-title">직선 추세선 사용</div>
-                <div class="trend-choice-help">데이터의 증가와 감소 경향을 직선으로 단순화해 예측합니다.</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
+        function_type = st.radio(
+            "추세선 함수 선택",
+            ["직선", "곡선"],
+            key="d8_u_function_type",
+            horizontal=True,
         )
     with formula_preview_col:
         st.markdown("**일반화된 함수**")
-        render_translation_general_formula(function_type)
+        st.latex(rf"\Large {general_translated_formula(function_type)}")
     defaults = fit_default_params(x_data, y_data, function_type)
-    coefficient_default = float(defaults.get("coefficient", 1.0))
-    coefficient_abs = abs(coefficient_default)
     slider_context = (
-        "offset-default-v2",
         function_type,
         round(float(min(x_data)), 6),
         round(float(max(x_data)), 6),
@@ -757,61 +751,45 @@ def get_parameters(x_data, y_data):
         round(float(max(y_data)), 6),
     )
     if st.session_state.get("d8_slider_context") != slider_context:
-        slider_keys = ["d8_u_coefficient", "d8_u_coefficient_sign", "d8_u_shift_p", "d8_u_shift_q"]
+        slider_keys = ["d8_u_coefficient", "d8_u_shift_p", "d8_u_shift_q"]
         for key in slider_keys:
             st.session_state.pop(key, None)
         st.session_state["d8_slider_context"] = slider_context
-        st.session_state["d8_u_coefficient_sign"] = "+" if coefficient_default >= 0 else "-"
     params = {"model": function_type}
 
     coefficient_col, p_col, q_col = st.columns(3, gap="small")
+    coefficient_default = float(defaults.get("coefficient", 1.0))
+    coefficient_span = max(abs(coefficient_default) * 0.35, 0.05)
+    coefficient_min = float(coefficient_default - coefficient_span)
+    coefficient_max = float(coefficient_default + coefficient_span)
+    if coefficient_min == coefficient_max:
+        coefficient_min, coefficient_max = -1.0, 1.0
     with coefficient_col:
-        coefficient_token = "m"
-        coefficient_name = "기울기 부호"
+        coefficient_token = "m" if function_type == "직선" else "a"
+        coefficient_name = "기울기" if function_type == "직선" else "최고차항의 계수"
         render_radical_control_label("a", coefficient_token, coefficient_name)
-        st.session_state.setdefault("d8_u_coefficient_sign", "+" if coefficient_default >= 0 else "-")
-        if st.session_state["d8_u_coefficient_sign"] not in ["+", "-"]:
-            st.session_state["d8_u_coefficient_sign"] = "+" if coefficient_default >= 0 else "-"
-        sign_cols = st.columns(2, gap="small")
-        with sign_cols[0]:
-            if st.button(
-                "+",
-                key="d8_u_coefficient_sign_plus",
-                type="primary" if st.session_state["d8_u_coefficient_sign"] == "+" else "secondary",
-                use_container_width=True,
-                help="직선은 오른쪽으로 갈수록 증가합니다.",
-            ):
-                st.session_state["d8_u_coefficient_sign"] = "+"
-        with sign_cols[1]:
-            if st.button(
-                "-",
-                key="d8_u_coefficient_sign_minus",
-                type="primary" if st.session_state["d8_u_coefficient_sign"] == "-" else "secondary",
-                use_container_width=True,
-                help="직선은 오른쪽으로 갈수록 감소합니다.",
-            ):
-                st.session_state["d8_u_coefficient_sign"] = "-"
-        selected_coefficient_sign = st.session_state["d8_u_coefficient_sign"]
-        sign_multiplier = 1.0 if selected_coefficient_sign == "+" else -1.0
-        params["coefficient"] = sign_multiplier * coefficient_abs
-        st.caption(f"최적화된 |{coefficient_token}|={coefficient_abs:.3g}, 현재 {coefficient_token}={params['coefficient']:.3g}")
+        params["coefficient"] = st.slider(
+            f"{coefficient_token}: {coefficient_name}",
+            coefficient_min,
+            coefficient_max,
+            coefficient_default,
+            float(max((coefficient_max - coefficient_min) / 120, 1e-5)),
+            key="d8_u_coefficient",
+            label_visibility="collapsed",
+        )
     x_span = max(float(np.max(x_data) - np.min(x_data)), 1.0)
     y_span = max(float(np.max(y_data) - np.min(y_data)), 1.0)
     p_default = float(defaults.get("p", np.mean(x_data)))
     q_default = float(defaults.get("q", np.mean(y_data)))
-    p_window = max(x_span * 0.16, 1.0)
-    q_window = max(y_span * 0.28, 0.5)
-    p_offset = min(max(x_span * 0.10, 0.75), p_window * 0.82)
-    q_offset = min(max(y_span * 0.16, 0.35), q_window * 0.82)
-    p_initial = float(np.clip(p_default + p_offset, p_default - p_window, p_default + p_window))
-    q_initial = float(np.clip(q_default - q_offset, q_default - q_window, q_default + q_window))
+    p_window = max(x_span * 0.10, 1.0)
+    q_window = max(y_span * 0.20, 0.5)
     with p_col:
         render_radical_control_label("p", "p", "x축 평행이동")
         params["p"] = st.slider(
             "p: x축 평행이동",
             float(p_default - p_window),
             float(p_default + p_window),
-            p_initial,
+            p_default,
             float(max(p_window / 80, 0.05)),
             key="d8_u_shift_p",
             label_visibility="collapsed",
@@ -822,7 +800,7 @@ def get_parameters(x_data, y_data):
             "q: y축 평행이동",
             float(q_default - q_window),
             float(q_default + q_window),
-            q_initial,
+            q_default,
             float(max(q_window / 80, 0.01)),
             key="d8_u_shift_q",
             label_visibility="collapsed",
@@ -836,17 +814,7 @@ def calculate_loss(actual_y, predicted_y, valid_mask):
     mask = np.asarray(valid_mask, dtype=bool) & np.isfinite(pred)
     if not np.any(mask):
         return None, 0
-    return float(np.sum((actual[mask] - pred[mask]) ** 2)), int(np.sum(mask))
-
-
-def automatic_fit_reason(actual_y, predicted_y, valid_mask, params=None, x_label="시간", y_label="데이터 값"):
-    coefficient = float((params or {}).get("coefficient", 1.0))
-    direction = "증가" if coefficient >= 0 else "감소"
-    return (
-        f"{x_label}에 따른 {y_label}의 변화를 데이터로 분석했습니다. "
-        f"평행이동을 이용해 직선 추세선을 실제 데이터에 가깝게 조정한 결과, "
-        f"앞으로도 {direction}하는 경향으로 예측했습니다. "
-    )
+    return float(np.mean((actual[mask] - pred[mask]) ** 2)), int(np.sum(mask))
 
 
 def build_function_text(params):
@@ -870,6 +838,9 @@ def function_latex(params):
     coefficient = float(params.get("coefficient", params.get("a", 1.0)))
     p = float(params["p"])
     q = float(params["q"])
+    model = params.get("model", "직선")
+    if model == "곡선":
+        return rf"f(x)={coefficient:.2f}(x {signed_latex_number(-p)})^2 {signed_latex_number(q)}"
     return rf"f(x)={coefficient:.2f}(x {signed_latex_number(-p)}) {signed_latex_number(q)}"
 
 
@@ -908,6 +879,73 @@ def emphasize_xy_axes(ax):
     ax.set_ylim(y_min, y_max)
 
 
+def draw_radical_practice_graph(sign_symbol, a_value, point_x=0.0, step_size=2.0, show_point=True):
+    sign = 1 if sign_symbol == "+" else -1
+    x_values = np.linspace(0.0, 10.0, 260)
+    y_values = sign * np.sqrt(a_value * x_values)
+    point_y = sign * np.sqrt(a_value * max(point_x, 0.0))
+
+    fig, ax = plt.subplots(figsize=(9.2, 6.4))
+    ax.plot(x_values, y_values, color="#1976d2", linewidth=2.5, label=f"y={sign_symbol}√({int(a_value)}x)")
+    ax.scatter([0], [0], color="#d32f2f", s=82, zorder=4, label="시작점 (0, 0)")
+    if show_point:
+        for current_x in np.arange(step_size, point_x + 0.001, step_size):
+            previous_x = current_x - step_size
+            previous_y = sign * np.sqrt(a_value * max(previous_x, 0.0))
+            current_y = sign * np.sqrt(a_value * max(current_x, 0.0))
+            delta_y = current_y - previous_y
+            label_y = (current_y + previous_y) / 2
+            ax.plot(
+                [current_x, current_x],
+                [previous_y, current_y],
+                color="#f57c00",
+                linestyle="--",
+                linewidth=2.0,
+                alpha=0.72,
+            )
+            ax.annotate(
+                f"Δy={abs(delta_y):.2f}",
+                xy=(current_x, label_y),
+                xytext=(8, 0),
+                textcoords="offset points",
+                color="#e65100",
+                fontsize=8.5,
+                fontweight="bold",
+                va="center",
+            )
+        ax.scatter([point_x], [point_y], color="#f57c00", edgecolor="#ffffff", linewidth=1.8, s=120, zorder=5)
+        ax.annotate(
+            "P",
+            xy=(point_x, point_y),
+            xytext=(8, 8),
+            textcoords="offset points",
+            color="#e65100",
+            fontsize=12,
+            fontweight="bold",
+        )
+    ax.annotate(
+        "시작점",
+        xy=(0, 0),
+        xytext=(8, -18 if sign_symbol == "+" else 12),
+        textcoords="offset points",
+        color="#d32f2f",
+        fontsize=10,
+        fontweight="bold",
+    )
+    ax.set_xlim(-1.0, 10.8)
+    if sign_symbol == "+":
+        ax.set_ylim(-1.0, 10.0)
+    else:
+        ax.set_ylim(-10.0, 1.0)
+    ax.set_xlabel("x")
+    ax.set_ylabel("y")
+    ax.grid(True, alpha=0.25)
+    emphasize_xy_axes(ax)
+    ax.legend(loc="best")
+    fig.tight_layout()
+    return fig
+
+
 def translated_practice_formula(function_type, sign_symbol, coefficient, p_value, q_value):
     coefficient_text = f"{coefficient:g}"
     p_latex = signed_latex_number(-float(p_value))
@@ -936,22 +974,6 @@ def general_translated_formula(function_type):
     return r"y=a(x-p)^2+q"
 
 
-def graph_formula_text(function_type, sign_symbol, coefficient, p_value=0.0, q_value=0.0):
-    coefficient_text = f"{float(coefficient):g}"
-    signed_coefficient_text = coefficient_text if sign_symbol == "+" else f"-{coefficient_text}"
-    p_float = float(p_value)
-    q_float = float(q_value)
-    p_text = f"-{p_float:g}" if p_float >= 0 else f"+{abs(p_float):g}"
-    q_text = f"+{q_float:g}" if q_float >= 0 else f"-{abs(q_float):g}"
-    if function_type == "직선":
-        if abs(p_float) < 1e-9 and abs(q_float) < 1e-9:
-            return f"y={signed_coefficient_text}x"
-        return f"y={signed_coefficient_text}(x{p_text}){q_text}"
-    if abs(p_float) < 1e-9 and abs(q_float) < 1e-9:
-        return f"y={signed_coefficient_text}x^2"
-    return f"y={signed_coefficient_text}(x{p_text})^2{q_text}"
-
-
 def translated_practice_values(x_values, function_type, sign_symbol, coefficient, p_value=0.0, q_value=0.0):
     x_arr = np.asarray(x_values, dtype=float)
     signed_coefficient = float(coefficient) if sign_symbol == "+" else -float(coefficient)
@@ -960,62 +982,34 @@ def translated_practice_values(x_values, function_type, sign_symbol, coefficient
     return signed_coefficient * (x_arr - float(p_value)) ** 2 + float(q_value)
 
 
-def render_translation_observation_result(function_type, sign_symbol, coefficient, p_value, q_value):
+def translation_feature_text(function_type, sign_symbol, coefficient, p_value, q_value):
     signed_coefficient = float(coefficient) if sign_symbol == "+" else -float(coefficient)
     if function_type == "직선":
         direction = "증가" if signed_coefficient > 0 else "감소"
-        sign_text = f"m={signed_coefficient:g}이므로 기울기의 부호가 {'+' if signed_coefficient > 0 else '-'}입니다. 따라서 그래프는"
+        return f"기울기 {signed_coefficient:g}의 부호가 직선의 {direction}를 결정하고, (p, q)=({p_value:g}, {q_value:g})는 이 직선이 지나는 한 점입니다."
+    opening = "위로 열린다" if signed_coefficient > 0 else "아래로 열린다"
+    return f"최고차항의 계수 {signed_coefficient:g}의 부호가 포물선이 {opening}는 방향을 결정하고, (p, q)=({p_value:g}, {q_value:g})는 꼭짓점입니다."
+
+
+def translation_observation_html(function_type, sign_symbol, coefficient, p_value, q_value):
+    signed_coefficient = float(coefficient) if sign_symbol == "+" else -float(coefficient)
+    if function_type == "직선":
+        direction = "증가" if signed_coefficient > 0 else "감소"
+        feature_text = f"직선에서는 (p, q)=({p_value:g}, {q_value:g})가 이동한 직선이 지나는 한 점입니다."
+        sign_text = f"m={signed_coefficient:g}이므로 기울기의 부호가 {'+' if signed_coefficient > 0 else '-'}입니다. 따라서 그래프는 {direction}합니다."
     else:
         opening = "위로 열린" if signed_coefficient > 0 else "아래로 열린"
-        direction = opening
-        sign_text = f"a={signed_coefficient:g}이므로 최고차항의 계수 부호가 {'+' if signed_coefficient > 0 else '-'}입니다. 따라서 포물선은"
-
-    observation_items = [
-        (
-            "1",
-            f"{sign_text} (        )합니다.",
-            f"{sign_text} {direction}합니다.",
-            f"{html.escape(sign_text)} <span style='color:#c62828;font-weight:950;'>{html.escape(direction)}</span>합니다.",
-            "d8_practice_observation_answer_1",
-        ),
-        (
-            "2",
-            "평행이동해도 도형의 형태는 (        ) 위치만 변합니다.",
-            "평행이동해도 도형의 형태는 변하지 않고 위치만 변합니다.",
-            "평행이동해도 도형의 형태는 <span style='color:#c62828;font-weight:950;'>변하지 않고</span> 위치만 변합니다.",
-            "d8_practice_observation_answer_2",
-        ),
-        (
-            "3",
-            "평행이동해도 직선의 (        )는 변하지 않습니다.",
-            "평행이동해도 직선의 기울기와 증가·감소의 방향은 변하지 않습니다.",
-            "평행이동해도 직선의 <span style='color:#c62828;font-weight:950;'>기울기와 증가·감소의 방향</span>은 변하지 않습니다.",
-            "d8_practice_observation_answer_3",
-        ),
-    ]
-    answer_keys = [item[4] for item in observation_items]
-    expander_is_open = bool(st.session_state.get("d8_practice_observation_expanded")) or any(
-        st.session_state.get(answer_key) for answer_key in answer_keys
-    )
-    with st.expander(":blue[관찰 결과 개념 정리]", expanded=expander_is_open):
-        if st.button(
-            "정답 확인",
-            key="d8_practice_observation_show_all",
-            use_container_width=True,
-        ):
-            for answer_key in answer_keys:
-                st.session_state[answer_key] = True
-            st.session_state["d8_practice_observation_expanded"] = True
-        for item_no, question_text, answer_text, answer_html, state_key in observation_items:
-            shown_html = answer_html if st.session_state.get(state_key) else html.escape(question_text)
-            st.markdown(
-                f"""
-                <div style="color:#263238;font-weight:800;line-height:1.7;padding:4px 0 8px 0;">
-                    {item_no}. {shown_html}
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
+        feature_text = f"이차함수에서는 (p, q)=({p_value:g}, {q_value:g})가 이동한 포물선의 꼭짓점 좌표입니다."
+        sign_text = f"a={signed_coefficient:g}이므로 최고차항의 계수 부호가 {'+' if signed_coefficient > 0 else '-'}입니다. 따라서 포물선은 {opening} 모양입니다."
+    return f"""
+    <div style="background:#f8fbff;border:1px solid #bbdefb;border-left:6px solid #1565c0;
+        border-radius:10px;padding:10px 12px;color:#263238;font-weight:800;line-height:1.55;margin:8px 0 0 0;">
+        <div style="font-size:0.92rem;font-weight:950;color:#1565c0;margin-bottom:5px;">관찰 결과 개념 정리</div>
+        <div>1. {html.escape(sign_text)}</div>
+        <div>2. 평행이동해도 도형의 형태는 변하지 않고 위치만 변합니다.</div>
+        <div>3. {html.escape(feature_text)}</div>
+    </div>
+    """
 
 
 def animation_steps(start, end, step=0.5):
@@ -1057,17 +1051,17 @@ def draw_translated_practice_graph(function_type, sign_symbol, coefficient, p_va
     base_point = (0.0, 0.0)
     x_shift_point = (float(p_value), 0.0)
     moved_point = (p_float, q_float)
-    ax.scatter([base_point[0]], [base_point[1]], color="#607d8b", s=130, zorder=4)
+    ax.scatter([base_point[0]], [base_point[1]], color="#607d8b", s=78, zorder=4)
     if show_observation:
-        ax.scatter([x_shift_point[0]], [x_shift_point[1]], color="#f57c00", s=140, zorder=5)
-    ax.scatter([moved_point[0]], [moved_point[1]], color="#d32f2f", s=190, zorder=6)
+        ax.scatter([x_shift_point[0]], [x_shift_point[1]], color="#f57c00", s=86, zorder=5)
+    ax.scatter([moved_point[0]], [moved_point[1]], color="#d32f2f", s=96, zorder=6)
     ax.annotate(
         "(0, 0)",
         xy=base_point,
         xytext=(10, -18),
         textcoords="offset points",
         color="#455a64",
-        fontsize=14,
+        fontsize=12,
         fontweight="bold",
         bbox=dict(boxstyle="round,pad=0.22", facecolor="#ffffff", edgecolor="#cfd8dc", alpha=0.92),
     )
@@ -1078,9 +1072,9 @@ def draw_translated_practice_graph(function_type, sign_symbol, coefficient, p_va
         xytext=(12, 12),
         textcoords="offset points",
         color="#b71c1c",
-        fontsize=15,
+        fontsize=12,
         fontweight="bold",
-        bbox=dict(boxstyle="round,pad=0.32", facecolor="#ffebee", edgecolor="#ef9a9a", alpha=0.96),
+        bbox=dict(boxstyle="round,pad=0.24", facecolor="#ffebee", edgecolor="#ef9a9a", alpha=0.94),
     )
 
     if show_observation:
@@ -1103,7 +1097,7 @@ def draw_translated_practice_graph(function_type, sign_symbol, coefficient, p_va
             base_point[1] - 0.7,
             f"x축 방향 {p_value:+g}",
             color="#e65100",
-            fontsize=14,
+            fontsize=13,
             fontweight="bold",
             ha="center",
             bbox=dict(boxstyle="round,pad=0.25", facecolor="#fff8e1", edgecolor="#f9a825", alpha=0.94),
@@ -1113,7 +1107,7 @@ def draw_translated_practice_graph(function_type, sign_symbol, coefficient, p_va
             moved_point[1] / 2,
             f"y축 방향 {q_value:+g}",
             color="#1b5e20",
-            fontsize=14,
+            fontsize=13,
             fontweight="bold",
             va="center",
             bbox=dict(boxstyle="round,pad=0.25", facecolor="#e8f5e9", edgecolor="#66bb6a", alpha=0.94),
@@ -1141,26 +1135,8 @@ def draw_translated_practice_graph(function_type, sign_symbol, coefficient, p_va
         y_margin = max((y_max - y_min) * 0.12, 1.2)
     ax.set_xlim(x_min, x_max)
     ax.set_ylim(y_min - y_margin, y_max + y_margin)
-    formula_lines = [
-        f"평행이동 전: {graph_formula_text(function_type, sign_symbol, coefficient, 0.0, 0.0)}",
-        f"평행이동 후: {graph_formula_text(function_type, sign_symbol, coefficient, p_value, q_value)}",
-    ]
-    ax.text(
-        0.98,
-        0.96,
-        "\n".join(formula_lines),
-        transform=ax.transAxes,
-        ha="right",
-        va="top",
-        color="#0d47a1",
-        fontsize=14,
-        fontweight="bold",
-        linespacing=1.5,
-        bbox=dict(boxstyle="round,pad=0.45", facecolor="#ffffff", edgecolor="#90caf9", alpha=0.96),
-    )
-    ax.set_xlabel("x", fontsize=15, fontweight="bold")
-    ax.set_ylabel("y", fontsize=15, fontweight="bold")
-    ax.tick_params(axis="both", which="major", labelsize=12)
+    ax.set_xlabel("x")
+    ax.set_ylabel("y")
     ax.grid(True, which="major", color="#cfd8dc", linewidth=0.9, alpha=0.62)
     ax.minorticks_on()
     ax.grid(True, which="minor", color="#e7eef4", linewidth=0.55, alpha=0.75)
@@ -1169,7 +1145,7 @@ def draw_translated_practice_graph(function_type, sign_symbol, coefficient, p_va
     if handles:
         ax.legend(
             loc="upper left",
-            fontsize=13,
+            fontsize=12,
             framealpha=0.96,
             facecolor="#ffffff",
             edgecolor="#dbe7f3",
@@ -1180,20 +1156,42 @@ def draw_translated_practice_graph(function_type, sign_symbol, coefficient, p_va
     return fig
 
 
-@st.cache_data(show_spinner=False, max_entries=64)
-def translated_practice_graph_png(function_type, sign_symbol, coefficient, p_value, q_value, show_observation=False):
-    fig = draw_translated_practice_graph(
-        function_type,
-        sign_symbol,
-        float(coefficient),
-        float(p_value),
-        float(q_value),
-        bool(show_observation),
+def render_radical_formula_html(sign_text="±", a_text="a", suffix="", title=None):
+    title_html = (
+        f"""<div class="radical-formula-title">{html.escape(str(title))}</div>"""
+        if title
+        else ""
     )
-    buffer = io.BytesIO()
-    fig.savefig(buffer, format="png", dpi=150, bbox_inches="tight", facecolor=fig.get_facecolor())
-    plt.close(fig)
-    return buffer.getvalue()
+    st.markdown(
+        f"""
+        <div class="radical-formula-box">
+            {title_html}
+            <div class="radical-formula-expression">
+                y=<span class="radical-sign-token">{html.escape(str(sign_text))}</span>√<span class="radical-root">(<span class="radical-a-token">{html.escape(str(a_text))}</span>x)</span>{suffix}
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_radical_shifted_formula_html(sign_text, a_text, p_text, q_text, title=None, extra_class=""):
+    title_html = (
+        f"""<div class="radical-formula-title">{html.escape(str(title))}</div>"""
+        if title
+        else ""
+    )
+    st.markdown(
+        f"""
+        <div class="radical-formula-box {html.escape(str(extra_class))}">
+            {title_html}
+            <div class="radical-formula-expression">
+                y=<span class="radical-sign-token">{html.escape(str(sign_text))}</span>√<span class="radical-root">(<span class="radical-a-token">{html.escape(str(a_text))}</span>(x {html.escape(str(p_text))}))</span> {html.escape(str(q_text))}
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 
 def render_radical_control_label(kind, token, text):
@@ -1208,73 +1206,53 @@ def render_radical_control_label(kind, token, text):
     )
 
 
-def render_translation_general_formula(function_type):
-    coefficient_token = "m" if function_type == "직선" else "a"
-    power_html = "" if function_type == "직선" else "<sup>2</sup>"
-    st.markdown(
-        f"""
-        <div class="translation-general-formula">
-            y=<span class="translation-token-coefficient">{coefficient_token}</span>(x-<span class="translation-token-p">p</span>){power_html}+<span class="translation-token-q">q</span>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-
 def render_function_graph_practice():
     render_stage_card(
-        "평행이동으로 직선의 변화 관찰하기",
-        "직선 그래프의 기울기 부호와 x축·y축 평행이동 값을 조절하며 이동 전 그래프와 이동 후 그래프를 비교합니다.",
+        "도형의 평행이동 개념을 다시 확인합니다",
+        "직선 또는 이차함수 그래프를 선택하고, 계수와 x축·y축 평행이동 값을 조절하며 이동 전 그래프와 이동 후 그래프를 비교합니다.",
         "green",
         "개념 탐구",
     )
     function_col, selected_formula_col = st.columns([1.15, 1.0], gap="small")
     with function_col:
-        function_type = "직선"
-        st.session_state["d8_practice_function_type"] = function_type
-        st.markdown(
-            """
-            <div class="graph-choice-wrap">
-                <div class="graph-choice-title">기본 그래프</div>
-                <div class="graph-choice-help">직선 y=mx에서 기울기 부호를 정하고, p와 q를 움직이며 평행이동을 관찰합니다.</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
+        st.markdown("**기본 그래프 선택**")
+        function_type = st.radio(
+            "직선 또는 곡선",
+            ["직선", "곡선"],
+            key="d8_practice_function_type",
+            horizontal=True,
+            label_visibility="collapsed",
         )
     with selected_formula_col:
         st.markdown("**평행이동 일반형**")
-        render_translation_general_formula(function_type)
+        st.latex(rf"\Large {general_translated_formula(function_type)}")
+    translation_check_options = [
+        "y=f(x-p)+q",
+        "y=f(x+p)+q",
+        "y=f(x)+p+q",
+    ]
+    if st.session_state.get("d8_translation_understanding") not in translation_check_options:
+        st.session_state["d8_translation_understanding"] = None
+    coefficient_name = "기울기" if function_type == "직선" else "최고차항의 계수"
     coefficient_token = "m" if function_type == "직선" else "a"
     coefficient_col, p_col, q_col = st.columns(3, gap="small")
     with coefficient_col:
-        render_radical_control_label("a", coefficient_token, "기울기 부호")
-        st.session_state.setdefault("d8_practice_slope_sign", "+")
-        if st.session_state["d8_practice_slope_sign"] not in ["+", "-"]:
-            st.session_state["d8_practice_slope_sign"] = "+"
-        sign_cols = st.columns(2, gap="small")
-        with sign_cols[0]:
-            if st.button(
-                "+",
-                key="d8_practice_slope_sign_plus",
-                type="primary" if st.session_state["d8_practice_slope_sign"] == "+" else "secondary",
-                use_container_width=True,
-                help="+이면 m=1입니다.",
-            ):
-                st.session_state["d8_practice_slope_sign"] = "+"
-        with sign_cols[1]:
-            if st.button(
-                "-",
-                key="d8_practice_slope_sign_minus",
-                type="primary" if st.session_state["d8_practice_slope_sign"] == "-" else "secondary",
-                use_container_width=True,
-                help="-이면 m=-1입니다.",
-            ):
-                st.session_state["d8_practice_slope_sign"] = "-"
-        selected_slope_sign = st.session_state["d8_practice_slope_sign"]
-        sign_symbol = selected_slope_sign
-        coefficient_signed = 1.0 if sign_symbol == "+" else -1.0
-        coefficient = 1.0
-        st.caption(f"현재 기울기: m={coefficient_signed:g} (기울기의 크기는 앱에서 |m|=1로 고정합니다.)")
+        render_radical_control_label("a", coefficient_token, coefficient_name)
+        coefficient_signed = st.slider(
+            f"{coefficient_token}: {coefficient_name}",
+            -2.0,
+            2.0,
+            1.0,
+            0.1,
+            key="d8_practice_coefficient_signed",
+            help="0보다 크면 양의 방향, 0보다 작으면 음의 방향입니다.",
+            label_visibility="collapsed",
+        )
+        if abs(float(coefficient_signed)) < 1e-9:
+            coefficient_signed = 0.1
+            st.caption("0은 그래프의 형태 확인이 어려워 0.1로 계산합니다.")
+        sign_symbol = "+" if float(coefficient_signed) >= 0 else "-"
+        coefficient = abs(float(coefficient_signed))
     with p_col:
         render_radical_control_label("p", "p", "x축 평행이동")
         if not -5.0 <= float(st.session_state.get("d8_practice_shift_p", 1.0)) <= 5.0:
@@ -1295,13 +1273,13 @@ def render_function_graph_practice():
         )
     with q_col:
         render_radical_control_label("q", "q", "y축 평행이동")
-        if not -5.0 <= float(st.session_state.get("d8_practice_shift_q", 2.0)) <= 5.0:
-            st.session_state["d8_practice_shift_q"] = 2.0
+        if not -5.0 <= float(st.session_state.get("d8_practice_shift_q", 1.0)) <= 5.0:
+            st.session_state["d8_practice_shift_q"] = 1.0
         q_value = st.slider(
             "q: y축 평행이동",
             -5.0,
             5.0,
-            2.0,
+            1.0,
             1.0,
             key="d8_practice_shift_q",
             help="q가 양수이면 위쪽, 음수이면 아래쪽으로 이동합니다.",
@@ -1317,22 +1295,6 @@ def render_function_graph_practice():
     after_formula = translated_practice_formula(function_type, sign_symbol, coefficient, p_value, q_value)
     before_general = general_base_formula(function_type)
     after_general = general_translated_formula(function_type)
-    observation_context = (
-        function_type,
-        sign_symbol,
-        float(coefficient),
-        float(p_value),
-        float(q_value),
-    )
-    if st.session_state.get("d8_practice_observation_context") != observation_context:
-        st.session_state["d8_practice_observation_context"] = observation_context
-        for answer_key in [
-            "d8_practice_observation_answer_1",
-            "d8_practice_observation_answer_2",
-            "d8_practice_observation_answer_3",
-        ]:
-            st.session_state[answer_key] = False
-        st.session_state["d8_practice_observation_expanded"] = False
     st.markdown(
         """
         <div style="background:linear-gradient(135deg,#f8fbff 0%,#eef7ff 100%);
@@ -1423,8 +1385,8 @@ def render_function_graph_practice():
         with graph_area:
             graph_placeholder = st.empty()
             if show_observation:
-                x_frames = [(float(frame_p), 0.0) for frame_p in animation_steps(0.0, float(p_value), 1.0)]
-                y_frames = [(float(p_value), float(frame_q)) for frame_q in animation_steps(0.0, float(q_value), 1.0)]
+                x_frames = [(float(frame_p), 0.0) for frame_p in animation_steps(0.0, float(p_value), 0.5)]
+                y_frames = [(float(p_value), float(frame_q)) for frame_q in animation_steps(0.0, float(q_value), 0.5)]
                 for frame_p, frame_q in x_frames + y_frames:
                     fig = draw_translated_practice_graph(
                         function_type,
@@ -1440,17 +1402,16 @@ def render_function_graph_practice():
                 st.caption("그래프 전체가 먼저 x축 방향 p만큼 이동하고, 이어서 y축 방향 q만큼 이동합니다.")
                 st.session_state["d8_practice_translation_observe"] = False
             else:
-                graph_placeholder.image(
-                    translated_practice_graph_png(
-                        function_type,
-                        sign_symbol,
-                        coefficient,
-                        p_value,
-                        q_value,
-                        show_observation=False,
-                    ),
-                    use_container_width=True,
+                fig = draw_translated_practice_graph(
+                    function_type,
+                    sign_symbol,
+                    coefficient,
+                    p_value,
+                    q_value,
+                    show_observation=False,
                 )
+                graph_placeholder.pyplot(fig, use_container_width=True)
+                plt.close(fig)
     with current_formula_col:
         st.markdown(
             """
@@ -1467,73 +1428,55 @@ def render_function_graph_practice():
             use_container_width=True,
             on_click=lambda: st.session_state.update({"d8_practice_translation_observe": True}),
         )
-    render_translation_observation_result(function_type, sign_symbol, coefficient, p_value, q_value)
-
-def render_translation_textbook_concept_box():
-    with st.expander(":green[평행이동 개념 정리]", expanded=False):
-        st.markdown(pretty_title("평행이동 개념 정리", "#e8f5e9", "#c8e6c9"), unsafe_allow_html=True)
+        if st.button("관찰 결과 확인", key="d8_practice_translation_result_show", use_container_width=True):
+            st.session_state["d8_practice_show_observation_result"] = True
+    if st.session_state.get("d8_practice_show_observation_result"):
         st.markdown(
-            """
-            <div style="
-                background:#f7fff8;
-                border:1px solid #c8e6c9;
-                border-radius:10px;
-                padding:12px 14px;
-                margin:8px 0 12px 0;
-                color:#263238;
-                line-height:1.62;
-            ">
-                <div style="font-size:0.78rem;font-weight:950;color:#2e7d32;margin-bottom:5px;">
-                    1. 도형의 방정식 - 3. 도형의 이동 - 1. 평행이동
-                </div>
-                <div style="font-size:0.98rem;font-weight:900;color:#1f2937;margin-bottom:6px;">
-                    한 도형을 일정한 방향으로 일정한 거리만큼 옮기는 것을 평행이동이라고 합니다.
-                </div>
-            </div>
-            """,
+            translation_observation_html(function_type, sign_symbol, coefficient, p_value, q_value),
             unsafe_allow_html=True,
         )
-        concept_cols = st.columns(2, gap="small")
-        with concept_cols[0]:
-            st.markdown(
-                """
-                <div style="
-                    background:#ffffff;
-                    border:1px solid #c8e6c9;
-                    border-radius:10px;
-                    padding:12px 14px;
-                    min-height:150px;
-                ">
-                    <div style="font-size:0.86rem;font-weight:950;color:#2e7d32;margin-bottom:8px;">점의 평행이동</div>
-                    <div style="font-size:0.92rem;line-height:1.55;color:#37474f;">
-                        점을 x축의 방향으로 a만큼, y축의 방향으로 b만큼 평행이동하면
-                        좌표는 이동한 만큼 더해집니다.
-                    </div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-            st.latex(r"\large (x,\ y)\ \longrightarrow\ (x+a,\ y+b)")
-        with concept_cols[1]:
-            st.markdown(
-                """
-                <div style="
-                    background:#ffffff;
-                    border:1px solid #c8e6c9;
-                    border-radius:10px;
-                    padding:12px 14px;
-                    min-height:150px;
-                ">
-                    <div style="font-size:0.86rem;font-weight:950;color:#2e7d32;margin-bottom:8px;">도형의 평행이동</div>
-                    <div style="font-size:0.92rem;line-height:1.55;color:#37474f;">
-                        방정식 f(x, y)=0이 나타내는 도형을 x축의 방향으로 a만큼,
-                        y축의 방향으로 b만큼 평행이동한 도형의 방정식입니다.
-                    </div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-            st.latex(r"\large f(x-a,\ y-b)=0")
+
+    with st.expander("평행이동 후 도형의 형태 확인", expanded=False):
+        st.markdown("**평행이동 전과 후를 비교해 봅시다.**")
+        shape_answer = st.radio(
+            "그래프를 x축으로 p만큼, y축으로 q만큼 평행이동하면 도형의 형태는 어떻게 될까요?",
+            [
+                "형태는 변하지 않고 위치만 변한다.",
+                "p, q 값이 커질수록 그래프가 더 가파르게 변한다.",
+                "평행이동하면 직선은 곡선으로, 곡선은 직선으로 변한다.",
+            ],
+            key="d8_shape_preservation_check",
+            index=None,
+        )
+        if shape_answer == "형태는 변하지 않고 위치만 변한다.":
+            st.success("맞습니다. 평행이동은 모든 점을 같은 방향, 같은 거리만큼 옮기므로 도형의 형태는 변하지 않습니다.")
+        elif shape_answer:
+            st.error("다시 확인해 봅시다. p와 q는 그래프의 위치를 바꾸는 값이고, 형태를 바꾸는 값은 아닙니다.")
+
+    with st.expander("[예시] 오개념 확인", expanded=False):
+        st.markdown("**오른쪽으로 p만큼 이동할 때 x 안에는 무엇을 넣을까?**")
+        translation_answer = st.radio(
+            "그래프 y=f(x)를 x축의 양의 방향으로 p만큼 평행이동하고, y축 방향으로 q만큼 평행이동한 식은?",
+            translation_check_options,
+            key="d8_translation_understanding",
+            index=None,
+            label_visibility="collapsed",
+        )
+        if translation_answer == translation_check_options[0]:
+            st.success("정답입니다. 오른쪽으로 p만큼 이동하면 x 대신 x-p를 넣습니다. y축 방향 이동은 식 전체에 +q로 나타납니다.")
+        elif translation_answer:
+            st.error("다시 생각해 봅시다. 오른쪽으로 p만큼 이동한 그래프의 식은 x+p가 아니라 x-p를 사용합니다.")
+
+
+def radical_understanding_result(answer):
+    if answer == "y=f(x-p)+q":
+        return "정답"
+    if answer in [
+        "y=f(x+p)+q",
+        "y=f(x)+p+q",
+    ]:
+        return "오답"
+    return "아직 확인하지 않았습니다."
 
 
 def predict_value(x_value, params):
@@ -1577,12 +1520,22 @@ def add_trend_ellipse(ax, x_data, y_data, label="경향성 영역"):
 
 def prediction_trend_sentence(params):
     coefficient = float(params.get("coefficient", params.get("a", 1.0)))
+    if params.get("model", "직선") == "곡선":
+        if coefficient >= 0:
+            return "꼭짓점을 기준으로 내려갔다가 다시 증가하는 곡선 경향을 보일 수 있습니다."
+        return "꼭짓점을 기준으로 올라갔다가 다시 감소하는 곡선 경향을 보일 수 있습니다."
     if coefficient >= 0:
         return "앞으로도 증가하는 경향을 보일 것으로 예측됩니다."
     return "앞으로도 감소하는 경향을 보일 것으로 예측됩니다."
 
 
 def simple_trend_label(params, x_start=None, x_end=None):
+    if params.get("model", "직선") == "직선":
+        return "증가하는 경향" if float(params.get("coefficient", 1.0)) >= 0 else "감소하는 경향"
+    if x_start is not None and x_end is not None:
+        y_values, _ = calculate_function([x_start, x_end], params)
+        if np.isfinite(y_values[0]) and np.isfinite(y_values[1]):
+            return "증가하는 경향" if y_values[1] >= y_values[0] else "감소하는 경향"
     return "증가하는 경향" if float(params.get("coefficient", 1.0)) >= 0 else "감소하는 경향"
 
 
@@ -1614,7 +1567,7 @@ def make_plot(
         ax.scatter(x_arr, y_arr, color="#1f77b4", s=80, label="실제 데이터", zorder=3)
         add_trend_ellipse(ax, x_arr, y_arr)
     if show_function:
-        ax.plot(x_line[valid_line], y_line[valid_line], color="#000000", linewidth=3.6, label="추세선")
+        ax.plot(x_line[valid_line], y_line[valid_line], color="#000000", linewidth=3.6, label="함수 그래프")
     if show_prediction and predicted_y is not None:
         ax.scatter([new_x], [predicted_y], color="#2ca02c", marker="*", s=420, label="예측점", zorder=4)
         ax.annotate(
@@ -1631,7 +1584,7 @@ def make_plot(
         ax.text(
             0.94,
             0.90,
-            f"손실값: {format_optional_number(loss)}",
+            f"손실값(MSE): {format_optional_number(loss)}",
             transform=ax.transAxes,
             ha="right",
             va="top",
@@ -1730,7 +1683,7 @@ def render_u_attempt_tracker(current_params, current_loss):
                         "계수": format_optional_number(attempt["params"].get("coefficient")),
                         "p": format_optional_number(attempt["params"].get("p")),
                         "q": format_optional_number(attempt["params"].get("q")),
-                        "손실값": f"{format_optional_number(attempt['loss'])}{' ⭐' if is_best else ''}",
+                        "손실": f"{format_optional_number(attempt['loss'])}{' ⭐' if is_best else ''}",
                         "_best": is_best,
                     }
                 )
@@ -1741,7 +1694,7 @@ def render_u_attempt_tracker(current_params, current_loss):
                     return ["background-color: #fff8e1; color: #ef6c00; font-weight: 900"] * 6
                 return [""] * 6
 
-            styled_df = display_df[["시도", "함수", "계수", "p", "q", "손실값"]].style.apply(
+            styled_df = display_df[["시도", "함수", "계수", "p", "q", "손실"]].style.apply(
                 lambda row: highlight_best(display_df.loc[row.name]),
                 axis=1,
             )
@@ -1757,6 +1710,131 @@ def render_u_attempt_tracker(current_params, current_loss):
         st.success(f"가장 작은 손실: {best_index + 1}번째 시도")
         return copy_numeric_params(best_attempt["params"])
     return current_params
+
+
+def save_stage_snapshot(stage_no, title, fields):
+    st.session_state[f"d8_saved_stage_{stage_no}"] = {"title": title, "fields": fields}
+    st.session_state[f"d8_saved_stage_{stage_no}_time"] = pd.Timestamp.now().strftime("%H:%M:%S")
+    st.success(f"{stage_no}단계 저장 완료")
+
+
+def saved_stage_caption(stage_no):
+    saved_time = st.session_state.get(f"d8_saved_stage_{stage_no}_time")
+    st.caption(f"마지막 저장: {saved_time}" if saved_time else "아직 이 단계 결과를 저장하지 않았습니다.")
+
+
+class PortfolioPDF(FPDF):
+    def __init__(self):
+        super().__init__()
+        self.alias_nb_pages()
+        self.set_auto_page_break(auto=True, margin=15)
+        self._font_family = "Nanum"
+        self.footer_left = ""
+
+    def header(self):
+        self.set_fill_color(25, 118, 210)
+        self.rect(0, 0, self.w, 22, "F")
+        self.set_xy(10, 6)
+        self.set_text_color(255, 255, 255)
+        self.set_font(self._font_family, "", 16)
+        self.cell(0, 10, "F.U.T.U.R.E. 함수 추세선 탐구 포트폴리오", ln=1, align="C")
+        self.set_text_color(33, 33, 33)
+        self.ln(18)
+
+    def footer(self):
+        self.set_y(-15)
+        self.set_draw_color(200, 200, 200)
+        self.line(10, self.get_y(), self.w - 10, self.get_y())
+        self.set_y(-12)
+        self.set_font(self._font_family, "", 9)
+        self.set_text_color(120, 120, 120)
+        self.cell(0, 8, self.footer_left, 0, 0, "L")
+        self.cell(0, 8, f"{self.page_no()} / {{nb}}", 0, 0, "R")
+
+    def h2(self, text):
+        self.set_fill_color(227, 242, 253)
+        self.set_text_color(21, 101, 192)
+        self.set_font(self._font_family, "", 12)
+        self.cell(0, 8, text, ln=1, fill=True)
+        self.ln(2)
+        self.set_text_color(33, 33, 33)
+
+
+def add_text_box_to_pdf(pdf, title, text):
+    pdf.set_font(pdf._font_family, "", 11)
+    pdf.set_text_color(21, 101, 192)
+    pdf.cell(0, 8, title, ln=1)
+    pdf.set_text_color(50, 50, 50)
+    pdf.set_font(pdf._font_family, "", 10)
+    pdf.set_fill_color(245, 245, 245)
+    pdf.multi_cell(0, 6, clean_text(text), border=1, fill=True)
+    pdf.ln(3)
+
+
+def add_figure_to_pdf(pdf, title, fig):
+    tmp_path = None
+    try:
+        pdf.h2(title)
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp:
+            tmp_path = tmp.name
+        fig.savefig(tmp_path, format="png", dpi=180, bbox_inches="tight")
+        pdf.image(tmp_path, x=12, w=pdf.w - 24)
+        pdf.ln(4)
+    finally:
+        if tmp_path and os.path.exists(tmp_path):
+            os.remove(tmp_path)
+
+
+def create_portfolio_pdf(student_info, stage_rows, fig):
+    pdf = PortfolioPDF()
+    if os.path.exists(FONT_PATH):
+        pdf.add_font("Nanum", "", FONT_PATH, uni=True)
+        pdf._font_family = "Nanum"
+    else:
+        pdf._font_family = "Arial"
+    pdf.set_font(pdf._font_family, "", 12)
+    pdf.footer_left = f"{student_info.get('class', '')}반 {student_info.get('group', '')}"
+    pdf.add_page()
+    pdf.h2("모둠 정보")
+    add_text_box_to_pdf(pdf, "반/모둠", f"{student_info.get('class', '')}반 / {student_info.get('group', '')}")
+    add_text_box_to_pdf(pdf, "자료 묶음", student_info.get("dataset", ""))
+    for row in stage_rows:
+        pdf.h2(row["title"])
+        for label, value in row["fields"]:
+            add_text_box_to_pdf(pdf, label, value)
+    pdf.add_page()
+    add_figure_to_pdf(pdf, "최종 함수 추세선 그래프", fig)
+    output = pdf.output(dest="S")
+    return bytes(output) if isinstance(output, (bytes, bytearray)) else output.encode("latin1")
+
+
+def build_cardnews_prompt(topic, life_view, future_text, future_question):
+    if "증가" in future_text:
+        trend_visual = "위 방향 화살표 1개"
+    elif "감소" in future_text:
+        trend_visual = "아래 방향 화살표 1개"
+    else:
+        trend_visual = "부드러운 방향 화살표 1개"
+    return f"""GPT 이미지 생성으로 카드뉴스 2장을 만들어 주세요.
+
+- 1080×1080px 정사각형 이미지 2장
+- 각 장은 별도 이미지 파일
+- 1~2분 안에 생성될 정도로 아주 단순하게 구성
+- 단색 파스텔 배경, 큰 한글 글씨, 단순 일러스트 1개
+- 복잡한 그래프, 많은 숫자, 긴 설명, 세밀한 배경 금지
+- 아래 문구 외의 설명 문구는 추가하지 않기
+
+### 1/2
+제목: 숫자가 들려준 삶의 이야기
+문구: {topic} 데이터 - {life_view}
+그림: 주제와 삶의 모습을 함께 나타내는 단순 일러스트 1개
+
+### 2/2
+제목: 더 나은 미래 질문
+문구: {future_question}
+작은 문구: {future_text}
+그림: {trend_visual}와 희망적인 상징 1개
+"""
 
 
 CARDNEWS_THEMES = {
@@ -1857,11 +1935,34 @@ def draw_wrapped_text(draw, xy, text, font, fill, max_width, line_gap=8, max_lin
     return y
 
 
+def draw_centered_lines(draw, center_x, start_y, text, font, fill, max_width, line_gap=10, max_lines=None):
+    lines = wrap_text_to_width(draw, text, font, max_width, max_lines=max_lines)
+    y = start_y
+    for line in lines:
+        bbox = draw.textbbox((0, 0), line, font=font)
+        draw.text((center_x - (bbox[2] - bbox[0]) / 2, y), line, font=font, fill=fill)
+        y += (bbox[3] - bbox[1]) + line_gap
+    return y
+
+
 def fig_to_pil(fig):
     buffer = io.BytesIO()
     fig.savefig(buffer, format="png", dpi=160, bbox_inches="tight")
     buffer.seek(0)
     return Image.open(buffer).convert("RGB")
+
+
+def latex_to_pil(latex_text, color="#1d4ed8", fontsize=42):
+    fig = plt.figure(figsize=(7.2, 1.35))
+    fig.patch.set_alpha(0)
+    ax = fig.add_axes([0, 0, 1, 1])
+    ax.axis("off")
+    ax.text(0.5, 0.5, f"${latex_text}$", ha="center", va="center", fontsize=fontsize, color=color)
+    buffer = io.BytesIO()
+    fig.savefig(buffer, format="png", dpi=240, bbox_inches="tight", transparent=True, pad_inches=0.04)
+    plt.close(fig)
+    buffer.seek(0)
+    return Image.open(buffer).convert("RGBA")
 
 
 def make_cardnews_graph_image(x_data, y_data, params, new_x, predicted_y, x_label, y_label):
@@ -1942,6 +2043,7 @@ def create_cardnews_images(theme_name, context, graph_image):
     trend_text = context["trend_text"]
     function_text = context["function_text"]
     function_kind = context.get("function_kind", "함수")
+    fit_judgement = clean_text(context.get("fit_judgement", ""))
     fit_reason = clean_text(context.get("fit_reason", ""))
 
     theme_bg = make_theme_background(theme_name, theme)
@@ -1972,9 +2074,21 @@ def create_cardnews_images(theme_name, context, graph_image):
     return cards
 
 
+def image_to_png_bytes(image):
+    buffer = io.BytesIO()
+    image.save(buffer, format="PNG")
+    return buffer.getvalue()
+
+
+def make_cardnews_zip(card_images, base_name):
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zf:
+        for idx, image in enumerate(card_images, start=1):
+            zf.writestr(f"{base_name}_card{idx}.png", image_to_png_bytes(image))
+    return buffer.getvalue()
+
+
 def make_cardnews_pdf(card_images):
-    if not card_images:
-        return b""
     rgb_images = [image.convert("RGB") for image in card_images]
     buffer = io.BytesIO()
     rgb_images[0].save(buffer, format="PDF", save_all=True, append_images=rgb_images[1:], resolution=150)
@@ -1989,6 +2103,19 @@ def render_link_button(url, label, gradient):
         unsafe_allow_html=True,
     )
 
+
+def render_gpt_gallery_links(class_key):
+    gpt_col, gallery_col = st.columns(2)
+    with gpt_col:
+        render_link_button(GPT_URL, "GPT 바로가기", "linear-gradient(90deg,#10a37f,#1976d2)")
+    gallery_url = GALLERY_URLS.get(str(class_key))
+    with gallery_col:
+        if gallery_url:
+            render_link_button(gallery_url, f"{class_key}반 갤러리 패들렛", "linear-gradient(90deg,#7e57c2,#42a5f5)")
+        else:
+            st.info("반을 선택하면 갤러리 패들렛 버튼이 나타납니다.")
+
+
 def run():
     apply_local_style()
     page_banner(
@@ -2002,10 +2129,7 @@ def run():
     st.session_state.setdefault("d8_dataset", TEACHER_DEMO_DATASET)
     ensure_xy_columns(st.session_state["d8_dataset"])
     x_data, y_data, x_label, y_label = selected_xy_data(st.session_state["d8_dataset"])
-    if str(x_label) == "연도" and st.session_state.get("d8_new_x_default_year") != 2027:
-        st.session_state["d8_new_x"] = 2027.0
-        st.session_state["d8_new_x_default_year"] = 2027
-    st.session_state.setdefault("d8_new_x", default_prediction_x(x_data, x_label))
+    st.session_state.setdefault("d8_new_x", float(max(x_data) + (x_data[1] - x_data[0] if len(x_data) > 1 else 1)))
 
     st.markdown("<hr style='border: 2px solid #2196F3;'>", unsafe_allow_html=True)
 
@@ -2013,7 +2137,7 @@ def run():
         [
             "1️⃣ [F.U] 문제 발견",
             "2️⃣ [T] 수학의 언어",
-            "3️⃣ [U] AI 이해·활용",
+            "3️⃣ [U] AI 이해",
             "4️⃣ [R.E] 세상과 연결",
         ]
     )
@@ -2081,9 +2205,6 @@ Quick, Draw! AI가 그림을 어떻게 예측하는지 봅시다.
                     <div style="margin-top:10px;font-size:0.88rem;line-height:1.5;color:#455a64;">
                         {html.escape(chosen_info.get("source", "출처 정보 없음"))}
                     </div>
-                    <div style="margin-top:3px;font-size:0.72rem;line-height:1.4;color:#9e9e9e;">
-                        ※ 기준 연도 사이의 값은 수업용으로 선형 보간한 값입니다.
-                    </div>
                 </div>
                 """,
                 unsafe_allow_html=True,
@@ -2131,8 +2252,8 @@ Quick, Draw! AI가 그림을 어떻게 예측하는지 봅시다.
             with question_col:
                 st.markdown(pretty_title("2. 지표 속 삶의 모습 발견하기", "#ffebee", "#ffcdd2"), unsafe_allow_html=True)
                 render_stage_card(
-                    "변화 경향 예상하기",
-                    "시간에 따라 출력 변수 y가 증가할지 감소할지 먼저 예상합니다.",
+                    "변화 경향과 삶의 모습 예상하기",
+                    "지표의 값이 직접 나타내는 삶의 모습을 중심으로 작성하세요.",
                     "red",
                     "문제제기",
                 )
@@ -2149,51 +2270,93 @@ Quick, Draw! AI가 그림을 어떻게 예측하는지 봅시다.
                     key="d8_life_direction",
                     horizontal=True,
                 )
-            default_new_x = default_prediction_x(x_data, x_label)
+                increase_placeholder, decrease_placeholder = life_change_placeholders("5세 미만 사망률(%) (예시)")
+                selected_life_phrase = "커질 때" if selected_life_direction == "증가한다" else "작아질 때"
+                selected_life_key = "d8_y_increase_life" if selected_life_direction == "증가한다" else "d8_y_decrease_life"
+                selected_placeholder = increase_placeholder if selected_life_direction == "증가한다" else decrease_placeholder
+                st.text_area(
+                    f"예상대로 {y_label} 값이 {selected_life_phrase} 사람들의 삶에서는 어떤 모습이 나타날까요?",
+                    key=selected_life_key,
+                    height=120,
+                    placeholder=selected_placeholder,
+                )
+            default_new_x = float(max(x_data) + (x_data[1] - x_data[0] if len(x_data) > 1 else 1))
             if st.session_state.get("d8_new_x_dataset") != dataset_name:
                 st.session_state["d8_new_x"] = default_new_x
                 st.session_state["d8_new_x_dataset"] = dataset_name
+            if st.button("F.U 단계 저장", use_container_width=True):
+                selected_direction, _, selected_life_text = selected_life_change(y_label)
+                save_stage_snapshot(
+                    1,
+                    "F.U 단계: 실생활 문제와 주요 변수 발견하기",
+                    [
+                        ("자료 묶음", dataset_name),
+                        ("선택한 두 변수", f"{x_label}, {y_label}"),
+                        ("예상한 y 변화", f"시간에 따라 {y_label} 값이 {selected_direction}"),
+                        ("작성한 삶의 모습", selected_life_text or "아직 작성하지 않았습니다."),
+                    ],
+                )
+            saved_stage_caption(1)
 
     with tabs[1]:
         dataset_name = st.session_state["d8_dataset"]
         x_data, y_data, x_label, y_label = selected_xy_data(dataset_name)
         stage_intro(
-            "T 평행이동으로 직선의 변화 관찰하기",
-            "평행이동 개념을 바탕으로 직선 그래프를 x축 방향과 y축 방향으로 움직여 봅니다. 평행이동 후 방정식은 어떻게 달라지는지 살펴보고, 그래프의 모양과 기울기는 유지되는지 비교합니다.",
-            "직선을 평행이동하면 직선의 방정식은 어떻게 달라지며, 직선의 기울기는 유지될까?",
+            "T 도형의 평행이동 다시 익히기",
+            "1. 도형의 방정식 - 3. 도형의 이동 - 1. 평행이동 개념을 직선과 이차함수 그래프에서 다시 확인합니다.",
+            "직선과 곡선을 평행이동하면 그래프의 식과 위치는 어떻게 달라질까?",
             "#e8f5e9",
             "#c8e6c9",
         )
         with st.container(border=True):
-            render_translation_textbook_concept_box()
             render_function_graph_practice()
-            function_type = "직선"
-            slope_sign = st.session_state.get("d8_practice_slope_sign", "+")
-            coefficient_signed = 1.0 if slope_sign == "+" else -1.0
+            translation_answer = st.session_state.get("d8_translation_understanding")
+            shape_answer = st.session_state.get("d8_shape_preservation_check")
+            function_type = st.session_state.get("d8_practice_function_type", "직선")
+            coefficient_signed = float(st.session_state.get("d8_practice_coefficient_signed", 1.0))
+            if abs(coefficient_signed) < 1e-9:
+                coefficient_signed = 0.1
             sign_symbol = "+" if coefficient_signed >= 0 else "-"
-            coefficient = 1.0
-            p_value = st.session_state.get("d8_practice_shift_p", 1)
-            q_value = st.session_state.get("d8_practice_shift_q", 2)
+            coefficient = abs(coefficient_signed)
+            p_value = st.session_state.get("d8_practice_shift_p", 2)
+            q_value = st.session_state.get("d8_practice_shift_q", 1)
+            if st.button("T 단계 저장", use_container_width=True):
+                save_stage_snapshot(
+                    2,
+                    "T 단계: 도형의 평행이동 다시 익히기",
+                    [
+                        ("핵심 내용", "1. 도형의 방정식 - 3. 도형의 이동 - 1. 평행이동"),
+                        ("선택한 기본 그래프", function_type),
+                        ("계수 값", f"{coefficient_signed:g}"),
+                        ("x축 평행이동 p", str(p_value)),
+                        ("y축 평행이동 q", str(q_value)),
+                        ("현재 그래프 식", translated_practice_formula(function_type, sign_symbol, coefficient, p_value, q_value)),
+                        ("형태 보존 확인", shape_answer or "아직 체크하지 않았습니다."),
+                        ("오개념 확인 문제", "y=f(x)를 x축의 양의 방향으로 p만큼 평행이동하면 식은 어떻게 바뀔까요?"),
+                        ("체크한 답", translation_answer or "아직 체크하지 않았습니다."),
+                        ("정답 여부", radical_understanding_result(translation_answer)),
+                    ],
+                )
+            saved_stage_caption(2)
 
     with tabs[2]:
         dataset_name = st.session_state["d8_dataset"]
         x_data, y_data, x_label, y_label = selected_xy_data(dataset_name)
         stage_intro(
             "U 함수 추세선으로 미래를 예측하기",
-            "직선 y=m(x-p)+q를 평행이동하며 p, q를 조절해 데이터의 흐름을 찾고, AI가 오차를 줄이며 모델을 조정해 미래를 예측하는 원리를 간단히 살펴봅니다.",
-            "데이터의 경향을 직선 추세선으로 설명하면 어떤 예측과 한계를 확인할 수 있을까?",
+            "직선 y=m(x-p)+q 또는 곡선 y=a(x-p)^2+q를 선택하고 계수, p, q를 조절하며 손실값을 줄이고, 선택한 x값에서 y값을 예측합니다.",
+            "데이터의 경향을 가장 잘 설명하는 함수 추세선은 무엇이며, 그 한계는 무엇일까?",
             "#f3e5f5",
             "#e1bee7",
         )
         with st.container(border=True):
             render_stage_card(
-                "평행이동으로 추세선을 조절해 예측합니다",
-                "기울기 부호를 정하고 p, q 값으로 직선을 평행이동해 데이터에 가까운 추세선을 만듭니다. AI가 오차를 줄이며 모델을 조정하는 원리를 직선 추세선으로 단순화하여 탐구합니다. 손실값을 비교한 뒤 선택한 x값의 y값을 예측합니다.",
+                "추세선을 조절해 예측합니다",
+                "직선 또는 곡선을 선택하고 계수, p, q 값을 조절해 그래프가 데이터에 가까워지도록 만들고, 손실값을 비교한 뒤 선택한 x값의 y값을 예측합니다. 마지막에는 데이터 분석의 한계를 생각하며 함수 추세선이 데이터를 얼마나 잘 나타내는지 판단하고, 팩트풀니스 본능 관점으로 그 이유를 정리합니다.",
                 "purple",
-                "AI 이해·활용",
+                "AI 이해",
             )
-            st.session_state["d8_u_function_type"] = "직선"
-            attempt_context = (dataset_name, x_label, y_label, "직선")
+            attempt_context = (dataset_name, x_label, y_label, st.session_state.get("d8_u_function_type", "직선"))
             if st.session_state.get("d8_u_attempt_context") != attempt_context:
                 st.session_state["d8_u_attempts"] = []
                 st.session_state["d8_u_attempt_context"] = attempt_context
@@ -2204,46 +2367,72 @@ Quick, Draw! AI가 그림을 어떻게 예측하는지 봅시다.
             predicted_data_y, valid_data_mask = calculate_function(x_data, params)
             loss, _ = calculate_loss(y_data, predicted_data_y, valid_data_mask)
             st.session_state["d8_params"] = params
-            default_new_x = default_prediction_x(x_data, x_label)
+            default_new_x = float(max(x_data) + (x_data[1] - x_data[0] if len(x_data) > 1 else 1))
             if "d8_new_x" not in st.session_state:
                 st.session_state["d8_new_x"] = default_new_x
             st.session_state["d8_new_x"] = float(round(st.session_state["d8_new_x"]))
             new_x = float(st.session_state.get("d8_new_x", default_new_x))
             predicted_y = predict_value(float(new_x), params)
             render_estimated_function_strip(params)
-            graph_col, prediction_col = st.columns([7, 3], gap="medium")
-            with prediction_col:
+            toggle_cols = st.columns(3, gap="small")
+            with toggle_cols[0]:
+                show_data = st.checkbox("데이터", value=True, key="d8_show_graph_data")
+            with toggle_cols[1]:
+                show_function = st.checkbox("함수 그래프", value=True, key="d8_show_graph_function")
+            with toggle_cols[2]:
+                show_prediction = st.checkbox("예측점", value=True, key="d8_show_graph_prediction")
+            trend_fig = make_plot(
+                x_data,
+                y_data,
+                params,
+                float(new_x),
+                predicted_y,
+                x_label,
+                y_label,
+                figsize=(9.2, 5.1),
+                show_data=show_data,
+                show_function=show_function,
+                show_prediction=show_prediction,
+                loss=loss,
+            )
+            st.pyplot(trend_fig, use_container_width=True)
+            plt.close(trend_fig)
+            input_col, value_col = st.columns([1, 1])
+            with input_col:
                 st.markdown(
                     f"""
-                    <div class="prediction-input-card" style="padding:18px 18px;margin:0 0 14px 0;">
-                        <div class="prediction-input-title" style="font-size:1.05rem;margin-bottom:0;">
-                            예측할 연도
-                        </div>
+                    <div class="prediction-input-card">
+                        <div class="prediction-input-title">예측할 {html.escape(str(x_label))}</div>
                     </div>
                     """,
                     unsafe_allow_html=True,
                 )
-                if float(st.session_state.get("d8_new_x", 2027.0)) < 2026.0:
-                    st.session_state["d8_new_x"] = 2026.0
                 new_x = st.number_input(
-                    "예측할 x값(미래 연도)",
-                    min_value=2026.0,
+                    f"예측할 x값({x_label})",
                     key="d8_new_x",
                     step=1.0,
                     format="%.0f",
-                    help="그래프에서 예측하고 싶은 미래 연도를 입력합니다.",
-                )
-                predicted_y = predict_value(float(new_x), params)
+                    help=f"그래프에서 예측하고 싶은 독립 변수 {x_label} 값을 입력합니다.",
+            )
+            predicted_y = predict_value(float(new_x), params)
+            with value_col:
                 if predicted_y is not None:
+                    trend_sentence = prediction_trend_sentence(params)
                     st.markdown(
                         f"""
-                        <div class="stage-card stage-card-purple" style="padding:18px 16px;">
-                            <div class="stage-kicker" style="font-size:0.92rem;margin-bottom:10px;">{html.escape(str(y_label))} 예측값</div>
+                        <div class="stage-card stage-card-purple">
+                            <div class="stage-kicker">선택한 함수에서의 예측값</div>
+                            <div class="prediction-input-title">예측값 y({html.escape(str(y_label))})</div>
                             <div class="stage-card-help">
-                                <div style="background:#ffffff;border:1px solid #d1c4e9;border-radius:10px;
-                                    padding:12px 10px;color:#4a148c;font-size:1.45rem;
-                                    font-weight:950;text-align:center;line-height:1.3;">
-                                    {float(new_x):g}{'년' if str(x_label) == '연도' else ''} → 약 {predicted_y:.2f}
+                                <div style="margin-top:8px;background:#ffffff;border:1px solid #e1bee7;
+                                    border-radius:10px;padding:10px 12px;color:#6a1b9a;font-size:1.05rem;
+                                    font-weight:900;text-align:center;">
+                                    <div style="font-size:1.35rem;color:#4a148c;margin-bottom:4px;">
+                                        {float(new_x):g}{'년' if str(x_label) == '연도' else ''} → 약 {predicted_y:.2f}
+                                    </div>
+                                    <div style="font-size:0.95rem;color:#455a64;font-weight:800;line-height:1.45;">
+                                        {html.escape(trend_sentence)}
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -2252,30 +2441,6 @@ Quick, Draw! AI가 그림을 어떻게 예측하는지 봅시다.
                     )
                 else:
                     st.warning("선택한 함수로 예측값을 계산할 수 없습니다.")
-            with graph_col:
-                toggle_cols = st.columns(3, gap="small")
-                with toggle_cols[0]:
-                    show_data = st.checkbox("데이터", value=True, key="d8_show_graph_data")
-                with toggle_cols[1]:
-                    show_function = st.checkbox("추세선", value=True, key="d8_show_graph_function")
-                with toggle_cols[2]:
-                    show_prediction = st.checkbox("예측점", value=True, key="d8_show_graph_prediction")
-                trend_fig = make_plot(
-                    x_data,
-                    y_data,
-                    params,
-                    float(new_x),
-                    predicted_y,
-                    x_label,
-                    y_label,
-                    figsize=(9.2, 6.1),
-                    show_data=show_data,
-                    show_function=show_function,
-                    show_prediction=show_prediction,
-                    loss=loss,
-                )
-                st.pyplot(trend_fig, use_container_width=True)
-                plt.close(trend_fig)
 
             with st.expander("데이터 분석의 한계", expanded=False):
                 st.markdown(
@@ -2319,25 +2484,31 @@ Quick, Draw! AI가 그림을 어떻게 예측하는지 봅시다.
                             placeholder=lens_info["placeholder"],
                         )
     
+            function_text = build_function_text(params)
+    
+            if st.button("U 단계 저장", use_container_width=True):
+                save_stage_snapshot(
+                    3,
+                    "U 단계: 함수 추세선으로 예측값 찾기",
+                    [
+                        ("사용한 함수", params.get("model", "직선")),
+                        ("함수식", function_text),
+                        ("손실값", format_optional_number(loss)),
+                        (f"예측할 x값({x_label}) / 예측값 y({y_label})", f"x={float(new_x):g}, y={predicted_y:.2f}" if predicted_y is not None else "계산 불가"),
+                        ("적합성 평가", st.session_state.get("d8_fit_judgement", "")),
+                        ("참고한 팩트풀니스 관점", st.session_state.get("d8_fit_factfulness_lens", "")),
+                        ("평가 이유", fit_reason.strip() if fit_reason.strip() else "아직 작성하지 않았습니다."),
+                    ],
+                )
+            saved_stage_caption(3)
+
     with tabs[3]:
         dataset_name = st.session_state["d8_dataset"]
         x_data, y_data, x_label, y_label = selected_xy_data(dataset_name)
-        params = st.session_state.get("d8_params")
-        if not params or params.get("model") != "직선":
-            params = fit_default_params(x_data, y_data, "직선")
-            st.session_state["d8_params"] = params
+        params = st.session_state.get("d8_params") or fit_default_params(x_data, y_data)
         predicted_data_y, valid_data_mask = calculate_function(x_data, params)
         loss, _ = calculate_loss(y_data, predicted_data_y, valid_data_mask)
         predicted_y = predict_value(float(st.session_state.get("d8_new_x", max(x_data))), params)
-        auto_fit_reason_text = automatic_fit_reason(y_data, predicted_data_y, valid_data_mask, params, x_label, y_label)
-        u_attempt_context = (dataset_name, x_label, y_label, "직선")
-        u_attempts = st.session_state.get("d8_u_attempts", [])
-        u_attempt_losses = [
-            attempt["loss"]
-            for attempt in u_attempts
-            if attempt.get("loss") is not None
-        ] if st.session_state.get("d8_u_attempt_context") == u_attempt_context else []
-        presentation_loss = min(u_attempt_losses) if u_attempt_losses else loss
 
         stage_intro(
             "R.E 데이터 속 삶과 미래 고민하기",
@@ -2347,36 +2518,37 @@ Quick, Draw! AI가 그림을 어떻게 예측하는지 봅시다.
             "#bbdefb",
         )
         with st.container(border=True):
-            fit_reason_text = clean_text(st.session_state.get("d8_fit_reason_text", ""), auto_fit_reason_text)
-            card_fit_reason_text = clean_text(st.session_state.get("d8_fit_reason_text", ""))
+            selected_direction, _, selected_life_text = selected_life_change(y_label)
             reference_rows = [
                 ("탐구 데이터", dataset_name),
                 ("살펴본 변화", f"{x_label}이/가 달라질 때 {y_label}의 변화"),
+                ("F.U에서 예상한 y 변화", f"시간에 따라 {y_label} 값이 {selected_direction}"),
+                ("F.U에서 작성한 삶의 모습", selected_life_text or "아직 작성하지 않았습니다."),
                 ("예측한 변화 경향", prediction_trend_sentence(params)),
-                ("데이터 분석의 한계", fit_reason_text),
+                ("앞에서 판단한 흐름", clean_text(st.session_state.get("d8_fit_judgement", ""))),
             ]
             st.markdown(pretty_title("앞 단계 활동 자료 요약", "#e3f2fd", "#bbdefb"), unsafe_allow_html=True)
             st.dataframe(
                 pd.DataFrame(reference_rows, columns=["활동 자료", "내용"]),
                 use_container_width=True,
                 hide_index=True,
-                height=38 * (len(reference_rows) + 1),
+                height=250,
             )
 
             life_col, future_col = st.columns(2)
             with life_col:
-                st.markdown(pretty_title("1. 미래의 삶의 모습", "#e3f2fd", "#bbdefb"), unsafe_allow_html=True)
+                st.markdown(pretty_title("1. 데이터가 보여 주는 삶의 모습", "#e3f2fd", "#bbdefb"), unsafe_allow_html=True)
                 render_stage_card(
-                    "미래의 삶의 모습을 정리합니다",
-                    "예측한 변화 경향을 바탕으로 이 데이터가 보여 주는 미래의 삶의 모습을 정리해 봅시다.",
+                    "삶의 의미와 질문을 정리합니다",
+                    "예측한 변화 경향을 바탕으로 데이터가 사람들의 삶에 대해 무엇을 말해 주는지 생각해 봅시다.",
                     "blue",
-                    "미래 모습 이해하기",
+                    "삶의 모습 이해하기",
                 )
                 life_example = trend_based_life_example(y_label, prediction_trend_sentence(params))
                 life_view = st.text_area(
-                    "이 데이터가 보여 주는 미래의 삶의 모습은 무엇인가요?",
+                    "이 데이터가 보여 주는 삶의 모습은 무엇인가요?",
                     key="d8_life_view",
-                    height=135,
+                    height=120,
                     placeholder=f"예: {life_example}",
                 ).strip()
 
@@ -2384,18 +2556,20 @@ Quick, Draw! AI가 그림을 어떻게 예측하는지 봅시다.
                 st.markdown(pretty_title("2. 깊은 질문 만들기", "#e3f2fd", "#bbdefb"), unsafe_allow_html=True)
                 render_stage_card(
                     "깊은 질문 만들기",
-                    "예측 결과와 분석의 한계를 바탕으로 더 나은 미래를 위해 함께 고민할 질문을 만들어 봅시다.",
+                    "데이터가 보여 주는 삶의 모습을 바탕으로 더 나은 미래를 함께 고민하는 질문을 만들어 봅시다.",
                     "blue",
-                    "더 나은 미래 질문 만들기",
+                    "더 나은 미래 고민하기",
                 )
                 future_question = st.text_area(
-                    "서로의 생각과 가치관을 나눌 수 있는 깊은 질문을 적어 봅시다.",
+                    "더 나은 미래를 위해 함께 생각해 볼 깊은 질문을 적어 봅시다.",
                     key="d8_future_question",
-                    height=135,
-                    placeholder="예: 모든 아동이 건강하게 자라도록 무엇을 먼저 지원해야 할까?",
+                    height=120,
+                    placeholder="예: 모든 아이들이 건강하게 성장하는 세상을 만들 수 있을까?",
                 )
 
             future_text = prediction_trend_sentence(params)
+            cardnews_topic = "5세 미만 아동 사망률" if y_label == "5세 미만 사망률(%) (예시)" else y_label
+            default_life_view = trend_based_life_example(y_label, future_text)
 
             st.markdown(pretty_title("3. 카드뉴스 직접 제작", "#e3f2fd", "#bbdefb"), unsafe_allow_html=True)
             render_stage_card(
@@ -2406,9 +2580,6 @@ Quick, Draw! AI가 그림을 어떻게 예측하는지 봅시다.
             )
             theme_names = list(CARDNEWS_THEMES.keys())
             selected_theme = st.session_state.get("d8_cardnews_theme", theme_names[0])
-            if selected_theme not in CARDNEWS_THEMES:
-                selected_theme = theme_names[0]
-                st.session_state["d8_cardnews_theme"] = selected_theme
             theme_cols = st.columns(len(theme_names), gap="small")
             for idx, theme_name in enumerate(theme_names):
                 with theme_cols[idx]:
@@ -2427,13 +2598,14 @@ Quick, Draw! AI가 그림을 어떻게 예측하는지 봅시다.
                 "group": st.session_state.get("d8_group", "우리 모둠"),
                 "dataset_name": dataset_name,
                 "y_label": y_label,
-                "life_view": life_view,
-                "future_question": future_question.strip(),
+                "life_view": life_view or default_life_view,
+                "future_question": future_question.strip() or "이 변화가 계속된다면 우리는 어떤 선택을 해야 할까?",
                 "trend_text": simple_trend_label(params, float(np.min(x_data)), new_x_for_card),
                 "function_text": build_function_text(params),
                 "function_latex": function_latex(params).replace("f(x)=", "y="),
-                "function_kind": "직선",
-                "fit_reason": card_fit_reason_text,
+                "function_kind": "직선" if params.get("model", "직선") == "직선" else "곡선(이차함수)",
+                "fit_judgement": st.session_state.get("d8_fit_judgement", "아직 판단하지 않았습니다."),
+                "fit_reason": st.session_state.get("d8_fit_reason_text", "데이터의 일부 구간에서는 실제값과 추세선 사이에 차이가 있을 수 있습니다."),
             }
             card_context_key = (
                 selected_theme,
@@ -2460,43 +2632,6 @@ Quick, Draw! AI가 그림을 어떻게 예측하는지 봅시다.
             card_images = st.session_state.get("d8_cardnews_images")
             if card_images:
                 st.image(card_images[0], caption="발표용 카드뉴스", use_container_width=True)
-                presentation_life = life_view.strip()
-                presentation_question = future_question.strip()
-                if presentation_life and presentation_question:
-                    presentation_direction = "증가" if float(params.get("coefficient", 1.0)) >= 0 else "감소"
-                    st.markdown(
-                        f"""
-                        <div style="background:#f8fbff;border:1px solid #bbdefb;border-radius:10px;
-                            padding:12px 14px;margin:10px 0 12px 0;color:#263238;line-height:1.65;">
-                            <div style="font-size:0.9rem;font-weight:950;color:#1565c0;margin-bottom:6px;">
-                                🎤발표 도움말
-                            </div>
-                            <div style="font-size:1rem;font-weight:850;">
-                                <b>① 추세선 판단</b><br>
-                                우리는 <b>{html.escape(str(x_label))}이/가 달라질 때 {html.escape(str(y_label))}의 변화</b>를 살펴보았습니다.<br>
-                                데이터는 <b>{presentation_direction}</b>하는 경향을 보였고, <b>손실값 {format_optional_number(presentation_loss)}</b>이 작은 추세선을 선택했습니다.<br><br>
-                                <b>② 미래와 질문</b><br>
-                                예측 결과를 통해 <b>{html.escape(presentation_life)}</b>한 미래의 삶의 모습을 생각했습니다.<br>
-                                우리 모둠의 깊은 질문은 <b>“{html.escape(presentation_question)}?”</b>입니다.<br>
-                                왜 이 질문이 중요하다고 생각했는지 한마디 덧붙여 주세요.
-                            </div>
-                        </div>
-                        """,
-                        unsafe_allow_html=True,
-                    )
-                else:
-                    st.info("미래의 삶의 모습과 깊은 질문을 작성하면 발표에 포함할 내용 예시가 자동으로 만들어집니다.")
-                st.markdown(
-                    """
-                    <div style="background:#fffdf5;border:1px solid #ffe082;border-radius:10px;
-                        padding:12px 14px;margin:0 0 12px 0;color:#5d4037;line-height:1.6;font-weight:800;">
-                        발표는 모둠별 50초~1분 정도로 진행합니다.<br>
-                        카드뉴스 PDF를 갤러리 패들렛에 올린 뒤, 발표할 때는 갤러리 패들렛의 카드뉴스를 보며 발표합니다.
-                        다른 모둠의 발표를 들은 뒤에는 패들렛 답변으로 피드백을 남깁니다.
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
                 card_pdf_col, gallery_share_col = st.columns(2, gap="medium")
                 with card_pdf_col:
                     st.download_button(
@@ -2515,6 +2650,77 @@ Quick, Draw! AI가 그림을 어떻게 예측하는지 봅시다.
                         st.caption("반을 선택하면 갤러리 패들렛 공유 버튼이 나타납니다.")
             else:
                 st.caption("카드뉴스 만들기를 누르면 미리보기와 다운로드 버튼이 나타납니다.")
+
+            if st.button("R.E 단계 저장", use_container_width=True):
+                save_stage_snapshot(
+                    4,
+                    "R.E 단계: 데이터 속 삶의 모습과 더 나은 미래 고민하기",
+                    [
+                        ("삶의 모습", life_view),
+                        ("고민", future_question.strip()),
+                    ],
+                )
+            saved_stage_caption(4)
+    
+            stage_rows = []
+            for idx in range(1, 5):
+                row = st.session_state.get(f"d8_saved_stage_{idx}")
+                if row:
+                    stage_rows.append(row)
+            pdf_col, portfolio_col = st.columns(2)
+            with pdf_col:
+                if stage_rows:
+                    pdf_context = (
+                        dataset_name,
+                        x_label,
+                        y_label,
+                        float(st.session_state.get("d8_new_x", max(x_data))),
+                        tuple((row["title"], tuple(row["fields"])) for row in stage_rows),
+                    )
+                    if st.session_state.get("d8_pdf_context") != pdf_context:
+                        st.session_state.pop("d8_pdf_bytes", None)
+                        st.session_state["d8_pdf_context"] = pdf_context
+                    if st.button("PDF 만들기", key="d8_create_pdf", use_container_width=True):
+                        final_fig = make_plot(
+                            x_data,
+                            y_data,
+                            params,
+                            float(st.session_state.get("d8_new_x", max(x_data))),
+                            predicted_y,
+                            x_label,
+                            y_label,
+                        )
+                        try:
+                            st.session_state["d8_pdf_bytes"] = create_portfolio_pdf(
+                                {
+                                    "class": st.session_state.get("d8_class", ""),
+                                    "group": st.session_state.get("d8_group", ""),
+                                    "student_id": "",
+                                    "dataset": dataset_name,
+                                },
+                                stage_rows,
+                                final_fig,
+                            )
+                        finally:
+                            plt.close(final_fig)
+                    pdf_bytes = st.session_state.get("d8_pdf_bytes")
+                    if pdf_bytes:
+                        st.download_button(
+                            "PDF 저장",
+                            data=pdf_bytes,
+                            file_name=f"{st.session_state.get('d8_group', '우리모둠')}_함수추세선탐구.pdf",
+                            mime="application/pdf",
+                            use_container_width=True,
+                        )
+                else:
+                    st.caption("각 단계 저장 후 PDF를 만들 수 있습니다.")
+            with portfolio_col:
+                class_key = str(st.session_state.get("d8_class", CLASS_OPTIONS[0]))
+                portfolio_url = PORTFOLIO_URLS.get(class_key)
+                if portfolio_url:
+                    render_link_button(portfolio_url, f"{class_key}반 포트폴리오 패들렛", "linear-gradient(90deg,#1565c0,#26a69a)")
+                else:
+                    st.caption("반을 선택하면 포트폴리오 패들렛 버튼이 나타납니다.")
 
 
 if __name__ == "__main__":

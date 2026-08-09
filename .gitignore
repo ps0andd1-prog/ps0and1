@@ -7,3 +7,5 @@ venv/
 env/
 *.log
 Microsoft/
+tmp/
+tmp_*_extract.txt
