@@ -2,8 +2,10 @@
 
 import html
 import io
+import base64
 from functools import lru_cache
 import os
+from pathlib import Path
 import time
 
 import matplotlib as mpl
@@ -122,9 +124,9 @@ FACTFULNESS_LENS_GUIDES = {
         "guide": "소수의 사례만으로 전체를 대표한다고 단정하지 않고, 다양한 사례와 차이를 함께 살펴봅니다.",
         "placeholder": "일반화 본능 점검 관점으로 직접 작성해 보세요.",
     },
-    "격차 본능 점검": {
+    "간극 본능 점검": {
         "guide": "잘 맞음과 맞지 않음을 둘로만 나누지 않고, 중간 정도의 차이와 구간별 차이를 함께 봅니다.",
-        "placeholder": "격차 본능 점검 관점으로 직접 작성해 보세요.",
+        "placeholder": "간극 본능 점검 관점으로 직접 작성해 보세요.",
     },
 }
 
@@ -456,6 +458,88 @@ def apply_local_style():
             font-size: 0.94rem;
             line-height: 1.6;
         }
+        .learning-goal-box {
+            background: linear-gradient(135deg, #f8fbff 0%, #eef7ff 100%);
+            border: 2px solid #90caf9;
+            border-radius: 12px;
+            padding: 14px 16px;
+            box-shadow: 0 8px 18px rgba(21, 101, 192, 0.10);
+            margin: 10px 0 14px 0;
+        }
+        .learning-goal-title {
+            color: #0d47a1;
+            font-size: 1.08rem;
+            font-weight: 900;
+            margin-bottom: 9px;
+        }
+        .learning-goal-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            color: #263238;
+            font-size: 0.98rem;
+            font-weight: 700;
+            line-height: 1.55;
+            margin-top: 6px;
+        }
+        .learning-goal-number {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 18px;
+            height: 18px;
+            margin-top: 3px;
+            border-radius: 3px;
+            background: #2f80c9;
+            color: #ffffff;
+            font-size: 0.78rem;
+            font-weight: 900;
+            line-height: 1;
+        }
+        .learning-goal-layout {
+            display: flex;
+            align-items: stretch;
+            gap: 14px;
+            margin: 10px 0 14px 0;
+        }
+        .learning-goal-content {
+            flex: 1 1 auto;
+            min-width: 0;
+        }
+        .gallery-qr-panel {
+            flex: 0 0 132px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 10px;
+            background: #ffffff;
+            border: 2px solid #90caf9;
+            border-radius: 12px;
+        }
+        .gallery-qr-panel img {
+            display: block;
+            width: 112px;
+            height: 112px;
+            object-fit: contain;
+        }
+        .gallery-qr-label {
+            margin-top: 7px;
+            color: #0d47a1;
+            font-size: 0.78rem;
+            font-weight: 800;
+            text-align: center;
+            line-height: 1.25;
+        }
+        @media (max-width: 640px) {
+            .learning-goal-layout {
+                flex-direction: column;
+            }
+            .gallery-qr-panel {
+                flex-basis: auto;
+                align-self: center;
+            }
+        }
         </style>
         """,
         unsafe_allow_html=True,
@@ -471,6 +555,40 @@ def render_stage_card(title, help_text, variant="blue", kicker="활동 안내"):
             <div class="stage-card-help">{html.escape(help_text)}</div>
         </div>
         """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_learning_goal_box():
+    goals = [
+        "함수의 평행이동을 활용하여 실제 데이터의 변화 경향을 나타내는 추세선을 만들고 설명할 수 있다.",
+        "추세선을 바탕으로 미래 삶의 변화를 예측하고, 예측 결과의 의미와 한계를 설명할 수 있다.",
+    ]
+    goal_items = "\n".join(
+        f'<div class="learning-goal-item"><span class="learning-goal-number">{idx}</span>'
+        f'<span>{html.escape(goal)}</span></div>'
+        for idx, goal in enumerate(goals, start=1)
+    )
+    class_key = str(st.session_state.get("d8_class", CLASS_OPTIONS[0]))
+    qr_paths = {
+        "1": os.path.join(BASE_DIR, "image", "gallery_padlet_qr_1.png"),
+        "2": os.path.join(BASE_DIR, "image", "gallery_padlet_qr_2.png"),
+        "5": os.path.join(BASE_DIR, "image", "gallery_padlet_qr.png"),
+        "6": os.path.join(BASE_DIR, "image", "gallery_padlet_qr_6.png"),
+    }
+    qr_path = qr_paths.get(class_key)
+    qr_html = ""
+    if qr_path and os.path.exists(qr_path):
+        qr_data = base64.b64encode(Path(qr_path).read_bytes()).decode("ascii")
+        qr_html = (
+            '<div class="gallery-qr-panel">'
+            f'<img src="data:image/png;base64,{qr_data}" alt="{class_key}반 갤러리 패들렛 QR코드">'
+            f'<div class="gallery-qr-label">{class_key}반 갤러리 패들렛</div></div>'
+        )
+    st.markdown(
+        f'<div class="learning-goal-layout"><div class="learning-goal-content">'
+        f'<div class="learning-goal-box"><div class="learning-goal-title">학습 목표</div>'
+        f'{goal_items}</div></div>{qr_html}</div>',
         unsafe_allow_html=True,
     )
 
@@ -507,10 +625,10 @@ def page_banner(title, description, question):
 
 def render_activity_flow():
     steps = [
-        ("1", "F.U", "문제 발견", "데이터를 고르고 삶의 문제를 찾기", "#ffebee", "#ffcdd2", "#c62828"),
-        ("2", "T", "수학의 언어", "평행이동으로 직선의 변화 관찰하기", "#e8f5e9", "#c8e6c9", "#2e7d32"),
-        ("3", "U", "AI 이해·활용", "AI가 오차를 줄이며 모델을 조정하는 원리를 직선 추세선으로 단순화하여 탐구합니다.", "#f3e5f5", "#e1bee7", "#7b1fa2"),
-        ("4", "R.E", "세상과 연결", "예측 결과를 삶의 의미로 정리하기", "#e3f2fd", "#bbdefb", "#1565c0"),
+        ("1", "F.U", "문제 발견", "데이터를 선택하고 예상하기", "#ffebee", "#ffcdd2", "#c62828"),
+        ("2", "T", "수학의 언어", "수학적으로 관계 살펴보기", "#e8f5e9", "#c8e6c9", "#2e7d32"),
+        ("3", "U", "AI 이해·활용", "추세선을 만들고 예측하기", "#f3e5f5", "#e1bee7", "#7b1fa2"),
+        ("4", "R.E", "세상과 연결", "결과를 미래의 삶과 연결하기", "#e3f2fd", "#bbdefb", "#1565c0"),
     ]
     step_html = "".join(
         f"""
@@ -961,61 +1079,36 @@ def translated_practice_values(x_values, function_type, sign_symbol, coefficient
 
 
 def render_translation_observation_result(function_type, sign_symbol, coefficient, p_value, q_value):
-    signed_coefficient = float(coefficient) if sign_symbol == "+" else -float(coefficient)
-    if function_type == "직선":
-        direction = "증가" if signed_coefficient > 0 else "감소"
-        sign_text = f"m={signed_coefficient:g}이므로 기울기의 부호가 {'+' if signed_coefficient > 0 else '-'}입니다. 따라서 그래프는"
-    else:
-        opening = "위로 열린" if signed_coefficient > 0 else "아래로 열린"
-        direction = opening
-        sign_text = f"a={signed_coefficient:g}이므로 최고차항의 계수 부호가 {'+' if signed_coefficient > 0 else '-'}입니다. 따라서 포물선은"
-
-    observation_items = [
-        (
-            "1",
-            f"{sign_text} (        )합니다.",
-            f"{sign_text} {direction}합니다.",
-            f"{html.escape(sign_text)} <span style='color:#c62828;font-weight:950;'>{html.escape(direction)}</span>합니다.",
-            "d8_practice_observation_answer_1",
-        ),
-        (
-            "2",
-            "평행이동해도 도형의 형태는 (        ) 위치만 변합니다.",
-            "평행이동해도 도형의 형태는 변하지 않고 위치만 변합니다.",
-            "평행이동해도 도형의 형태는 <span style='color:#c62828;font-weight:950;'>변하지 않고</span> 위치만 변합니다.",
-            "d8_practice_observation_answer_2",
-        ),
-        (
-            "3",
-            "평행이동해도 직선의 (        )는 변하지 않습니다.",
-            "평행이동해도 직선의 기울기와 증가·감소의 방향은 변하지 않습니다.",
-            "평행이동해도 직선의 <span style='color:#c62828;font-weight:950;'>기울기와 증가·감소의 방향</span>은 변하지 않습니다.",
-            "d8_practice_observation_answer_3",
-        ),
-    ]
-    answer_keys = [item[4] for item in observation_items]
-    expander_is_open = bool(st.session_state.get("d8_practice_observation_expanded")) or any(
-        st.session_state.get(answer_key) for answer_key in answer_keys
-    )
-    with st.expander(":blue[관찰 결과 개념 정리]", expanded=expander_is_open):
+    expander_is_open = bool(st.session_state.get("d8_practice_observation_expanded"))
+    with st.expander(":blue[관찰 개념 정리하기]", expanded=expander_is_open):
+        answer_1 = st.radio(
+            "1. 평행이동하면 변하는 것은 무엇인가요?",
+            ["위치", "도형의 모양"],
+            key="d8_practice_observation_choice_1",
+            horizontal=True,
+        )
+        answer_2 = st.radio(
+            "2. 평행이동해도 변하지 않는 것은 무엇인가요?",
+            ["도형의 모양", "위치"],
+            key="d8_practice_observation_choice_2",
+            horizontal=True,
+        )
         if st.button(
             "정답 확인",
             key="d8_practice_observation_show_all",
             use_container_width=True,
         ):
-            for answer_key in answer_keys:
-                st.session_state[answer_key] = True
             st.session_state["d8_practice_observation_expanded"] = True
-        for item_no, question_text, answer_text, answer_html, state_key in observation_items:
-            shown_html = answer_html if st.session_state.get(state_key) else html.escape(question_text)
-            st.markdown(
-                f"""
-                <div style="color:#263238;font-weight:800;line-height:1.7;padding:4px 0 8px 0;">
-                    {item_no}. {shown_html}
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
+            st.session_state["d8_practice_observation_checked"] = True
+        if st.session_state.get("d8_practice_observation_checked"):
+            if answer_1 == "위치":
+                st.success("1번 정답입니다. 평행이동하면 위치가 변합니다.")
+            else:
+                st.error("1번은 위치입니다.")
+            if answer_2 == "도형의 모양":
+                st.success("2번 정답입니다. 도형의 모양은 변하지 않습니다.")
+            else:
+                st.error("2번은 도형의 모양입니다.")
 
 
 def animation_steps(start, end, step=0.5):
@@ -2025,6 +2118,7 @@ def run():
             "이 데이터셋의 숫자 뒤에는 어떤 삶의 모습이 담겨 있을까?",
             "#ffebee",
             "#ffcdd2",
+            "핵심 탐구 질문(문제제기)",
         )
         with st.container(border=True):
             with st.expander(":orange[생각 열기]", expanded=False):
@@ -2040,7 +2134,9 @@ def run():
 Quick, Draw! AI가 그림을 어떻게 예측하는지 봅시다.
 """
                 )
-                st.link_button("Quick, Draw! 열기", "https://quickdraw.withgoogle.com/", use_container_width=True)
+                st.link_button("Quick, Draw! 열기", "https://quickdraw.withgoogle.com/?locale=ko", use_container_width=True)
+
+            render_learning_goal_box()
 
             class_col, group_col = st.columns([0.45, 0.55])
             with class_col:
@@ -2163,6 +2259,7 @@ Quick, Draw! AI가 그림을 어떻게 예측하는지 봅시다.
             "직선을 평행이동하면 직선의 방정식은 어떻게 달라지며, 직선의 기울기는 유지될까?",
             "#e8f5e9",
             "#c8e6c9",
+            "핵심 탐구 질문(수평적 질문)",
         )
         with st.container(border=True):
             render_translation_textbook_concept_box()
@@ -2184,6 +2281,7 @@ Quick, Draw! AI가 그림을 어떻게 예측하는지 봅시다.
             "데이터의 경향을 직선 추세선으로 설명하면 어떤 예측과 한계를 확인할 수 있을까?",
             "#f3e5f5",
             "#e1bee7",
+            "핵심 탐구 질문(수직적 질문)",
         )
         with st.container(border=True):
             render_stage_card(
@@ -2345,6 +2443,7 @@ Quick, Draw! AI가 그림을 어떻게 예측하는지 봅시다.
             "예측 결과를 보고 미래의 삶의 모습에 대해 어떤 질문을 할 수 있을까?",
             "#e3f2fd",
             "#bbdefb",
+            "핵심 탐구 질문(깊은 질문)",
         )
         with st.container(border=True):
             fit_reason_text = clean_text(st.session_state.get("d8_fit_reason_text", ""), auto_fit_reason_text)
