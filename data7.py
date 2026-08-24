@@ -1,4 +1,4 @@
-﻿# 실행 명령: streamlit run data7.py
+# 실행 명령: streamlit run data7.py
 
 import html
 import io
@@ -15,7 +15,7 @@ from matplotlib.patches import Ellipse
 import numpy as np
 import pandas as pd
 import streamlit as st
-from PIL import Image, ImageDraw, ImageFilter, ImageFont
+from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageFont
 
 
 # matplotlib 한글 표시 설정: 프로젝트의 NanumGothic 글꼴을 우선 사용합니다.
@@ -117,16 +117,19 @@ GALLERY_URLS = {
 
 FACTFULNESS_LENS_GUIDES = {
     "직선 본능 점검": {
-        "guide": "최근 흐름이 앞으로도 같은 속도로 계속된다고 단정하지 않고, 변화 속도와 꺾이는 구간을 확인합니다.",
-        "placeholder": "직선 본능 점검 관점으로 직접 작성해 보세요.",
+        "guide": "그래프가 내려가거나 올라간다고 해서 앞으로도 항상 같은 속도로 변한다고 생각하면 안 됩니다. 어느 시기에는 빠르게 변하고, 어느 시기에는 느리게 변했는지 함께 봅니다.",
+        "example": "예: 5세 미만 사망률은 1990년부터 2023년까지 전체적으로 줄어들었습니다. 하지만 1990년대와 2000년대에는 비교적 크게 줄어든 반면, 2015년 이후에는 줄어드는 폭이 작아졌습니다. 그래서 직선 함수 하나로 앞으로도 같은 속도로 계속 줄어든다고 말하기에는 한계가 있습니다. 이 함수는 전체적인 감소 방향은 보여 주지만, 시기별 변화 속도 차이까지 자세히 설명하지는 못합니다.",
+        "placeholder": "예: 5세 미만 사망률은 전체적으로 줄어들지만, 줄어드는 속도가 시기마다 다르므로 직선처럼 계속 같은 속도로 변한다고 보기에는 한계가 있습니다.",
     },
     "일반화 본능 점검": {
-        "guide": "소수의 사례만으로 전체를 대표한다고 단정하지 않고, 다양한 사례와 차이를 함께 살펴봅니다.",
-        "placeholder": "일반화 본능 점검 관점으로 직접 작성해 보세요.",
+        "guide": "하나의 데이터나 일부 기간만 보고 모든 나라, 모든 사람, 모든 시기에 똑같이 적용된다고 생각하면 안 됩니다. 데이터가 보여 주는 범위가 어디까지인지 확인합니다.",
+        "example": "예: 이 예시 데이터에서는 5세 미만 사망률이 줄어드는 모습을 볼 수 있습니다. 하지만 이 자료만 보고 모든 지역에서 같은 이유로, 같은 속도로 사망률이 줄었다고 말할 수는 없습니다. 의료 환경, 소득 수준, 전쟁이나 감염병 같은 상황에 따라 결과가 달라질 수 있기 때문입니다. 따라서 이 함수는 예시 데이터의 흐름을 이해하는 데 도움이 되지만, 모든 현실을 대표한다고 보기는 어렵습니다.",
+        "placeholder": "예: 이 데이터에서는 5세 미만 사망률이 줄어들지만, 지역이나 상황에 따라 다를 수 있으므로 모든 경우가 똑같다고 일반화하기에는 한계가 있습니다.",
     },
-    "간극 본능 점검": {
-        "guide": "잘 맞음과 맞지 않음을 둘로만 나누지 않고, 중간 정도의 차이와 구간별 차이를 함께 봅니다.",
-        "placeholder": "간극 본능 점검 관점으로 직접 작성해 보세요.",
+    "격차 본능 점검": {
+        "guide": "함수가 데이터를 '잘 맞춘다' 또는 '못 맞춘다'로만 나누지 않습니다. 어느 부분은 잘 맞고, 어느 부분은 차이가 나는지 구간별로 살펴봅니다.",
+        "example": "예: 5세 미만 사망률 데이터에서 직선 추세선은 전체적으로 감소하는 방향을 보여 줍니다. 하지만 실제 데이터와 함수값이 모든 해에서 똑같이 맞는 것은 아닙니다. 어떤 구간에서는 실제 값과 비슷하지만, 변화가 느려지는 구간에서는 차이가 커질 수 있습니다. 따라서 이 분석은 전체 흐름을 파악하는 데는 유용하지만, 특정 연도의 정확한 값을 설명하는 데에는 한계가 있습니다.",
+        "placeholder": "예: 직선 추세선은 전체 흐름은 보여 주지만, 어떤 구간은 잘 맞고 어떤 구간은 차이가 나므로 정확한 값을 모두 설명하기에는 한계가 있습니다.",
     },
 }
 
@@ -290,16 +293,26 @@ def apply_local_style():
             font-weight: 900;
         }
         .translation-general-formula {
-            background: #ffffff;
-            border: 1px solid #dbe7f3;
-            border-radius: 10px;
             font-family: "Times New Roman", "NanumGothic", serif;
             font-size: clamp(1.55rem, 2.7vw, 2.2rem);
             font-weight: 800;
             line-height: 1.4;
-            padding: 12px 14px;
             text-align: center;
             white-space: nowrap;
+        }
+        .formula-choice-wrap {
+            background: #ffffff;
+            border: 1px solid #dbe7f3;
+            border-radius: 10px;
+            margin-bottom: 8px;
+            min-height: 78px;
+            padding: 10px 12px;
+        }
+        .formula-choice-title {
+            color: #1565c0;
+            font-size: 0.86rem;
+            font-weight: 950;
+            margin-bottom: 5px;
         }
         .translation-token-coefficient {
             color: #ef6c00;
@@ -317,6 +330,7 @@ def apply_local_style():
             background: #ffffff;
             border: 1px solid #c8e6c9;
             border-radius: 10px;
+            min-height: 78px;
             padding: 10px 12px;
             margin-bottom: 8px;
         }
@@ -393,6 +407,22 @@ def apply_local_style():
         }
         .radical-control-label.q .token {
             background: #2e7d32;
+        }
+        .st-key-d8_u_coefficient_sign_plus_btn button,
+        .st-key-d8_u_coefficient_sign_minus_btn button,
+        .st-key-d8_practice_slope_sign_plus_btn button,
+        .st-key-d8_practice_slope_sign_minus_btn button {
+            border-radius: 999px;
+            min-height: 46px;
+            font-weight: 950;
+        }
+        .st-key-d8_u_coefficient_sign_plus_btn button p,
+        .st-key-d8_u_coefficient_sign_minus_btn button p,
+        .st-key-d8_practice_slope_sign_plus_btn button p,
+        .st-key-d8_practice_slope_sign_minus_btn button p {
+            font-size: 1.05rem;
+            font-weight: 950;
+            margin: 0;
         }
         .st-key-d8_practice_translation_observe_start button {
             background: linear-gradient(135deg, #1565c0 0%, #26a69a 100%);
@@ -861,8 +891,7 @@ def get_parameters(x_data, y_data):
             unsafe_allow_html=True,
         )
     with formula_preview_col:
-        st.markdown("**일반화된 함수**")
-        render_translation_general_formula(function_type)
+        render_translation_general_formula(function_type, "일반화된 함수")
     defaults = fit_default_params(x_data, y_data, function_type)
     coefficient_default = float(defaults.get("coefficient", 1.0))
     coefficient_abs = abs(coefficient_default)
@@ -887,29 +916,12 @@ def get_parameters(x_data, y_data):
         coefficient_token = "m"
         coefficient_name = "기울기 부호"
         render_radical_control_label("a", coefficient_token, coefficient_name)
-        st.session_state.setdefault("d8_u_coefficient_sign", "+" if coefficient_default >= 0 else "-")
-        if st.session_state["d8_u_coefficient_sign"] not in ["+", "-"]:
-            st.session_state["d8_u_coefficient_sign"] = "+" if coefficient_default >= 0 else "-"
-        sign_cols = st.columns(2, gap="small")
-        with sign_cols[0]:
-            if st.button(
-                "+",
-                key="d8_u_coefficient_sign_plus",
-                type="primary" if st.session_state["d8_u_coefficient_sign"] == "+" else "secondary",
-                use_container_width=True,
-                help="직선은 오른쪽으로 갈수록 증가합니다.",
-            ):
-                st.session_state["d8_u_coefficient_sign"] = "+"
-        with sign_cols[1]:
-            if st.button(
-                "-",
-                key="d8_u_coefficient_sign_minus",
-                type="primary" if st.session_state["d8_u_coefficient_sign"] == "-" else "secondary",
-                use_container_width=True,
-                help="직선은 오른쪽으로 갈수록 감소합니다.",
-            ):
-                st.session_state["d8_u_coefficient_sign"] = "-"
-        selected_coefficient_sign = st.session_state["d8_u_coefficient_sign"]
+        selected_coefficient_sign = render_slope_sign_buttons(
+            "d8_u_coefficient_sign",
+            "+" if coefficient_default >= 0 else "-",
+            plus_help="직선은 오른쪽으로 갈수록 증가합니다.",
+            minus_help="직선은 오른쪽으로 갈수록 감소합니다.",
+        )
         sign_multiplier = 1.0 if selected_coefficient_sign == "+" else -1.0
         params["coefficient"] = sign_multiplier * coefficient_abs
         st.caption(f"최적화된 |{coefficient_token}|={coefficient_abs:.3g}, 현재 {coefficient_token}={params['coefficient']:.3g}")
@@ -965,10 +977,6 @@ def automatic_fit_reason(actual_y, predicted_y, valid_mask, params=None, x_label
         f"평행이동을 이용해 직선 추세선을 실제 데이터에 가깝게 조정한 결과, "
         f"앞으로도 {direction}하는 경향으로 예측했습니다. "
     )
-
-
-def build_function_text(params):
-    return f"f(x) = {function_latex(params).replace('f(x)=', '')}"
 
 
 def render_estimated_function_strip(params):
@@ -1081,17 +1089,16 @@ def translated_practice_values(x_values, function_type, sign_symbol, coefficient
 def render_translation_observation_result(function_type, sign_symbol, coefficient, p_value, q_value):
     expander_is_open = bool(st.session_state.get("d8_practice_observation_expanded"))
     with st.expander(":blue[관찰 개념 정리하기]", expanded=expander_is_open):
-        answer_1 = st.radio(
+        observation_options = ["그래프의 위치", "방정식", "기울기"]
+        answer_1 = st.multiselect(
             "1. 평행이동하면 변하는 것은 무엇인가요?",
-            ["위치", "도형의 모양"],
-            key="d8_practice_observation_choice_1",
-            horizontal=True,
+            observation_options,
+            key="d8_practice_observation_multi_choice_1",
         )
-        answer_2 = st.radio(
+        answer_2 = st.multiselect(
             "2. 평행이동해도 변하지 않는 것은 무엇인가요?",
-            ["도형의 모양", "위치"],
-            key="d8_practice_observation_choice_2",
-            horizontal=True,
+            observation_options,
+            key="d8_practice_observation_multi_choice_2",
         )
         if st.button(
             "정답 확인",
@@ -1101,14 +1108,14 @@ def render_translation_observation_result(function_type, sign_symbol, coefficien
             st.session_state["d8_practice_observation_expanded"] = True
             st.session_state["d8_practice_observation_checked"] = True
         if st.session_state.get("d8_practice_observation_checked"):
-            if answer_1 == "위치":
-                st.success("1번 정답입니다. 평행이동하면 위치가 변합니다.")
+            if set(answer_1) == {"그래프의 위치", "방정식"}:
+                st.success("1번 정답입니다. 평행이동하면 그래프 위치와 방정식이 변합니다.")
             else:
-                st.error("1번은 위치입니다.")
-            if answer_2 == "도형의 모양":
-                st.success("2번 정답입니다. 도형의 모양은 변하지 않습니다.")
+                st.error("1번은 그래프 위치와 방정식입니다.")
+            if set(answer_2) == {"기울기"}:
+                st.success("2번 정답입니다. 평행이동해도 기울기는 변하지 않습니다.")
             else:
-                st.error("2번은 도형의 모양입니다.")
+                st.error("2번은 기울기입니다.")
 
 
 def animation_steps(start, end, step=0.5):
@@ -1258,7 +1265,7 @@ def draw_translated_practice_graph(function_type, sign_symbol, coefficient, p_va
     ax.minorticks_on()
     ax.grid(True, which="minor", color="#e7eef4", linewidth=0.55, alpha=0.75)
     emphasize_xy_axes(ax)
-    handles, labels = ax.get_legend_handles_labels()
+    handles, _ = ax.get_legend_handles_labels()
     if handles:
         ax.legend(
             loc="upper left",
@@ -1301,13 +1308,43 @@ def render_radical_control_label(kind, token, text):
     )
 
 
-def render_translation_general_formula(function_type):
+def render_slope_sign_buttons(state_key, default="+", plus_help=None, minus_help=None):
+    st.session_state.setdefault(state_key, default)
+    if st.session_state[state_key] not in ["+", "-"]:
+        st.session_state[state_key] = default
+
+    sign_cols = st.columns(2, gap="small")
+    with sign_cols[0]:
+        if st.button(
+            "+(양수)",
+            key=f"{state_key}_plus_btn",
+            type="primary" if st.session_state[state_key] == "+" else "secondary",
+            use_container_width=True,
+            help=plus_help,
+        ):
+            st.session_state[state_key] = "+"
+    with sign_cols[1]:
+        if st.button(
+            "-(음수)",
+            key=f"{state_key}_minus_btn",
+            type="primary" if st.session_state[state_key] == "-" else "secondary",
+            use_container_width=True,
+            help=minus_help,
+        ):
+            st.session_state[state_key] = "-"
+    return st.session_state[state_key]
+
+
+def render_translation_general_formula(function_type, title="평행이동 일반형"):
     coefficient_token = "m" if function_type == "직선" else "a"
     power_html = "" if function_type == "직선" else "<sup>2</sup>"
     st.markdown(
         f"""
-        <div class="translation-general-formula">
-            y=<span class="translation-token-coefficient">{coefficient_token}</span>(x-<span class="translation-token-p">p</span>){power_html}+<span class="translation-token-q">q</span>
+        <div class="formula-choice-wrap">
+            <div class="formula-choice-title">{html.escape(title)}</div>
+            <div class="translation-general-formula">
+                y=<span class="translation-token-coefficient">{coefficient_token}</span>(x-<span class="translation-token-p">p</span>){power_html}+<span class="translation-token-q">q</span>
+            </div>
         </div>
         """,
         unsafe_allow_html=True,
@@ -1335,35 +1372,17 @@ def render_function_graph_practice():
             unsafe_allow_html=True,
         )
     with selected_formula_col:
-        st.markdown("**평행이동 일반형**")
         render_translation_general_formula(function_type)
     coefficient_token = "m" if function_type == "직선" else "a"
     coefficient_col, p_col, q_col = st.columns(3, gap="small")
     with coefficient_col:
         render_radical_control_label("a", coefficient_token, "기울기 부호")
-        st.session_state.setdefault("d8_practice_slope_sign", "+")
-        if st.session_state["d8_practice_slope_sign"] not in ["+", "-"]:
-            st.session_state["d8_practice_slope_sign"] = "+"
-        sign_cols = st.columns(2, gap="small")
-        with sign_cols[0]:
-            if st.button(
-                "+",
-                key="d8_practice_slope_sign_plus",
-                type="primary" if st.session_state["d8_practice_slope_sign"] == "+" else "secondary",
-                use_container_width=True,
-                help="+이면 m=1입니다.",
-            ):
-                st.session_state["d8_practice_slope_sign"] = "+"
-        with sign_cols[1]:
-            if st.button(
-                "-",
-                key="d8_practice_slope_sign_minus",
-                type="primary" if st.session_state["d8_practice_slope_sign"] == "-" else "secondary",
-                use_container_width=True,
-                help="-이면 m=-1입니다.",
-            ):
-                st.session_state["d8_practice_slope_sign"] = "-"
-        selected_slope_sign = st.session_state["d8_practice_slope_sign"]
+        selected_slope_sign = render_slope_sign_buttons(
+            "d8_practice_slope_sign",
+            "+",
+            plus_help="+이면 m=1입니다.",
+            minus_help="-이면 m=-1입니다.",
+        )
         sign_symbol = selected_slope_sign
         coefficient_signed = 1.0 if sign_symbol == "+" else -1.0
         coefficient = 1.0
@@ -1419,12 +1438,9 @@ def render_function_graph_practice():
     )
     if st.session_state.get("d8_practice_observation_context") != observation_context:
         st.session_state["d8_practice_observation_context"] = observation_context
-        for answer_key in [
-            "d8_practice_observation_answer_1",
-            "d8_practice_observation_answer_2",
-            "d8_practice_observation_answer_3",
-        ]:
-            st.session_state[answer_key] = False
+        st.session_state["d8_practice_observation_multi_choice_1"] = []
+        st.session_state["d8_practice_observation_multi_choice_2"] = []
+        st.session_state["d8_practice_observation_checked"] = False
         st.session_state["d8_practice_observation_expanded"] = False
     st.markdown(
         """
@@ -1752,7 +1768,7 @@ def make_plot(
     ax.set_ylabel(y_label)
     ax.grid(True, alpha=0.25)
     emphasize_xy_axes(ax)
-    handles, labels = ax.get_legend_handles_labels()
+    handles, _ = ax.get_legend_handles_labels()
     if handles:
         ax.legend(loc="best", fontsize=13, markerscale=1.35, framealpha=0.95, borderpad=0.8, labelspacing=0.65)
     fig.tight_layout()
@@ -1854,40 +1870,44 @@ def render_u_attempt_tracker(current_params, current_loss):
 
 CARDNEWS_THEMES = {
     "블루": {
-        "bg": "#f7fafc",
+        "bg1": "#eef4ff",
+        "bg2": "#f7fbff",
         "panel": "#ffffff",
         "primary": "#1d4ed8",
         "secondary": "#0f766e",
-        "accent": "#eff6ff",
+        "accent": "#e8f1ff",
         "text": "#111827",
-        "muted": "#4b5563",
+        "muted": "#5b6472",
     },
     "그린": {
-        "bg": "#f7fdf9",
+        "bg1": "#eafaf0",
+        "bg2": "#f6fffa",
         "panel": "#ffffff",
         "primary": "#047857",
         "secondary": "#2563eb",
-        "accent": "#dcfce7",
+        "accent": "#e3f9ec",
         "text": "#10231c",
-        "muted": "#3f5f52",
+        "muted": "#4c6259",
     },
     "오렌지": {
-        "bg": "#fffaf2",
+        "bg1": "#fff3e6",
+        "bg2": "#fffaf3",
         "panel": "#ffffff",
         "primary": "#c2410c",
         "secondary": "#7c3aed",
-        "accent": "#ffedd5",
+        "accent": "#ffedd9",
         "text": "#2f2a24",
-        "muted": "#6b5f55",
+        "muted": "#7a6a5c",
     },
     "핑크": {
-        "bg": "#fff7fb",
+        "bg1": "#ffeef7",
+        "bg2": "#fff7fb",
         "panel": "#ffffff",
         "primary": "#be185d",
         "secondary": "#7e22ce",
-        "accent": "#fce7f3",
+        "accent": "#fbe3f0",
         "text": "#2b1621",
-        "muted": "#6b4b5b",
+        "muted": "#7a5468",
     },
 }
 
@@ -1899,10 +1919,13 @@ def hex_to_rgb(hex_color):
 
 @lru_cache(maxsize=16)
 def get_card_font(size, bold=False):
+    bold_path = os.path.join(BASE_DIR, "font", "NanumGothicBold.ttf")
+    font_path = bold_path if bold and os.path.exists(bold_path) else FONT_PATH
     if os.path.exists(FONT_PATH):
-        return ImageFont.truetype(FONT_PATH, size=size)
+        return ImageFont.truetype(font_path, size=size)
     try:
-        return ImageFont.truetype("arial.ttf", size=size) if os.name == "nt" else ImageFont.load_default()
+        fallback = "malgun.ttf" if os.name == "nt" else "DejaVuSans.ttf"
+        return ImageFont.truetype(fallback, size=size)
     except Exception:
         return ImageFont.load_default()
 
@@ -1911,20 +1934,60 @@ def draw_rounded(draw, xy, radius, fill, outline=None, width=1):
     draw.rounded_rectangle(xy, radius=radius, fill=fill, outline=outline, width=width)
 
 
+def draw_card_text(draw, xy, text, font, fill, bold=False):
+    stroke_width = 1 if bold else 0
+    draw.text(xy, text, font=font, fill=fill, stroke_width=stroke_width, stroke_fill=fill)
+
+
 def wrap_text_to_width(draw, text, font, max_width, max_lines=None):
+    text = str(text).strip()
+    if not text or max_width <= 0:
+        return []
+
+    def text_width(value):
+        bbox = draw.textbbox((0, 0), value, font=font)
+        return bbox[2] - bbox[0]
+
+    def ellipsize(value):
+        value = value.rstrip()
+        while value and text_width(value + "…") > max_width:
+            value = value[:-1].rstrip()
+        return value + "…" if value else "…"
+
+    def split_long_word(word):
+        pieces = []
+        current = ""
+        for char in word:
+            candidate = current + char
+            if not current or text_width(candidate) <= max_width:
+                current = candidate
+            else:
+                pieces.append(current)
+                current = char
+        if current:
+            pieces.append(current)
+        return pieces
+
     words = []
-    for part in str(text).replace("\n", " \n ").split(" "):
-        if part:
-            words.append(part)
+    for paragraph_index, paragraph in enumerate(text.splitlines()):
+        if paragraph_index:
+            words.append("\n")
+        for part in paragraph.split():
+            if text_width(part) > max_width:
+                words.extend(split_long_word(part))
+            else:
+                words.append(part)
+
     lines = []
     current = ""
     for word in words:
         if word == "\n":
-            lines.append(current.strip())
+            if current.strip():
+                lines.append(current.strip())
             current = ""
             continue
         candidate = word if not current else f"{current} {word}"
-        if draw.textbbox((0, 0), candidate, font=font)[2] <= max_width:
+        if text_width(candidate) <= max_width:
             current = candidate
         else:
             if current:
@@ -1932,21 +1995,22 @@ def wrap_text_to_width(draw, text, font, max_width, max_lines=None):
             current = word
     if current:
         lines.append(current)
-    if max_lines and len(lines) > max_lines:
+    if max_lines and lines and len(lines) > max_lines:
         lines = lines[:max_lines]
-        while draw.textbbox((0, 0), lines[-1] + "...", font=font)[2] > max_width and len(lines[-1]) > 1:
-            lines[-1] = lines[-1][:-1]
-        lines[-1] = lines[-1].rstrip() + "..."
+        lines[-1] = ellipsize(lines[-1])
     return lines
 
 
-def draw_wrapped_text(draw, xy, text, font, fill, max_width, line_gap=8, max_lines=None):
+def draw_wrapped_text(draw, xy, text, font, fill, max_width, line_gap=8, max_lines=None, bold=False, align="left"):
     x, y = xy
     lines = wrap_text_to_width(draw, text, font, max_width, max_lines=max_lines)
+    line_bbox = draw.textbbox((0, 0), "가", font=font)
+    line_height = line_bbox[3] - line_bbox[1]
     for line in lines:
-        draw.text((x, y), line, font=font, fill=fill)
-        bbox = draw.textbbox((x, y), line, font=font)
-        y += (bbox[3] - bbox[1]) + line_gap
+        line_width = draw.textbbox((0, 0), line, font=font)[2]
+        line_x = x + (max_width - line_width) // 2 if align == "center" else x
+        draw_card_text(draw, (line_x, y), line, font, fill, bold=bold)
+        y += line_height + line_gap
     return y
 
 
@@ -1979,88 +2043,163 @@ def make_cardnews_graph_image(x_data, y_data, params, new_x, predicted_y, x_labe
         plt.close(fig)
 
 
-def paste_contained(base, image, box):
+def trim_image_whitespace(image, threshold=8, padding=8):
+    rgb_image = image.convert("RGB")
+    background = Image.new("RGB", rgb_image.size, rgb_image.getpixel((0, 0)))
+    diff = ImageChops.difference(rgb_image, background)
+    mask = diff.point(lambda value: 255 if value > threshold else 0)
+    bbox = mask.getbbox()
+    if not bbox:
+        return image
+    x1, y1, x2, y2 = bbox
+    x1 = max(0, x1 - padding)
+    y1 = max(0, y1 - padding)
+    x2 = min(image.width, x2 + padding)
+    y2 = min(image.height, y2 + padding)
+    return image.crop((x1, y1, x2, y2))
+
+
+def paste_contained(base, image, box, trim=False):
     x1, y1, x2, y2 = box
     width, height = x2 - x1, y2 - y1
+    if width <= 0 or height <= 0:
+        return
     image = image.copy()
+    if trim:
+        image = trim_image_whitespace(image)
     image.thumbnail((width, height), Image.LANCZOS)
     px = x1 + (width - image.width) // 2
     py = y1 + (height - image.height) // 2
-    base.paste(image, (px, py))
+    if image.mode == "RGBA":
+        base.paste(image, (px, py), image)
+    else:
+        base.paste(image, (px, py))
 
 
 def make_theme_background(theme_name, theme):
-    image = Image.new("RGB", (1080, 1080), hex_to_rgb(theme["bg"]))
+    width, height = 1080, 1100
+    top = hex_to_rgb(theme["bg1"])
+    bottom = hex_to_rgb(theme["bg2"])
+    image = Image.new("RGB", (width, height), top)
+    draw = ImageDraw.Draw(image)
+    for y in range(height):
+        ratio = y / (height - 1)
+        color = tuple(round(top[index] * (1 - ratio) + bottom[index] * ratio) for index in range(3))
+        draw.line((0, y, width, y), fill=color)
+
     draw = ImageDraw.Draw(image, "RGBA")
-    grid = (*hex_to_rgb(theme["primary"]), 18)
-    line = (*hex_to_rgb(theme["secondary"]), 42)
-    for x in range(90, 1030, 90):
-        draw.line((x, 90, x, 990), fill=grid, width=2)
-    for y in range(90, 1030, 90):
-        draw.line((90, y, 990, y), fill=grid, width=2)
-    draw.line((120, 815, 290, 760, 455, 790, 640, 690, 875, 625), fill=line, width=14)
-    return image.filter(ImageFilter.GaussianBlur(8))
+    primary = hex_to_rgb(theme["primary"])
+    for xy in [(-140, -145, 270, 265), (850, 300, 1240, 690), (-160, 850, 255, 1265)]:
+        draw.ellipse(xy, fill=(*primary, 23))
+    return image
 
 
-def blend_background(card, background, alpha=0.38):
-    return Image.blend(card, background, alpha)
+def draw_soft_shadow(base, xy, radius, offset=(0, 10), blur=18, alpha=44):
+    shadow = Image.new("RGBA", base.size, (0, 0, 0, 0))
+    shadow_draw = ImageDraw.Draw(shadow, "RGBA")
+    x1, y1, x2, y2 = xy
+    ox, oy = offset
+    shadow_draw.rounded_rectangle((x1 + ox, y1 + oy, x2 + ox, y2 + oy), radius=radius, fill=(0, 0, 0, alpha))
+    shadow = shadow.filter(ImageFilter.GaussianBlur(blur))
+    base.alpha_composite(shadow)
 
 
 def create_cardnews_images(theme_name, context, graph_image):
     theme = CARDNEWS_THEMES[theme_name]
-    bg = hex_to_rgb(theme["bg"])
     panel = hex_to_rgb(theme["panel"])
     primary = hex_to_rgb(theme["primary"])
     secondary = hex_to_rgb(theme["secondary"])
     accent = hex_to_rgb(theme["accent"])
     text = hex_to_rgb(theme["text"])
-    muted = hex_to_rgb(theme["muted"])
 
-    title_font = get_card_font(58)
-    subtitle_font = get_card_font(32)
-    hero_font = get_card_font(42)
-    big_hero_font = get_card_font(48)
-    formula_title_font = get_card_font(28)
-    trend_font = get_card_font(34)
-    body_font = get_card_font(30)
-    small_font = get_card_font(23)
-    chip_font = get_card_font(24)
+    title_font = get_card_font(58, bold=True)
+    subtitle_font = get_card_font(24, bold=True)
+    section_title_font = get_card_font(24, bold=True)
+    body_font = get_card_font(25, bold=True)
+    interpretation_font = get_card_font(24, bold=True)
+    small_font = get_card_font(20)
+    chip_font = get_card_font(21, bold=True)
+    footer_font = get_card_font(24, bold=True)
 
     cards = []
     group = context["group"]
     dataset_name = context["dataset_name"]
-    y_label = context["y_label"]
+    y_label = clean_text(context.get("y_label", "예측값"), "예측값")
     life_view = clean_text(context["life_view"])
     future_question = clean_text(context["future_question"])
     trend_text = context["trend_text"]
-    function_text = context["function_text"]
     function_kind = context.get("function_kind", "함수")
     fit_reason = clean_text(context.get("fit_reason", ""))
 
-    theme_bg = make_theme_background(theme_name, theme)
+    card1 = make_theme_background(theme_name, theme).convert("RGBA")
+    draw_soft_shadow(card1, (46, 46, 1034, 1054), 34, offset=(0, 14), blur=24, alpha=38)
 
-    card1 = blend_background(Image.new("RGB", (1080, 1080), bg), theme_bg)
     d1 = ImageDraw.Draw(card1, "RGBA")
-    draw_rounded(d1, (54, 50, 1026, 1030), 26, (*panel, 232), outline=primary, width=3)
-    d1.rounded_rectangle((54, 50, 78, 1030), radius=12, fill=(*primary, 210))
-    d1.text((84, 110), "Connect to the World", font=subtitle_font, fill=muted)
-    d1.text((84, 155), "CARD NEWS", font=title_font, fill=primary)
-    draw_rounded(d1, (84, 250, 996, 378), 18, (*accent, 245), outline=primary, width=2)
-    d1.text((112, 272), "데이터가 보여주는 삶의 모습", font=chip_font, fill=primary)
-    draw_wrapped_text(d1, (112, 308), life_view, body_font, text, 840, line_gap=8, max_lines=2)
-    draw_rounded(d1, (84, 405, 720, 840), 18, (255, 255, 255, 238), outline=hex_to_rgb("#dbe7f3"), width=2)
-    paste_contained(card1, graph_image, (108, 434, 696, 812))
-    draw_rounded(d1, (722, 405, 996, 840), 18, (*hex_to_rgb("#ffffff"), 246), outline=secondary, width=2)
-    d1.text((748, 445), "그래프 해석", font=formula_title_font, fill=secondary)
-    draw_wrapped_text(d1, (748, 492), f"{function_kind}\n{trend_text}", small_font, text, 220, line_gap=10, max_lines=2)
-    d1.line((748, 600, 970, 600), fill=(*hex_to_rgb("#dbe7f3"), 255), width=3)
-    d1.text((748, 626), "분석의 한계", font=chip_font, fill=secondary)
-    draw_wrapped_text(d1, (748, 664), fit_reason, small_font, text, 220, line_gap=7, max_lines=6)
-    draw_rounded(d1, (84, 850, 996, 965), 18, (*accent, 245), outline=secondary, width=2)
-    d1.text((112, 872), "깊은 질문", font=chip_font, fill=secondary)
-    draw_wrapped_text(d1, (112, 908), future_question, body_font, text, 840, line_gap=8, max_lines=2)
-    d1.text((84, 988), f"{group} · {dataset_name}", font=small_font, fill=muted)
-    cards.append(card1)
+    draw_rounded(d1, (46, 46, 1034, 1054), 34, (*panel, 255), outline=primary, width=2)
+    d1.rounded_rectangle((46, 86, 68, 1014), radius=20, fill=(*primary, 255))
+
+    left, right = 96, 984
+    draw_card_text(d1, (left, 94), "Connect to the World", subtitle_font, secondary, bold=True)
+    draw_card_text(d1, (left, 124), "CARD NEWS", title_font, primary, bold=True)
+    d1.line((left, 213, right, 213), fill=(*primary, 58), width=3)
+
+    box1 = (left, 238, right, 374)
+    draw_rounded(d1, box1, 20, (*accent, 255), outline=primary, width=2)
+    d1.rounded_rectangle((122, 258, 452, 292), radius=17, fill=(*primary, 255))
+    draw_card_text(d1, (142, 263), "데이터가 보여주는 삶의 모습", chip_font, (255, 255, 255), bold=True)
+    draw_wrapped_text(d1, (122, 302), life_view, body_font, text, 824, line_gap=8, max_lines=2, bold=True)
+
+    graph_panel = (left, 396, 632, 796)
+    analysis_panel = (654, 396, right, 796)
+    for panel_box in (graph_panel, analysis_panel):
+        draw_soft_shadow(card1, panel_box, 22, offset=(0, 8), blur=14, alpha=28)
+        d1 = ImageDraw.Draw(card1, "RGBA")
+        draw_rounded(d1, panel_box, 22, (255, 255, 255, 255), outline=(*primary, 36), width=1)
+
+    paste_contained(card1, graph_image, (104, 404, 624, 788), trim=True)
+
+    d1.rectangle((662, 433, 676, 447), fill=secondary)
+    draw_card_text(d1, (686, 426), "그래프 해석", section_title_font, secondary, bold=True)
+    interpretation_text = f"{function_kind} 추세선\n{trend_text}"
+    draw_wrapped_text(
+        d1,
+        (662, 474),
+        interpretation_text,
+        interpretation_font,
+        text,
+        292,
+        line_gap=9,
+        max_lines=2,
+        bold=True,
+        align="center",
+    )
+    d1.line((662, 555, 956, 555), fill=(*primary, 44), width=2)
+    d1.rectangle((662, 584, 676, 598), fill=secondary)
+    draw_card_text(d1, (686, 577), "분석의 한계", section_title_font, secondary, bold=True)
+    draw_wrapped_text(d1, (662, 622), fit_reason, small_font, text, 292, line_gap=7, max_lines=7)
+
+    question_box = (left, 818, right, 950)
+    draw_rounded(d1, question_box, 20, (*accent, 255), outline=secondary, width=2)
+    d1.rounded_rectangle((122, 838, 262, 872), radius=17, fill=(*secondary, 255))
+    draw_card_text(d1, (146, 843), "깊은 질문", chip_font, (255, 255, 255), bold=True)
+    draw_wrapped_text(d1, (122, 884), future_question, body_font, text, 824, line_gap=8, max_lines=2, bold=True)
+
+    footer = (78, 970, 1002, 1028)
+    d1.rounded_rectangle(footer, radius=22, fill=(*primary, 255))
+    footer_text = f"{group} · {dataset_name} · 예측: {y_label}"
+    draw_wrapped_text(
+        d1,
+        (112, 987),
+        footer_text,
+        footer_font,
+        (255, 255, 255),
+        846,
+        line_gap=4,
+        max_lines=1,
+        bold=True,
+        align="center",
+    )
+    cards.append(card1.convert("RGB"))
 
     return cards
 
@@ -2085,7 +2224,7 @@ def render_link_button(url, label, gradient):
 def run():
     apply_local_style()
     page_banner(
-        "데이터에서 삶을 읽고 함수 추세선으로 미래 예측하기",
+        "(주제 3-2) 데이터로 미래 삶의 변화를 예측할 수 있을까?",
         "",
         "",
     )
@@ -2099,6 +2238,8 @@ def run():
         st.session_state["d8_new_x"] = 2027.0
         st.session_state["d8_new_x_default_year"] = 2027
     st.session_state.setdefault("d8_new_x", default_prediction_x(x_data, x_label))
+
+    render_learning_goal_box()
 
     st.markdown("<hr style='border: 2px solid #2196F3;'>", unsafe_allow_html=True)
 
@@ -2135,8 +2276,6 @@ Quick, Draw! AI가 그림을 어떻게 예측하는지 봅시다.
 """
                 )
                 st.link_button("Quick, Draw! 열기", "https://quickdraw.withgoogle.com/?locale=ko", use_container_width=True)
-
-            render_learning_goal_box()
 
             class_col, group_col = st.columns([0.45, 0.55])
             with class_col:
@@ -2239,7 +2378,7 @@ Quick, Draw! AI가 그림을 어떻게 예측하는지 봅시다.
                     st.session_state["d8_life_direction"] = "감소한다"
                 if st.session_state.get("d8_life_direction") not in life_direction_options:
                     st.session_state["d8_life_direction"] = "증가한다"
-                selected_life_direction = st.radio(
+                st.radio(
                     f"시간에 따라 출력 변수 y({y_label})가 어떻게 변할 것으로 예상하나요?",
                     life_direction_options,
                     key="d8_life_direction",
@@ -2494,8 +2633,6 @@ Quick, Draw! AI가 그림을 어떻게 예측하는지 봅시다.
                     placeholder="예: 모든 아동이 건강하게 자라도록 무엇을 먼저 지원해야 할까?",
                 )
 
-            future_text = prediction_trend_sentence(params)
-
             st.markdown(pretty_title("3. 카드뉴스 직접 제작", "#e3f2fd", "#bbdefb"), unsafe_allow_html=True)
             render_stage_card(
                 "발표용 카드뉴스 1장이 완성됩니다",
@@ -2529,8 +2666,6 @@ Quick, Draw! AI가 그림을 어떻게 예측하는지 봅시다.
                 "life_view": life_view,
                 "future_question": future_question.strip(),
                 "trend_text": simple_trend_label(params, float(np.min(x_data)), new_x_for_card),
-                "function_text": build_function_text(params),
-                "function_latex": function_latex(params).replace("f(x)=", "y="),
                 "function_kind": "직선",
                 "fit_reason": card_fit_reason_text,
             }
