@@ -2564,17 +2564,8 @@ Quick, Draw! AI가 그림을 어떻게 예측하는지 봅시다.
             params = fit_default_params(x_data, y_data, "직선")
             st.session_state["d8_params"] = params
         predicted_data_y, valid_data_mask = calculate_function(x_data, params)
-        loss, _ = calculate_loss(y_data, predicted_data_y, valid_data_mask)
         predicted_y = predict_value(float(st.session_state.get("d8_new_x", max(x_data))), params)
         auto_fit_reason_text = automatic_fit_reason(y_data, predicted_data_y, valid_data_mask, params, x_label, y_label)
-        u_attempt_context = (dataset_name, x_label, y_label, "직선")
-        u_attempts = st.session_state.get("d8_u_attempts", [])
-        u_attempt_losses = [
-            attempt["loss"]
-            for attempt in u_attempts
-            if attempt.get("loss") is not None
-        ] if st.session_state.get("d8_u_attempt_context") == u_attempt_context else []
-        presentation_loss = min(u_attempt_losses) if u_attempt_losses else loss
 
         stage_intro(
             "R.E 데이터 속 삶과 미래 고민하기",
@@ -2706,9 +2697,9 @@ Quick, Draw! AI가 그림을 어떻게 예측하는지 봅시다.
                                 🎤발표 도움말
                             </div>
                             <div style="font-size:1rem;font-weight:850;">
-                                <b>① 추세선 판단</b><br>
+                                <b>① 추세선 판단 및 한계</b><br>
                                 우리는 <b>{html.escape(str(x_label))}이/가 달라질 때 {html.escape(str(y_label))}의 변화</b>를 살펴보았습니다.<br>
-                                데이터는 <b>{presentation_direction}</b>하는 경향을 보였고, <b>손실값 {format_optional_number(presentation_loss)}</b>이 작은 추세선을 선택했습니다.<br><br>
+                                데이터는 <b>{presentation_direction}</b>하는 경향을 보였지만, 데이터 분석에서 <b>{html.escape(fit_reason_text)}</b> 한계가 있습니다.<br><br>
                                 <b>② 미래와 질문</b><br>
                                 예측 결과를 통해 <b>{html.escape(presentation_life)}</b>한 미래의 삶의 모습을 생각했습니다.<br>
                                 우리 모둠의 깊은 질문은 <b>“{html.escape(presentation_question)}?”</b>입니다.<br>
