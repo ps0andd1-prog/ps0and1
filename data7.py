@@ -1,4 +1,4 @@
-# 실행 명령: streamlit run data7.py
+﻿# 실행 명령: streamlit run data7.py
 
 import html
 import io
